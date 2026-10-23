@@ -1,0 +1,609 @@
+<!DOCTYPE html><html class="h-full" lang="en"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0" name="viewport"><meta content="web_dashboard" name="shell-type"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@600;700&amp;display=swap" rel="stylesheet"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"error-container":"#ffdad6","on-tertiary-fixed-variant":"#653e00","surface":"#f8f9ff","on-primary-fixed":"#00201d","secondary-container":"#dae2fd","tertiary-fixed-dim":"#ffb95f","on-primary":"#ffffff","surface-variant":"#d3e4fe","secondary":"#565e74","inverse-primary":"#6bd8cb","on-tertiary-container":"#fffbff","on-surface":"#0b1c30","primary-container":"#008378","on-background":"#0b1c30","secondary-fixed":"#dae2fd","primary-fixed-dim":"#6bd8cb","surface-container-high":"#dce9ff","tertiary-fixed":"#ffddb8","outline-variant":"#bcc9c6","on-secondary":"#ffffff","on-error-container":"#93000a","tertiary-container":"#a36700","outline":"#6d7a77","inverse-surface":"#213145","primary":"#00685f","surface-container":"#e5eeff","on-secondary-fixed-variant":"#3f465c","surface-dim":"#cbdbf5","secondary-fixed-dim":"#bec6e0","on-tertiary-fixed":"#2a1700","error":"#ba1a1a","on-error":"#ffffff","on-secondary-fixed":"#131b2e","on-tertiary":"#ffffff","inverse-on-surface":"#eaf1ff","on-primary-fixed-variant":"#005049","surface-container-low":"#eff4ff","background":"#f8f9ff","on-surface-variant":"#3d4947","surface-container-highest":"#d3e4fe","tertiary":"#825100","surface-bright":"#f8f9ff","on-secondary-container":"#5c647a","on-primary-container":"#f4fffc","surface-tint":"#006a61","surface-container-lowest":"#ffffff","primary-fixed":"#89f5e7"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-lg":"1.25rem","margin-lg":"2rem","gutter":"1rem","gutter-lg":"1.5rem","space-xl":"2rem","space-md":"0.75rem","space-sm":"0.5rem","margin-md":"1.5rem","margin":"1rem","space-xs":"0.25rem"},"fontFamily":{"headline-lg":["Plus Jakarta Sans"],"body-lg":["Inter"],"data-mono":["Inter"],"label-sm":["Inter"],"headline-xl":["Plus Jakarta Sans"],"headline-xl-mobile":["Plus Jakarta Sans"],"headline-sm":["Plus Jakarta Sans"],"label-lg":["Inter"],"body-md":["Inter"],"body-sm":["Inter"],"headline-md":["Plus Jakarta Sans"],"label-md":["Inter"]},"fontSize":{"headline-lg":["24px",{"lineHeight":"32px","fontWeight":"600"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"data-mono":["13px",{"lineHeight":"18px","fontWeight":"500"}],"label-sm":["11px",{"lineHeight":"14px","fontWeight":"600"}],"headline-xl":["32px",{"lineHeight":"40px","fontWeight":"700"}],"headline-xl-mobile":["26px",{"lineHeight":"34px","fontWeight":"700"}],"headline-sm":["16px",{"lineHeight":"24px","fontWeight":"600"}],"label-lg":["14px",{"lineHeight":"20px","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"body-sm":["12px",{"lineHeight":"16px","fontWeight":"400"}],"headline-md":["20px",{"lineHeight":"28px","fontWeight":"600"}],"label-md":["12px",{"lineHeight":"16px","fontWeight":"500"}]}}}}</script></head><body class="bg-surface font-body-md text-on-surface antialiased min-h-screen"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col flex-1 overflow-y-auto"><div class="h-16 px-space-lg flex items-center gap-space-md"><img alt="AICTE Seal Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UjfjNnben5NBXazyV24TbumP8_Ow6FCEIIDN8VVTZUAGN3S4-dk1VVNRDXOxHkixAycrh3KFQdhpGPpqOqnjL7qkDKqqVtb6CyzTPy1R-3xWRlKi_NUnCZBdh-5ZLpo6N8E7YPVvpERuHTIiYb6af23Q5epWIkEAK4JiOsPra85sazocF8r5Un8H9jRuhoDcuZB5mo49uiAPJJdmhN77ROA233gpOEytu_11gs-tou60gfIKkmLJmyLIVL"><div class="flex flex-col"><span class="font-headline-sm text-headline-sm tracking-tight text-primary leading-tight">AICTE FDR Portal</span><span class="font-label-sm text-label-sm text-on-surface-variant leading-tight">Ministry of Education, GoI</span></div></div><div class="px-space-md py-space-sm"><div class="px-space-md py-space-xs"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Operational Modules</span></div><nav class="flex flex-col gap-space-xs mt-space-xs" data-active-classes="bg-primary-container text-on-primary-container font-headline-sm rounded-full shadow-sm"><a aria-current="page" class="flex items-center gap-space-md px-space-md py-space-sm transition-colors bg-primary-container text-on-primary-container font-headline-sm rounded-full shadow-sm" data-path="dashboard" href="#"><span class="material-symbols-outlined text-[20px]">dashboard</span><span class="">Dashboard</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="fdr-registry" href="#"><span class="material-symbols-outlined text-[20px]">account_balance</span><span class="">FDR Registry</span></a><a class="flex items-center justify-between px-space-md py-space-sm rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="verification-queue" href="#"><div class="flex items-center gap-space-md"><span class="material-symbols-outlined text-[20px]">verified</span><span class="">Verification Queue</span></div><span class="font-label-sm text-label-sm bg-tertiary-fixed text-on-tertiary-fixed px-space-xs py-0.5 rounded-full">14</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="maturity-and-renewals" href="#"><span class="material-symbols-outlined text-[20px]">event_repeat</span><span class="">Maturity &amp; Renewals</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="release-requests" href="#"><span class="material-symbols-outlined text-[20px]">lock_open</span><span class="">Release Requests</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="reports" href="#"><span class="material-symbols-outlined text-[20px]">analytics</span><span class="">Reports</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="institutions" href="#"><span class="material-symbols-outlined text-[20px]">domain</span><span class="">Institutions</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="audit-logs" href="#"><span class="material-symbols-outlined text-[20px]">policy</span><span class="">Audit Logs</span></a></nav></div><div class="px-space-md py-space-sm mt-auto"><div class="px-space-md py-space-xs"><span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Governance</span></div><nav class="flex flex-col gap-space-xs mt-space-xs" data-active-classes="bg-primary-container text-on-primary-container font-headline-sm rounded-full shadow-sm"><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="settings" href="#"><span class="material-symbols-outlined text-[20px]">settings</span><span class="">Settings</span></a><a class="flex items-center gap-space-md px-space-md py-space-sm rounded-full font-label-lg text-label-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="help-and-manuals" href="#"><span class="material-symbols-outlined text-[20px]">help_outline</span><span class="">Help &amp; Manuals</span></a></nav></div></div><div class="p-space-md m-space-md rounded-xl bg-surface-container-low shadow-[0_1px_3px_rgba(15,23,42,0.04)]"><div class="flex items-center justify-between gap-space-sm"><div class="flex items-center gap-space-sm min-w-0"><img alt="Profile" class="w-8 h-8 rounded-full object-cover shrink-0" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD49Ee014TJZpJttORQWistOVB6lubjmnDMn_xvFa8_xPM4RiFEyxSKdOcaEZlJSluR9KCPZwXcveZZm74hRto6KhDaL8YbZhy-3USrjhWrDgnPQXTvYQNfOKSyuYxtmuUZ7XKx8epxxZNPNeKe5ZKye7sHumpJ10HVlkbs8FVKx4tsO7qoCnuKphSUbqebuxDxCavyYpohj3MLO1lutVm_Rpx6pjworYupfmkyR2QsM1eHnUTgFdtj2A"><div class="flex flex-col min-w-0"><span class="font-label-md text-label-md text-on-surface truncate leading-tight">Dr. R. K. Sridhar</span><span class="font-label-sm text-label-sm text-on-surface-variant truncate leading-tight">Joint Director - Fin</span></div></div><button class="p-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-colors" title="Switch Account" type="button"><span class="material-symbols-outlined text-[18px]">unfold_more</span></button></div></div></aside><div class="pl-72 flex flex-col min-h-screen"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/90 backdrop-blur-xl border-b border-surface-container shadow-xs z-40 px-gutter-lg flex items-center justify-between"><div class="flex items-center gap-space-md flex-1 max-w-xl"><div class="relative w-full"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span><input class="w-full h-9 pl-10 pr-16 bg-surface-container-lowest rounded-lg font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary shadow-sm" placeholder="Search FDR by receipt no, institution code, or bank..." type="text"><div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-1.5 py-0.5 bg-surface-container-high rounded font-data-mono text-data-mono text-on-surface-variant text-[10px]"><span class="">⌘K</span></div></div></div><div class="flex items-center gap-space-md"><div class="flex items-center gap-space-xs px-space-md py-1 bg-surface-container-lowest rounded-lg shadow-sm"><span class="material-symbols-outlined text-primary text-[18px]">calendar_today</span><span class="font-label-md text-label-md text-on-surface-variant">FY:</span><select class="bg-transparent font-label-md text-label-md text-on-surface focus:outline-none cursor-pointer pr-1"><option>2024 - 2025</option><option>2023 - 2024</option><option>2022 - 2023</option></select></div><button class="relative p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-full transition-colors" title="Compliance Notifications" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full ring-2 ring-surface"></span></button><button class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-full transition-colors" title="Portal Settings" type="button"><span class="material-symbols-outlined text-[20px]">tune</span></button><div class="h-6 w-px bg-surface-container-high"></div><div class="flex items-center gap-space-sm pl-space-xs"><div class="flex flex-col text-right hidden sm:flex"><span class="font-label-md text-label-md text-on-surface leading-tight">Dr. R. K. Sridhar</span><span class="font-label-sm text-label-sm text-on-surface-variant leading-tight">HQ New Delhi</span></div><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-1 ring-surface-container-highest" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD49Ee014TJZpJttORQWistOVB6lubjmnDMn_xvFa8_xPM4RiFEyxSKdOcaEZlJSluR9KCPZwXcveZZm74hRto6KhDaL8YbZhy-3USrjhWrDgnPQXTvYQNfOKSyuYxtmuUZ7XKx8epxxZNPNeKe5ZKye7sHumpJ10HVlkbs8FVKx4tsO7qoCnuKphSUbqebuxDxCavyYpohj3MLO1lutVm_Rpx6pjworYupfmkyR2QsM1eHnUTgFdtj2A"></div></div></header><main class="w-full pt-16 bg-surface min-h-[calc(100vh-4rem)] flex-1 px-space-xl py-space-lg"><div class="flex flex-col w-full gap-space-lg">
+<!-- Top Welcome & System Status Bar -->
+<div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md bg-surface-container-lowest p-space-lg rounded-2xl border border-surface-container shadow-xs">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs text-primary font-label-sm uppercase tracking-wider">
+<span class="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
+<span class="">Central Regulatory Financial Custody Division</span>
+</div>
+<div class="flex items-baseline gap-space-sm mt-1">
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">Institutional FDR Monitoring &amp; Custody Portal</h1>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded-full">HQ Dashboard (FY 2024-25)</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm flex-wrap">
+<div class="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-lg text-on-surface-variant font-label-md">
+<span class="material-symbols-outlined text-[18px] text-primary">verified_user</span>
+<span class="">Lien Mandate: <strong class="text-on-surface font-semibold">Active &amp; Audited</strong></span>
+</div>
+<button class="rounded-xl bg-primary hover:bg-primary-container text-on-primary font-label-md px-space-lg h-9 shadow-sm inline-flex items-center gap-1.5 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+<span class="">Register New FDR</span>
+</button>
+<button class="rounded-xl bg-surface-container-lowest border border-surface-container text-on-surface hover:bg-surface-container-low font-label-md px-space-md h-9 shadow-xs inline-flex items-center gap-1.5 transition-colors" type="button">
+<span class="material-symbols-outlined text-[18px]">file_download</span>
+<span class="">Export Roll</span>
+</button>
+</div>
+</div>
+<!-- 1. Top KPI Row (4 clean metric cards with arc gauges / sparklines) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-space-lg">
+<!-- Card 1: Total FDRs -->
+<div class="bg-surface-container-lowest p-space-lg rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-md text-label-md text-on-surface-variant block">Total FDRs Under Custody</span>
+<span class="font-label-sm text-label-sm text-secondary block mt-0.5">Total Value: ₹4,128.50 Cr</span>
+</div>
+<button class="p-1.5 bg-surface-container-low hover:bg-surface-container-high text-on-surface rounded-full transition-colors" title="View Registry">
+<span class="material-symbols-outlined text-[18px]">arrow_outward</span>
+</button>
+</div>
+<div class="flex items-end justify-between mt-space-md">
+<div>
+<div class="font-headline-xl text-headline-xl text-on-surface tracking-tight">14,820</div>
+<div class="flex items-center gap-1 mt-1 text-primary font-label-sm">
+<span class="material-symbols-outlined text-[16px]">trending_up</span>
+<span class="">+4.2% YoY growth</span>
+</div>
+</div>
+<!-- Arc Gauge: 88% -->
+<div class="relative w-16 h-10 flex items-end justify-center">
+<svg class="w-16 h-10 overflow-visible" viewBox="0 0 64 36">
+<path class="text-surface-container-high" d="M 6 34 A 26 26 0 0 1 58 34" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="6"></path>
+<path class="text-primary" d="M 6 34 A 26 26 0 0 1 58 34" fill="none" stroke="currentColor" stroke-dasharray="81.68" stroke-dashoffset="10" stroke-linecap="round" stroke-width="6"></path>
+</svg>
+<span class="absolute bottom-0 text-[10px] font-data-mono font-bold text-on-surface-variant">88%</span>
+</div>
+</div>
+</div>
+<!-- Card 2: Active FDRs -->
+<div class="bg-surface-container-lowest p-space-lg rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-md text-label-md text-on-surface-variant block">Active Compliant FDRs</span>
+<span class="font-label-sm text-label-sm text-secondary block mt-0.5">Avg Yield 7.4% p.a. • Joint Lien</span>
+</div>
+<button class="p-1.5 bg-surface-container-low hover:bg-surface-container-high text-on-surface rounded-full transition-colors" title="View Active">
+<span class="material-symbols-outlined text-[18px]">arrow_outward</span>
+</button>
+</div>
+<div class="flex items-end justify-between mt-space-md">
+<div>
+<div class="font-headline-xl text-headline-xl text-on-surface tracking-tight">12,945</div>
+<div class="flex items-center gap-1 mt-1 text-primary-container font-label-sm">
+<span class="material-symbols-outlined text-[16px]">task_alt</span>
+<span class="">+2.1% this quarter</span>
+</div>
+</div>
+<!-- Arc Gauge: 87% Active -->
+<div class="relative w-16 h-10 flex items-end justify-center">
+<svg class="w-16 h-10 overflow-visible" viewBox="0 0 64 36">
+<path class="text-surface-container-high" d="M 6 34 A 26 26 0 0 1 58 34" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="6"></path>
+<path class="text-primary-container" d="M 6 34 A 26 26 0 0 1 58 34" fill="none" stroke="currentColor" stroke-dasharray="81.68" stroke-dashoffset="12" stroke-linecap="round" stroke-width="6"></path>
+</svg>
+<span class="absolute bottom-0 text-[10px] font-data-mono font-bold text-on-surface-variant">87%</span>
+</div>
+</div>
+</div>
+<!-- Card 3: Expiring Soon -->
+<div class="bg-surface-container-lowest p-space-lg rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-md text-label-md text-on-surface-variant block">Expiring Soon (&lt; 60 Days)</span>
+<span class="font-label-sm text-label-sm text-tertiary block mt-0.5">₹142.80 Cr maturing horizon</span>
+</div>
+<button class="p-1.5 bg-surface-container-low hover:bg-surface-container-high text-on-surface rounded-full transition-colors" title="View Expiring">
+<span class="material-symbols-outlined text-[18px]">arrow_outward</span>
+</button>
+</div>
+<div class="flex items-end justify-between mt-space-md">
+<div>
+<div class="font-headline-xl text-headline-xl text-tertiary tracking-tight">418</div>
+<div class="flex items-center gap-1 mt-1 text-on-tertiary-fixed-variant bg-tertiary-fixed px-1.5 py-0.5 rounded font-label-sm">
+<span class="material-symbols-outlined text-[14px]">notification_important</span>
+<span class="">34 notices dispatched</span>
+</div>
+</div>
+<!-- Arc Gauge: Warning amber -->
+<div class="relative w-16 h-10 flex items-end justify-center">
+<svg class="w-16 h-10 overflow-visible" viewBox="0 0 64 36">
+<path class="text-surface-container-high" d="M 6 34 A 26 26 0 0 1 58 34" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="6"></path>
+<path class="text-tertiary-container" d="M 6 34 A 26 26 0 0 1 58 34" fill="none" stroke="currentColor" stroke-dasharray="81.68" stroke-dashoffset="52" stroke-linecap="round" stroke-width="6"></path>
+</svg>
+<span class="absolute bottom-0 text-[10px] font-data-mono font-bold text-tertiary">36%</span>
+</div>
+</div>
+</div>
+<!-- Card 4: Pending Verification -->
+<div class="bg-surface-container-lowest p-space-lg rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
+<div class="flex items-start justify-between">
+<div>
+<span class="font-label-md text-label-md text-on-surface-variant block">Pending Verification</span>
+<span class="font-label-sm text-label-sm text-secondary block mt-0.5">New Submissions &amp; Renewals</span>
+</div>
+<button class="p-1.5 bg-surface-container-low hover:bg-surface-container-high text-on-surface rounded-full transition-colors" title="View Queue">
+<span class="material-symbols-outlined text-[18px]">arrow_outward</span>
+</button>
+</div>
+<div class="flex items-end justify-between mt-space-md">
+<div>
+<div class="font-headline-xl text-headline-xl text-on-surface tracking-tight">164</div>
+<div class="flex items-center gap-1 mt-1 text-on-error-container bg-error-container px-1.5 py-0.5 rounded font-label-sm">
+<span class="material-symbols-outlined text-[14px]">priority_high</span>
+<span class="">12 high priority (&gt; ₹1 Cr)</span>
+</div>
+</div>
+<!-- Arc Gauge: Red / Alert Segment -->
+<div class="relative w-16 h-10 flex items-end justify-center">
+<svg class="w-16 h-10 overflow-visible" viewBox="0 0 64 36">
+<path class="text-surface-container-high" d="M 6 34 A 26 26 0 0 1 58 34" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="6"></path>
+<path class="text-error" d="M 6 34 A 26 26 0 0 1 58 34" fill="none" stroke="currentColor" stroke-dasharray="81.68" stroke-dashoffset="62" stroke-linecap="round" stroke-width="6"></path>
+</svg>
+<span class="absolute bottom-0 text-[10px] font-data-mono font-bold text-error">18%</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 2. Mid Section: Maturity Chart & Compliance Alerts Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+<!-- Left Column: Maturity & Encashment Overview Chart (8 of 12 cols) -->
+<div class="lg:col-span-7 xl:col-span-8 bg-surface-container-lowest p-space-lg rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-sm pb-space-sm">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface tracking-tight">Maturity &amp; Encashment Overview</h2>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Scheduled security deposit roll-overs across nationalized bank branches</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<div class="bg-surface-container-low px-2.5 py-1 rounded-lg text-on-surface-variant font-label-sm flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="">Portfolio Health: <strong class="text-on-surface font-semibold">96.4% Compliant</strong></span>
+</div>
+<select class="bg-surface-container-high text-on-surface font-label-sm px-2.5 py-1 rounded-lg focus:outline-none cursor-pointer">
+<option>Next 6 Months (FY 24-25)</option>
+<option>Next 12 Months</option>
+<option>Past 1 Year (Reconciliation)</option>
+</select>
+</div>
+</div>
+<!-- Stylized Column Chart Inspired by Reference with Hatched Patterns & Multi-Tone Fills -->
+<div class="w-full mt-4">
+<!-- SVG Chart Container with Gridlines and Multi-tone bars -->
+<div class="relative w-full h-64">
+<svg class="w-full h-full" preserveAspectRatio="none" viewBox="0 0 680 220">
+<defs>
+<!-- Striped pattern 1 -->
+<pattern height="6" id="diagonalHatchTeal" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse" width="6">
+<line stroke="#008378" stroke-width="2" x1="0" x2="0" y1="0" y2="6"></line>
+</pattern>
+<!-- Striped pattern 2 -->
+<pattern height="6" id="diagonalHatchAmber" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse" width="6">
+<line stroke="#ffb95f" stroke-width="2" x1="0" x2="0" y1="0" y2="6"></line>
+</pattern>
+<!-- Striped pattern 3 -->
+<pattern height="6" id="diagonalHatchRed" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse" width="6">
+<line stroke="#ba1a1a" stroke-width="2" x1="0" x2="0" y1="0" y2="6"></line>
+</pattern>
+<linearGradient id="barGradTeal" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#00685f" stop-opacity="0.9"></stop>
+<stop offset="100%" stop-color="#89f5e7" stop-opacity="0.6"></stop>
+</linearGradient>
+<linearGradient id="barGradAmber" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#a36700" stop-opacity="0.85"></stop>
+<stop offset="100%" stop-color="#ffddb8" stop-opacity="0.6"></stop>
+</linearGradient>
+<linearGradient id="barGradSecondary" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#565e74" stop-opacity="0.8"></stop>
+<stop offset="100%" stop-color="#dae2fd" stop-opacity="0.5"></stop>
+</linearGradient>
+</defs>
+<!-- Horizontal Gridlines -->
+<line stroke="#eff4ff" stroke-dasharray="3 3" stroke-width="1" x1="40" x2="670" y1="20" y2="20"></line>
+<line stroke="#eff4ff" stroke-dasharray="3 3" stroke-width="1" x1="40" x2="670" y1="60" y2="60"></line>
+<line stroke="#eff4ff" stroke-dasharray="3 3" stroke-width="1" x1="40" x2="670" y1="100" y2="100"></line>
+<line stroke="#eff4ff" stroke-dasharray="3 3" stroke-width="1" x1="40" x2="670" y1="140" y2="140"></line>
+<line opacity="0.4" stroke="#bcc9c6" stroke-width="1" x1="40" x2="670" y1="180" y2="180"></line>
+<!-- Axis Labels -->
+<text class="font-data-mono fill-secondary" font-size="10" x="10" y="24">₹120Cr</text>
+<text class="font-data-mono fill-secondary" font-size="10" x="10" y="64">₹90Cr</text>
+<text class="font-data-mono fill-secondary" font-size="10" x="10" y="104">₹60Cr</text>
+<text class="font-data-mono fill-secondary" font-size="10" x="10" y="144">₹30Cr</text>
+<text class="font-data-mono fill-secondary" font-size="10" x="10" y="184">₹0</text>
+<!-- Bar 1: Aug - ₹28 Cr -->
+<rect fill="url(#barGradSecondary)" height="38" rx="6" width="48" x="75" y="142"></rect>
+<text class="font-data-mono fill-on-surface font-semibold" font-size="10" text-anchor="middle" x="99" y="134">₹28Cr</text>
+<text class="font-label-md fill-secondary" font-size="11" text-anchor="middle" x="99" y="200">Aug 24</text>
+<!-- Bar 2: Sep - ₹45 Cr (Striped style from image) -->
+<rect fill="#dae2fd" height="60" rx="6" width="48" x="175" y="120"></rect>
+<rect fill="url(#diagonalHatchTeal)" height="60" opacity="0.35" rx="6" width="48" x="175" y="120"></rect>
+<text class="font-data-mono fill-on-surface font-semibold" font-size="10" text-anchor="middle" x="199" y="112">₹45Cr</text>
+<text class="font-label-md fill-secondary" font-size="11" text-anchor="middle" x="199" y="200">Sep 24</text>
+<!-- Bar 3: Oct - ₹82 Cr (Solid teal gradient) -->
+<rect fill="url(#barGradTeal)" height="110" rx="6" width="48" x="275" y="70"></rect>
+<text class="font-data-mono fill-on-surface font-semibold" font-size="10" text-anchor="middle" x="299" y="62">₹82Cr</text>
+<text class="font-label-md fill-on-surface font-bold" font-size="11" text-anchor="middle" x="299" y="200">Oct 24</text>
+<!-- Bar 4: Nov - ₹34 Cr (Striped amber) -->
+<rect fill="#ffddb8" height="46" rx="6" width="48" x="375" y="134"></rect>
+<rect fill="url(#diagonalHatchAmber)" height="46" opacity="0.5" rx="6" width="48" x="375" y="134"></rect>
+<text class="font-data-mono fill-on-surface font-semibold" font-size="10" text-anchor="middle" x="399" y="126">₹34Cr</text>
+<text class="font-label-md fill-secondary" font-size="11" text-anchor="middle" x="399" y="200">Nov 24</text>
+<!-- Bar 5: Dec - ₹110 Cr (Solid prominent warning yellow/amber) -->
+<rect fill="url(#barGradAmber)" height="146" rx="6" width="48" x="475" y="34"></rect>
+<text class="font-data-mono fill-tertiary font-bold" font-size="10" text-anchor="middle" x="499" y="26">₹110Cr</text>
+<text class="font-label-md fill-secondary" font-size="11" text-anchor="middle" x="499" y="200">Dec 24</text>
+<!-- Bar 6: Jan - ₹65 Cr (Hatched Red alert pattern) -->
+<rect fill="#ffdad6" height="87" rx="6" width="48" x="575" y="93"></rect>
+<rect fill="url(#diagonalHatchRed)" height="87" opacity="0.4" rx="6" width="48" x="575" y="93"></rect>
+<text class="font-data-mono fill-error font-semibold" font-size="10" text-anchor="middle" x="599" y="85">₹65Cr</text>
+<text class="font-label-md fill-secondary" font-size="11" text-anchor="middle" x="599" y="200">Jan 25</text>
+</svg>
+</div>
+<!-- Legend -->
+<div class="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-surface-container mt-2">
+<div class="flex items-center gap-4 text-xs font-label-sm text-secondary">
+<span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-primary"></span> Public Sector Banks (72%)</span>
+<span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-tertiary-container"></span> Scheduled Commercial (21%)</span>
+<span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-secondary"></span> State Co-operatives (7%)</span>
+</div>
+<div class="text-right font-label-sm text-on-surface-variant">
+<span class="">Peak Maturing Quarter: <strong class="text-on-surface">Q3 FY25 (₹226 Cr)</strong></span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Compliance Alerts & Discrepancies (4 of 12 cols) -->
+<div class="lg:col-span-5 xl:col-span-4 bg-surface-container-lowest p-space-lg rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-space-sm border-b border-surface-container-low">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-error text-[20px]">warning</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Urgent Compliance Alerts</h2>
+</div>
+<span class="font-label-sm text-label-sm bg-error-container text-on-error-container px-2 py-0.5 rounded-full font-bold">04 Critical</span>
+</div>
+<!-- List of Alert Cards -->
+<div class="flex flex-col gap-space-sm mt-space-md">
+<!-- Alert 1: Red Overdue -->
+<div class="p-2.5 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors flex items-start gap-2.5">
+<span class="material-symbols-outlined text-error text-[18px] shrink-0 mt-0.5">error</span>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center justify-between gap-1">
+<span class="font-label-md text-label-md text-on-surface font-semibold truncate">Apex Inst. of Technology</span>
+<span class="font-label-sm text-[10px] text-error font-mono shrink-0">14d OVERDUE</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5 leading-snug">
+                FDR-884920 (₹75 Lakhs, SBI New Delhi) matured without renewal receipt submission.
+              </p>
+</div>
+</div>
+<!-- Alert 2: Amber Tripartite Missing -->
+<div class="p-2.5 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors flex items-start gap-2.5">
+<span class="material-symbols-outlined text-tertiary text-[18px] shrink-0 mt-0.5">assignment_late</span>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center justify-between gap-1">
+<span class="font-label-md text-label-md text-on-surface font-semibold truncate">K.R. College of Engineering</span>
+<span class="font-label-sm text-[10px] text-tertiary font-mono shrink-0">DOC DEFICIENT</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5 leading-snug">
+                Missing Tripartite Lien Confirmation from Canara Bank (FDR-661204).
+              </p>
+</div>
+</div>
+<!-- Alert 3: Amber Rate Reset -->
+<div class="p-2.5 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors flex items-start gap-2.5">
+<span class="material-symbols-outlined text-tertiary text-[18px] shrink-0 mt-0.5">percent</span>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center justify-between gap-1">
+<span class="font-label-md text-label-md text-on-surface font-semibold truncate">National Institute of Pharmacy</span>
+<span class="font-label-sm text-[10px] text-tertiary font-mono shrink-0">REVISION DUE</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5 leading-snug">
+                ₹1.20 Cr fixed at PNB requiring MCLR rate adjustment update.
+              </p>
+</div>
+</div>
+<!-- Alert 4: Bank Discrepancy Red -->
+<div class="p-2.5 rounded-lg bg-surface-container-low hover:bg-surface-container transition-colors flex items-start gap-2.5">
+<span class="material-symbols-outlined text-error text-[18px] shrink-0 mt-0.5">gavel</span>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center justify-between gap-1">
+<span class="font-label-md text-label-md text-on-surface font-semibold truncate">Vignan Polytechnic Trust</span>
+<span class="font-label-sm text-[10px] text-error font-mono shrink-0">LIEN MISMATCH</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5 leading-snug">
+                Bank of Baroda reported unauthorized lien release claim without HQ approval.
+              </p>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Footer -->
+<div class="mt-space-md pt-space-sm flex flex-col gap-2">
+<button class="w-full py-2 px-3 bg-primary hover:bg-primary-container text-on-primary font-label-md rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">outgoing_mail</span>
+<span class="">Issue Statutory Notice (Form D-3)</span>
+</button>
+<span class="text-center font-label-sm text-secondary">Notices automatically dispatch to Regional Officers via NIC-SMS</span>
+</div>
+</div>
+</div>
+<!-- 3. Bottom Section: Data Ledger & Administrative Audit Timeline -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+<!-- Verification Queue Ledger (8 of 12 cols) -->
+<div class="lg:col-span-8 bg-surface-container-lowest p-space-lg rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
+<div>
+<!-- Table Controls & Sub Tabs -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-sm pb-space-md border-b border-surface-container-low">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface tracking-tight">Institutional FDR Verification Ledger</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Live audit ledger of newly pledged deposits &amp; tripartite certificates</p>
+</div>
+<!-- Segmented Filter Pills -->
+<div class="flex items-center gap-1 bg-surface-container-low p-1 rounded-lg">
+<button class="px-2.5 py-1 rounded bg-surface-container-lowest text-primary font-label-sm font-semibold shadow-xs">
+              Pending (164)
+            </button>
+<button class="px-2.5 py-1 rounded hover:bg-surface-container text-on-surface-variant font-label-sm transition-colors">
+              Renewals (842)
+            </button>
+<button class="px-2.5 py-1 rounded hover:bg-surface-container text-on-surface-variant font-label-sm transition-colors">
+              Releases (39)
+            </button>
+</div>
+</div>
+<!-- Filter Sub-bar -->
+<div class="flex items-center justify-between gap-space-md my-space-md flex-wrap">
+<div class="flex items-center gap-space-xs flex-1 min-w-[240px]">
+<div class="relative w-full max-w-sm">
+<span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+<input class="w-full h-8 pl-8 pr-3 text-body-sm bg-surface-container-low rounded-lg focus:outline-none focus:ring-1 focus:ring-primary" placeholder="Filter by Inst. code, Bank name, or Certificate..." type="text">
+</div>
+</div>
+<div class="flex items-center gap-space-xs text-on-surface-variant font-label-sm">
+<span class="material-symbols-outlined text-[16px]">tune</span>
+<span class="">Sort: <strong class="text-on-surface">Deposit Amount (High to Low)</strong></span>
+</div>
+</div>
+<!-- Table Responsive Container -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-on-surface-variant font-label-sm uppercase tracking-wider text-[11px] h-9">
+<th class="px-3 py-2 rounded-l">Institution &amp; Code</th>
+<th class="px-3 py-2">FDR Reference / Bank</th>
+<th class="px-3 py-2 text-right">Amount (INR)</th>
+<th class="px-3 py-2">Maturity Date</th>
+<th class="px-3 py-2 text-center">Status</th>
+<th class="px-3 py-2 text-right rounded-r">Mandate Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-low font-body-sm text-body-sm">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="px-3 py-3 font-medium text-on-surface">
+<div class="flex flex-col">
+<span class="font-semibold text-on-surface">St. Xavier's Engineering College</span>
+<span class="font-data-mono text-[11px] text-secondary">AICTE-WRO-1092 • Pune, MH</span>
+</div>
+</td>
+<td class="px-3 py-3">
+<div class="flex flex-col">
+<span class="font-data-mono text-on-surface font-medium">FDR-PNB-883921</span>
+<span class="text-[12px] text-on-surface-variant">Punjab National Bank, FC Road</span>
+</div>
+</td>
+<td class="px-3 py-3 text-right font-data-mono font-bold text-on-surface">
+                  ₹1,00,00,000
+                </td>
+<td class="px-3 py-3">
+<div class="flex flex-col">
+<span class="text-on-surface font-medium">18 Nov 2029</span>
+<span class="text-[11px] text-primary">5-Yr Security Pledged</span>
+</div>
+</td>
+<td class="px-3 py-3 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-sm bg-primary-fixed text-on-primary-fixed">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+                    Lien Verified
+                  </span>
+</td>
+<td class="px-3 py-3 text-right">
+<button class="px-2.5 py-1 text-primary hover:bg-surface-container font-label-sm rounded transition-colors" title="Inspect Certificate">
+                    Inspect
+                  </button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="px-3 py-3 font-medium text-on-surface">
+<div class="flex flex-col">
+<span class="font-semibold text-on-surface">Vellore Tech Campus (Off-Site)</span>
+<span class="font-data-mono text-[11px] text-secondary">AICTE-SRO-4921 • Vellore, TN</span>
+</div>
+</td>
+<td class="px-3 py-3">
+<div class="flex flex-col">
+<span class="font-data-mono text-on-surface font-medium">FDR-SBI-772091</span>
+<span class="text-[12px] text-on-surface-variant">State Bank of India, Main Br.</span>
+</div>
+</td>
+<td class="px-3 py-3 text-right font-data-mono font-bold text-on-surface">
+                  ₹75,00,000
+                </td>
+<td class="px-3 py-3">
+<div class="flex flex-col">
+<span class="text-on-surface font-medium">04 Oct 2024</span>
+<span class="text-[11px] text-error font-medium">12 Days Remaining</span>
+</div>
+</td>
+<td class="px-3 py-3 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-sm bg-tertiary-fixed text-on-tertiary-fixed">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+                    Renewal Due
+                  </span>
+</td>
+<td class="px-3 py-3 text-right">
+<button class="px-2.5 py-1 text-tertiary-container hover:bg-surface-container font-label-sm rounded transition-colors" title="Issue Demand">
+                    Demand Notice
+                  </button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="px-3 py-3 font-medium text-on-surface">
+<div class="flex flex-col">
+<span class="font-semibold text-on-surface">Aryabhatta Polytechnic</span>
+<span class="font-data-mono text-[11px] text-secondary">AICTE-NWRO-7722 • Rohtak, HR</span>
+</div>
+</td>
+<td class="px-3 py-3">
+<div class="flex flex-col">
+<span class="font-data-mono text-on-surface font-medium">FDR-BOB-991204</span>
+<span class="text-[12px] text-on-surface-variant">Bank of Baroda, Civil Lines</span>
+</div>
+</td>
+<td class="px-3 py-3 text-right font-data-mono font-bold text-on-surface">
+                  ₹50,00,000
+                </td>
+<td class="px-3 py-3">
+<div class="flex flex-col">
+<span class="text-on-surface font-medium">14 Mar 2027</span>
+<span class="text-[11px] text-secondary">3-Yr Joint Custody</span>
+</div>
+</td>
+<td class="px-3 py-3 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-sm bg-error-container text-on-error-container">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                    Bank Conf. Pending
+                  </span>
+</td>
+<td class="px-3 py-3 text-right">
+<button class="px-2.5 py-1 text-primary hover:bg-surface-container font-label-sm rounded transition-colors" title="Send Bank Ping">
+                    Query Bank
+                  </button>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-low/60 transition-colors">
+<td class="px-3 py-3 font-medium text-on-surface">
+<div class="flex flex-col">
+<span class="font-semibold text-on-surface">Modern Management Studies</span>
+<span class="font-data-mono text-[11px] text-secondary">AICTE-CRO-2309 • Bhopal, MP</span>
+</div>
+</td>
+<td class="px-3 py-3">
+<div class="flex flex-col">
+<span class="font-data-mono text-on-surface font-medium">FDR-HDFC-332901</span>
+<span class="text-[12px] text-on-surface-variant">HDFC Bank, MP Nagar</span>
+</div>
+</td>
+<td class="px-3 py-3 text-right font-data-mono font-bold text-on-surface">
+                  ₹35,00,000
+                </td>
+<td class="px-3 py-3">
+<div class="flex flex-col">
+<span class="text-on-surface font-medium">29 Dec 2028</span>
+<span class="text-[11px] text-primary">Valid Pledge</span>
+</div>
+</td>
+<td class="px-3 py-3 text-center">
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-sm bg-surface-container-high text-on-surface">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                    Under Scrutiny
+                  </span>
+</td>
+<td class="px-3 py-3 text-right">
+<button class="px-2.5 py-1 text-primary hover:bg-surface-container font-label-sm rounded transition-colors">
+                    Review
+                  </button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Table Footer Pagination -->
+<div class="flex items-center justify-between pt-space-md border-t border-surface-container-low text-on-surface-variant font-label-sm">
+<span class="">Showing 1-4 of 164 pending verification records</span>
+<div class="flex items-center gap-1">
+<button class="px-2.5 py-1 rounded bg-surface-container-low hover:bg-surface-container text-on-surface font-medium">Previous</button>
+<button class="px-2.5 py-1 rounded bg-primary text-on-primary font-medium">1</button>
+<button class="px-2.5 py-1 rounded bg-surface-container-low hover:bg-surface-container text-on-surface font-medium">2</button>
+<button class="px-2.5 py-1 rounded bg-surface-container-low hover:bg-surface-container text-on-surface font-medium">3</button>
+<span class="px-1 text-outline">...</span>
+<button class="px-2.5 py-1 rounded bg-surface-container-low hover:bg-surface-container text-on-surface font-medium">41</button>
+<button class="px-2.5 py-1 rounded bg-surface-container-low hover:bg-surface-container text-on-surface font-medium">Next</button>
+</div>
+</div>
+</div>
+<!-- Administrative Activity & Audit Log (4 of 12 cols) -->
+<div class="lg:col-span-4 bg-surface-container-lowest p-space-lg rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between pb-space-sm border-b border-surface-container-low">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">history_edu</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Custody Audit Trail</h2>
+</div>
+<span class="font-label-sm text-label-sm text-secondary">Real-time</span>
+</div>
+<!-- Activity Timeline Entries -->
+<div class="flex flex-col gap-space-md mt-space-md relative pl-4 before:content-[''] before:absolute before:left-1 before:top-2 before:bottom-2 before:w-0.5 before:bg-surface-container">
+<!-- Event 1 -->
+<div class="relative flex flex-col gap-0.5">
+<span class="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-surface-container-lowest"></span>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-semibold text-on-surface">Lien Endorsement Complete</span>
+<span class="font-label-sm text-[11px] text-secondary">24m ago</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              Dr. S. K. Roy digitally co-signed ₹1.5 Cr FDR lien confirmation for BITS Mesra Off-Campus.
+            </p>
+</div>
+<!-- Event 2 -->
+<div class="relative flex flex-col gap-0.5">
+<span class="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-tertiary-container ring-4 ring-surface-container-lowest"></span>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-semibold text-on-surface">Auto-Dispatch Reminders</span>
+<span class="font-label-sm text-[11px] text-secondary">2h ago</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              NIC batch daemon delivered 28 statutory maturity reminders via SMS/Email to trust secretaries.
+            </p>
+</div>
+<!-- Event 3 -->
+<div class="relative flex flex-col gap-0.5">
+<span class="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-error ring-4 ring-surface-container-lowest"></span>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-semibold text-on-surface">Lien Invocation Request</span>
+<span class="font-label-sm text-[11px] text-secondary">5h ago</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              Legal cell filed Form L-4 encashment mandate against Institute ID 4402 for penalty recovery.
+            </p>
+</div>
+<!-- Event 4 -->
+<div class="relative flex flex-col gap-0.5">
+<span class="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-secondary ring-4 ring-surface-container-lowest"></span>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md font-semibold text-on-surface">Statutory Ledger Reconciled</span>
+<span class="font-label-sm text-[11px] text-secondary">Yesterday</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              Annual Interest Accrual Report generated and submitted to MoE Controller General of Accounts.
+            </p>
+</div>
+</div>
+</div>
+<!-- Quick Action Pill -->
+<div class="mt-space-md pt-space-sm border-t border-surface-container-low">
+<a class="flex items-center justify-between text-primary font-label-md hover:underline" href="#">
+<span class="">View complete tamper-evident audit ledger</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</a>
+</div>
+</div>
+</div>
+</div></main></div>
+
+</body></html>
