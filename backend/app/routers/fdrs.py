@@ -520,6 +520,7 @@ def submit_fdr(
     """
     Submits FDR record for scrutiny. Only the owning Institution Officer can submit.
     FDR must be in DRAFT or CORRECTION_REQUIRED. Result is SUBMITTED.
+    Enforces server-side institution isolation and field validation before transition.
     """
     fdr = session.query(FDR).filter_by(id=fdr_id).first()
     if not fdr:
@@ -533,17 +534,48 @@ def submit_fdr(
             detail=f"Cannot submit FDR in '{fdr.status}' status. Only DRAFT or CORRECTION_REQUIRED can be submitted.",
         )
 
-    remarks = req.remarks if req else "Submitted for verification."
-    record_status_transition(
-        session=session,
-        fdr=fdr,
-        to_status=FDRStatus.SUBMITTED.value,
-        actor=current_user,
-        reason=remarks,
-        transition_type="FDR_LIFECYCLE",
-    )
-    session.commit()
-    return {"fdr_id": fdr.id, "status": fdr.status}
+    # Validate required fields before accepting submission
+    if not fdr.fdr_number or not fdr.fdr_number.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot submit FDR without a valid FDR number.",
+        )
+    if not fdr.bank_name or not fdr.bank_name.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot submit FDR without a valid issuing bank name.",
+        )
+    if fdr.amount is None or fdr.amount <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot submit FDR with invalid deposit amount.",
+        )
+    if not fdr.issue_date or not fdr.maturity_date or fdr.maturity_date < fdr.issue_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot submit FDR with invalid issue or maturity dates.",
+        )
+
+    remarks = req.remarks if (req and req.remarks and req.remarks.strip()) else "Submitted for verification."
+    try:
+        record_status_transition(
+            session=session,
+            fdr=fdr,
+            to_status=FDRStatus.SUBMITTED.value,
+            actor=current_user,
+            reason=remarks.strip(),
+            transition_type="FDR_LIFECYCLE",
+        )
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+
+    return {
+        "id": fdr.id,
+        "fdr_id": fdr.id,
+        "status": fdr.status,
+    }
 
 
 @router.post("/{fdr_id}/start-verification", summary="Claim submitted FDR into scrutiny review")
