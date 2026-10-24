@@ -13,6 +13,7 @@ from app.routers.documents import router as documents_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.reports import router as reports_router
 from app.routers.notifications import router as notifications_router
+from app.routers.audit import router as audit_router
 
 app = FastAPI(
     title="AICTE FDR Management Portal API",
@@ -38,6 +39,7 @@ app.include_router(documents_router)
 app.include_router(dashboard_router)
 app.include_router(reports_router)
 app.include_router(notifications_router)
+app.include_router(audit_router)
 
 
 @app.get("/health", tags=["System"])

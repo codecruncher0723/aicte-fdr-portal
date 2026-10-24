@@ -98,7 +98,7 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
         try {
           await apiClient.uploadDocument(createdId, selectedFile);
         } catch (docErr) {
-          console.warn('Document upload warning:', docErr.message);
+          throw new Error(`FDR record created, but document upload failed: ${docErr.message}`);
         }
       }
 
@@ -403,12 +403,20 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
                         Browse Certificate File
                         <input
                           type="file"
+                          accept=".pdf,.jpg,.jpeg,.png,.webp"
                           className="hidden"
                           onChange={(e) => {
                             if (e.target.files && e.target.files[0]) {
                               const file = e.target.files[0];
+                              if (file.size > 10 * 1024 * 1024) {
+                                setSubmitError(`Selected file exceeds regulatory 10 MB limit (${(file.size / (1024 * 1024)).toFixed(2)} MB).`);
+                                setSelectedFile(null);
+                                handleChange('fileName', '');
+                                return;
+                              }
+                              setSubmitError(null);
                               setSelectedFile(file);
-                              handleChange('fileName', file.name);
+                              handleChange('fileName', `${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
                             }
                           }}
                         />

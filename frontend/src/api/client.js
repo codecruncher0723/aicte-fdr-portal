@@ -213,7 +213,39 @@ export const apiClient = {
   },
 
   async getAuditLogs(fdrId) {
-    return await apiFetch(`/api/v1/fdrs/${fdrId}/audit-logs`);
+    if (fdrId) {
+      return await apiFetch(`/api/v1/fdrs/${fdrId}/audit-logs`);
+    }
+    return await apiFetch('/api/v1/audit-logs');
+  },
+
+  async getAllAuditLogs(params = {}) {
+    const q = new URLSearchParams();
+    if (params.limit) q.set('limit', params.limit);
+    if (params.action && params.action !== 'all') q.set('action', params.action);
+    if (params.role && params.role !== 'all') q.set('role', params.role);
+    if (params.target_id) q.set('target_id', params.target_id);
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    return await apiFetch(`/api/v1/audit-logs${qs}`);
+  },
+
+  async downloadAuditLogsCsv(params = {}) {
+    const q = new URLSearchParams();
+    if (params.action && params.action !== 'all') q.set('action', params.action);
+    if (params.role && params.role !== 'all') q.set('role', params.role);
+    const qs = q.toString() ? `?${q.toString()}` : '';
+
+    const token = getToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE_URL}/api/v1/audit-logs/export.csv${qs}`, {
+      headers,
+    });
+    if (!res.ok) {
+      throw new Error(`CSV Export failed: ${res.statusText}`);
+    }
+    return await res.blob();
   },
 
   // Workflow Verification & Approval
