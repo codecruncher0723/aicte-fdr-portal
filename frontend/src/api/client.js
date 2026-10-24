@@ -107,6 +107,11 @@ export async function apiFetch(endpoint, options = {}) {
   return data;
 }
 
+export const institutionsApi = {
+  list: async () => apiFetch('/api/v1/institutions'),
+  get: async (id) => apiFetch(`/api/v1/institutions/${id}`),
+};
+
 export const apiClient = {
   // Authentication
   async login({ username, email, password }) {
@@ -205,6 +210,10 @@ export const apiClient = {
 
   async getFdrDocuments(fdrId) {
     return await apiFetch(`/api/v1/fdrs/${fdrId}/documents`);
+  },
+
+  async getDocumentExtraction(documentId) {
+    return await apiFetch(`/api/v1/documents/${documentId}/extraction`);
   },
 
   // Dashboard & Reports

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, CheckConstraint
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, CheckConstraint
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -29,3 +29,23 @@ class DocumentVersion(Base):
     fdr = relationship("FDR", back_populates="documents")
     request = relationship("WorkflowRequest", back_populates="documents")
     uploader = relationship("User", back_populates="uploaded_documents")
+    extraction = relationship("DocumentExtraction", back_populates="document", uselist=False, cascade="all, delete-orphan")
+
+
+class DocumentExtraction(Base):
+    """
+    Machine-extracted text suggestions for one document version.
+
+    Suggestions are evidence for the reviewer only: they are stored next to, and never
+    written over, the values the institution entered. One row per document version.
+    """
+    __tablename__ = "document_extractions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    document_id = Column(Integer, ForeignKey("document_versions.id", ondelete="CASCADE"), nullable=False, unique=True)
+    status = Column(String(30), nullable=False)  # EXTRACTED, NO_TEXT_FOUND, UNSUPPORTED_FORMAT, UNAVAILABLE, FAILED
+    method = Column(String(40), nullable=False)  # PDF_TEXT_LAYER, NONE
+    fields_json = Column(Text, nullable=False, default="[]")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    document = relationship("DocumentVersion", back_populates="extraction")

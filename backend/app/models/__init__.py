@@ -10,7 +10,7 @@ from app.models.enums import (
 from app.models.institution import Institution
 from app.models.user import User
 from app.models.fdr import FDR, FieldProvenance, FDRRenewalHistory
-from app.models.document import DocumentVersion
+from app.models.document import DocumentVersion, DocumentExtraction
 from app.models.workflow import (
     WorkflowRequest,
     VerificationRecord,

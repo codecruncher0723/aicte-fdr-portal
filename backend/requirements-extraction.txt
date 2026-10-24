@@ -1,0 +1,3 @@
+# Optional: enables PDF text-layer extraction suggestions (app/extraction.py).
+# Without it, uploads still work and extraction reports status UNAVAILABLE.
+pypdf>=4.0  # BSD-3-Clause

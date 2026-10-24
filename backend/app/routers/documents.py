@@ -16,6 +16,7 @@ from app.models.workflow import WorkflowRequest
 from app.models.document import DocumentVersion
 from app.models.user import User
 from app.auth import get_current_user, require_roles, enforce_institution_isolation
+from app.extraction import extract_and_store, format_extraction_response
 from app.storage import (
     save_document_version,
     format_document_response,
@@ -94,6 +95,7 @@ async def upload_fdr_document(
             fdr_id=fdr.id,
             declared_mime=file.content_type,
         )
+        extraction = extract_and_store(session, doc, content, fdr)
         session.commit()
     except FileTooLargeError as e:
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(e))
@@ -104,7 +106,9 @@ async def upload_fdr_document(
     except UnauthorizedDocumentAccessError as e:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
 
-    return format_document_response(doc)
+    response = format_document_response(doc)
+    response["extraction"] = format_extraction_response(extraction, doc.id)
+    return response
 
 
 @router.get("/documents/{document_id}", summary="View document metadata and hash")
@@ -127,6 +131,25 @@ def get_document_metadata(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
 
     return format_document_response(doc)
+
+
+@router.get("/documents/{document_id}/extraction", summary="Text-extraction suggestions for a document")
+def get_document_extraction(
+    document_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """Returns extracted-vs-entered comparison. Advisory only; never changes the FDR."""
+    doc = session.query(DocumentVersion).filter_by(id=document_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Document {document_id} not found.")
+
+    try:
+        authorize_document_access(user=current_user, document=doc)
+    except UnauthorizedDocumentAccessError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
+    return format_extraction_response(doc.extraction, doc.id)
 
 
 @router.get("/documents/{document_id}/download", summary="Authenticated secure document download")

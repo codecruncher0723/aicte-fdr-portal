@@ -10,10 +10,12 @@ from sqlalchemy import text, Engine, Connection
 
 from app.migrations.versions import v001_initial_schema as m001
 from app.migrations.versions import v002_workflow_document_evidence as m002
+from app.migrations.versions import v003_document_extractions as m003
 
 MIGRATIONS = [
     m001,
     m002,
+    m003,
 ]
 
 MIGRATION_TABLE_DDL = """

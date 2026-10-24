@@ -21,6 +21,7 @@ export default function VerificationAuditWorkspace({ fdr, onUpdateFdrStatus }) {
   const [activeFdr, setActiveFdr] = useState(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [documents, setDocuments] = useState([]);
+  const [extraction, setExtraction] = useState(null);
   const [selectedDocIndex, setSelectedDocIndex] = useState(0);
   const [auditLogs, setAuditLogs] = useState([]);
   const [duplicateData, setDuplicateData] = useState(null);
@@ -147,6 +148,17 @@ export default function VerificationAuditWorkspace({ fdr, onUpdateFdrStatus }) {
 
   // Active selected document
   const selectedDoc = documents[selectedDocIndex] || null;
+
+  // Advisory text-extraction suggestions for the selected document version
+  useEffect(() => {
+    let cancelled = false;
+    setExtraction(null);
+    if (!selectedDoc) return undefined;
+    apiClient.getDocumentExtraction(selectedDoc.id)
+      .then(res => { if (!cancelled) setExtraction(res); })
+      .catch(() => { if (!cancelled) setExtraction(null); });
+    return () => { cancelled = true; };
+  }, [selectedDoc?.id]);
 
   // Separation of Duties Check
   const isSubmitter = useMemo(() => {
@@ -708,6 +720,55 @@ export default function VerificationAuditWorkspace({ fdr, onUpdateFdrStatus }) {
                         Encapsulated in private storage under AICTE custody guidelines. Hash integrity verified on upload. Click 'Download & Inspect' above to view the full resolution scan.
                       </p>
                     </div>
+
+                    {/* Extracted vs entered (advisory) */}
+                    {extraction && (
+                      <div className="rounded-xl border border-slate-200 bg-white p-4 text-xs">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="material-symbols-outlined text-teal-700 text-[18px]">text_snippet</span>
+                          <h4 className="font-bold text-slate-900">Text read from document (suggestions)</h4>
+                        </div>
+                        {extraction.status === 'EXTRACTED' ? (
+                          <table className="w-full text-left">
+                            <thead>
+                              <tr className="text-[10px] uppercase tracking-wide text-slate-500">
+                                <th className="py-1 pr-2">Field</th>
+                                <th className="py-1 pr-2">Entered</th>
+                                <th className="py-1 pr-2">In document</th>
+                                <th className="py-1">Result</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {extraction.fields.map(f => (
+                                <tr key={f.field} className="border-t border-slate-100">
+                                  <td className="py-1.5 pr-2 font-semibold text-slate-700">{f.field.replace(/_/g, ' ')}</td>
+                                  <td className="py-1.5 pr-2 font-mono text-slate-700">{f.entered || '—'}</td>
+                                  <td className="py-1.5 pr-2 font-mono text-slate-700">{f.extracted || '—'}</td>
+                                  <td className="py-1.5">
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                      f.result === 'MATCH' ? 'bg-emerald-100 text-emerald-800'
+                                        : f.result === 'MISMATCH' ? 'bg-amber-100 text-amber-800'
+                                        : 'bg-slate-100 text-slate-600'
+                                    }`}>
+                                      {f.result === 'NOT_FOUND' ? 'NOT FOUND' : f.result}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <p className="text-slate-600">
+                            {extraction.status === 'UNSUPPORTED_FORMAT' && 'No text layer to read: images and scans are not read automatically. Review the file manually.'}
+                            {extraction.status === 'NO_TEXT_FOUND' && 'This PDF has no readable text layer (likely a scan). Review the file manually.'}
+                            {extraction.status === 'UNAVAILABLE' && 'Text extraction is not enabled on this server. Review the file manually.'}
+                            {extraction.status === 'FAILED' && 'Text could not be read from this file. Review it manually.'}
+                            {extraction.status === 'NOT_RUN' && 'Not analysed (uploaded before text extraction existed). Review the file manually.'}
+                          </p>
+                        )}
+                        <p className="mt-2 text-[10px] text-slate-500">{extraction.advisory}</p>
+                      </div>
+                    )}
                   </div>
                 ) : null}
               </div>

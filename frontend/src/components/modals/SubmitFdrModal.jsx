@@ -70,6 +70,10 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError(null);
+    if (!selectedFile) {
+      setSubmitError('Attach the scanned FDR certificate (PDF, JPG, PNG or WEBP) before submitting.');
+      return;
+    }
     setIsSubmitting(true);
 
     try {
@@ -99,6 +103,15 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
           await apiClient.uploadDocument(createdId, selectedFile);
         } catch (docErr) {
           throw new Error(`FDR record created, but document upload failed: ${docErr.message}`);
+        }
+      }
+
+      // 3. Move the draft to SUBMITTED so it enters the verification queue
+      if (createdId) {
+        try {
+          await apiClient.submitFdr(createdId);
+        } catch (subErr) {
+          throw new Error(`FDR saved as draft, but submission failed: ${subErr.message}`);
         }
       }
 
@@ -396,7 +409,7 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
                     <span className="material-symbols-outlined text-[36px] text-primary mb-2">upload_file</span>
                     <h4 className="text-xs font-bold text-on-surface">Upload High-Resolution Scanned FDR Bond</h4>
                     <p className="text-[11px] text-secondary mt-1">
-                      PDF, JPG or PNG up to 10MB • Auto-OCR cross-audit will parse serials and seals
+                      PDF, JPG, PNG or WEBP up to 10MB • Text in PDFs is read as suggestions for the reviewer; scans are checked manually
                     </p>
                     <div className="mt-3 flex justify-center">
                       <label className="cursor-pointer px-4 py-2 bg-primary text-white text-xs font-semibold rounded-xl hover:bg-primary-container transition-colors shadow-xs">
@@ -440,6 +453,13 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
                       <span>Bank manager's official seal and signature have been physically endorsed per Form L-1.</span>
                     </label>
                   </div>
+                </div>
+              )}
+
+              {submitError && (
+                <div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                  <span className="material-symbols-outlined text-[16px]">error</span>
+                  <span>{submitError}</span>
                 </div>
               )}
 
