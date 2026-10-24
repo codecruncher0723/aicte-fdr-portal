@@ -216,7 +216,7 @@ Execution notes (Phase 2 Tasks 1-3):
 - [x] **M** Implement the repository-compatible authentication mechanism and seeded demo accounts; store only password hashes, never plaintext passwords.
 - [x] **M** Enforce the four roles: `AICTE_ADMIN`, `INSTITUTION_OFFICER`, `VERIFICATION_OFFICER`, `APPROVING_AUTHORITY`.
 - [x] **M** Enforce authorization on every protected backend endpoint, including detail reads, document access, workflow actions, dashboard aggregates, audit views, and CSV exports.
-- [ ] **M** Derive an Institution Officer's `institution_id` and `created_by` from the authenticated principal; ignore/reject client attempts to select another institution.
+- [x] **M** Derive an Institution Officer's `institution_id` and `created_by` from the authenticated principal; ignore/reject client attempts to select another institution.
 - [ ] **M** Apply resource-level checks to prevent IDOR; a guessed FDR/request/document ID must not bypass institution/role rules.
 - [ ] **M** Prevent the submitter from being the sole approving authority; record actor IDs in workflow actions.
 - [ ] **O** User administration beyond predefined demo accounts is optional and out of scope unless already present.
@@ -266,6 +266,18 @@ Execution notes (Phase 3 Task 1):
   - Enforced server-side checks across all endpoints: anonymous access returns 401; cross-institution access and forbidden roles return 403; forged `institution_id` query/payload parameters are rejected or overridden.
   - Added test suite in `backend/tests/test_all_endpoints_authorization.py` (23 tests) verifying anonymous rejection across all endpoints, FDR IDOR isolation, document download/upload protection, dashboard scoping, audit access, CSV export security, notification patch ownership, and payload forgery overrides.
   - All 115 backend tests pass in 6.88s. Frontend production build verified clean (`vite build` in 8.46s, exit code 0).
+- **Deriving `institution_id` and `created_by` from Authenticated Principal**:
+  - Implemented `derive_creator_id(user: User) -> int` and reinforced `derive_institution_id(user: User) -> int` in `backend/app/auth.py`. Unauthenticated or invalid principals return 401 Unauthorized; unassigned Institution Officers (`institution_id = None`) return 403 Forbidden.
+  - Updated `backend/app/routers/fdrs.py` to derive `fdr.institution_id` via `derive_institution_id(current_user)` and `fdr.created_by_id` via `derive_creator_id(current_user)`. Client attempts to inject `institution_id`, `created_by`, or `created_by_id` in `FDRCreateRequest` are safely ignored and overridden with authentic principal attributes.
+  - Enforced actor and creator derivation across submission (`POST /fdrs/{fdr_id}/submit`), scrutiny review claim (`POST /fdrs/{fdr_id}/start-verification`), verification decision (`POST /fdrs/{fdr_id}/verify`), approval decision (`POST /fdrs/{fdr_id}/approval`), and document uploads (`POST /fdrs/{fdr_id}/documents`). Client tampering with actor/officer/approver IDs in request bodies or form fields is safely ignored and overridden.
+  - Added dedicated test suite `backend/tests/test_derived_principal_context.py` (12 tests) verifying:
+    * `derive_creator_id` and `derive_institution_id` helper behaviors and edge cases.
+    * Client-forged `institution_id` payload override on FDR creation.
+    * Client-forged `created_by_id` and `created_by` payload override on FDR creation and provenance logging.
+    * Rejection of unassigned Institution Officers (`institution_id=None`) with 403 Forbidden.
+    * Valid independent submissions by officers from different institutions (St. Xavier's and BMS College of Engineering) with reciprocal cross-institution submission rejection (403).
+    * Workflow status transitions, document uploads, verifications, and approvals strictly attributing records to the authentic caller principal.
+  - All 127 backend tests pass in 6.90s. Frontend production build verified clean (`vite build` in 9.82s, exit code 0).
 
 ---
 

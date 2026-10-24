@@ -62,6 +62,8 @@ async def upload_fdr_document(
     fdr_id: int,
     file: UploadFile = File(...),
     document_type: str = Form("FDR_RECEIPT"),
+    uploaded_by_id: Optional[int] = Form(None),
+    institution_id: Optional[int] = Form(None),
     current_user: User = Depends(require_roles(UserRole.INSTITUTION_OFFICER.value, UserRole.AICTE_ADMIN.value)),
     session: Session = Depends(get_db),
 ):

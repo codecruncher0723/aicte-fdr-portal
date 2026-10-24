@@ -39,12 +39,16 @@ class VerificationRequest(BaseModel):
     discrepancy_code: Optional[str] = None
     discrepancy_severity: Optional[str] = None
     discrepancy_note: Optional[str] = None
+    officer_id: Optional[int] = None
+    actor_id: Optional[int] = None
 
 
 class ApprovalRequest(BaseModel):
     decision: str = Field(..., description="APPROVED or REJECTED")
     remarks: Optional[str] = Field(None, description="Council approval or rejection remarks")
     council_order_ref: Optional[str] = None
+    approver_id: Optional[int] = None
+    actor_id: Optional[int] = None
 
 
 @router.get("/verifications/pending", summary="List items pending scrutiny and verification")

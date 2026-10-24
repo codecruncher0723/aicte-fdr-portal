@@ -21,6 +21,7 @@ from app.auth import (
     require_roles,
     enforce_institution_isolation,
     derive_institution_id,
+    derive_creator_id,
     enforce_separation_of_duties,
 )
 from app.history import record_status_transition
@@ -44,6 +45,10 @@ class FDRCreateRequest(BaseModel):
     lien_status: Optional[str] = "Statutory Lien Registered"
     mandate_clause: Optional[str] = None
     notes: Optional[str] = None
+    # Client-supplied fields: safely ignored and overridden by authenticated principal
+    institution_id: Optional[int] = None
+    created_by: Optional[int] = None
+    created_by_id: Optional[int] = None
 
 
 class FDRResponse(BaseModel):
@@ -73,6 +78,8 @@ class FDRResponse(BaseModel):
 
 class StatusTransitionRequest(BaseModel):
     remarks: Optional[str] = None
+    actor_id: Optional[int] = None
+    institution_id: Optional[int] = None
 
 
 @router.get("", summary="List FDR records scoped by role and institution")
@@ -208,6 +215,7 @@ def create_fdr(
         )
 
     inst_id = derive_institution_id(current_user)
+    creator_id = derive_creator_id(current_user)
 
     fdr = FDR(
         institution_id=inst_id,
@@ -227,7 +235,7 @@ def create_fdr(
         mandate_clause=req.mandate_clause,
         notes=req.notes,
         status=FDRStatus.DRAFT.value,
-        created_by_id=current_user.id,
+        created_by_id=creator_id,
     )
     session.add(fdr)
     session.flush()
@@ -239,7 +247,7 @@ def create_fdr(
         old_value=None,
         new_value=fdr.fdr_number,
         source_category=ProvenanceSource.INSTITUTION_ENTERED.value,
-        actor_id=current_user.id,
+        actor_id=creator_id,
         reason="Initial draft registration",
     )
     session.add(prov)

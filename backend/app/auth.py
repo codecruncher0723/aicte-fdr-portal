@@ -266,6 +266,19 @@ def derive_institution_id(user: User) -> int:
     )
 
 
+def derive_creator_id(user: User) -> int:
+    """
+    Derives creator user ID directly from the authenticated principal.
+    Prevents client impersonation of another creator.
+    """
+    if not user or not user.id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authenticated user principal has no valid identifier.",
+        )
+    return user.id
+
+
 def enforce_separation_of_duties(
     actor: User,
     submitter_id: Optional[int],
