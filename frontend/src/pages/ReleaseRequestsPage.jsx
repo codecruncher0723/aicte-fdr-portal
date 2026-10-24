@@ -1,19 +1,34 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRole, ROLES } from '../context/RoleContext';
-import { FDR_STATUSES, exportToCSV } from '../data/mockData';
+import { apiClient } from '../api/client';
+import { exportToCSV } from '../data/mockData';
+
+const formatCurrencyINR = (val) => {
+  if (val === null || val === undefined) return '₹0.00';
+  const num = typeof val === 'number' ? val : parseFloat(val);
+  if (isNaN(num)) return '₹0.00';
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(num);
+};
 
 export default function ReleaseRequestsPage({
   fdrs = [],
-  releaseRequests = [],
+  releaseRequests: initialPropRequests = [],
   onUpdateReleaseRequest,
   onCreateReleaseRequest,
   onUpdateFdrStatus
 }) {
   const { currentRole, currentUser } = useRole();
-  const isInstitution = currentRole === ROLES.INSTITUTION_OFFICER;
-  const isApprover = currentRole === ROLES.APPROVING_AUTHORITY;
-  const isVerifier = currentRole === ROLES.VERIFICATION_OFFICER;
-  const isAdmin = currentRole === ROLES.AICTE_ADMIN;
+  const isInstitution = currentRole === ROLES.INSTITUTION_OFFICER || currentRole === 'INSTITUTION_OFFICER';
+  const isApprover = currentRole === ROLES.APPROVING_AUTHORITY || currentRole === 'APPROVING_AUTHORITY';
+  const isVerifier = currentRole === ROLES.VERIFICATION_OFFICER || currentRole === 'VERIFICATION_OFFICER';
+  const isAdmin = currentRole === ROLES.AICTE_ADMIN || currentRole === 'AICTE_ADMIN';
+
+  // Backend Data State
+  const [serverRequests, setServerRequests] = useState([]);
+  const [backendFdrs, setBackendFdrs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isActionInProgress, setIsActionInProgress] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
 
   // Active status filter tab
   const [activeTab, setActiveTab] = useState('all');
@@ -48,10 +63,109 @@ export default function ReleaseRequestsPage({
   const [actionMessage, setActionMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
+  const showNotice = (msg) => {
+    setActionMessage(msg);
+    setErrorMessage(null);
+    setTimeout(() => setActionMessage(null), 5000);
+  };
+
+  const showError = (msg) => {
+    setErrorMessage(msg);
+    setActionMessage(null);
+    setTimeout(() => setErrorMessage(null), 6000);
+  };
+
+  // 1. Fetch real release requests and FDRs from backend
+  const fetchReleaseData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setFetchError(null);
+      const [reqData, fdrData] = await Promise.allSettled([
+        apiClient.getRequests({ request_type: 'RELEASE_REFUND' }),
+        apiClient.getFdrs({ limit: 100 }),
+      ]);
+
+      if (reqData.status === 'fulfilled' && Array.isArray(reqData.value)) {
+        setServerRequests(reqData.value);
+      } else if (reqData.status === 'rejected') {
+        console.error('Failed to load release requests:', reqData.reason);
+        setFetchError(reqData.reason?.message || 'Failed to load release requests from backend.');
+      }
+
+      if (fdrData.status === 'fulfilled' && fdrData.value?.items) {
+        setBackendFdrs(fdrData.value.items);
+      }
+    } catch (err) {
+      console.error('fetchReleaseData error:', err);
+      setFetchError(err.message || 'Error communicating with server.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchReleaseData();
+  }, [fetchReleaseData]);
+
+  // Combined available FDRs (prefer prop if provided, else backend)
+  const availableFdrs = useMemo(() => {
+    if (fdrs && fdrs.length > 0) return fdrs;
+    return backendFdrs.map(f => ({
+      ...f,
+      fdrNumber: f.fdr_number,
+      institutionName: f.institution_name,
+      bank: f.bank_name,
+      amount: f.amount,
+      amountFormatted: formatCurrencyINR(f.amount),
+      status: f.status,
+    }));
+  }, [fdrs, backendFdrs]);
+
+  // Map server requests to display model
+  const mappedRequests = useMemo(() => {
+    return serverRequests.map(r => {
+      const amt = r.amount !== undefined ? r.amount : (r.fdr?.amount || 0);
+      return {
+        id: r.id,
+        fdrId: r.fdr_id,
+        fdrNumber: r.fdr_number || r.fdr?.fdr_number || `FDR-${r.fdr_id}`,
+        institutionName: r.institution_name || r.fdr?.institution?.name || 'N/A',
+        aictePid: r.aicte_pid || r.fdr?.institution?.aicte_pid || (r.institution_id ? `1-${String(r.institution_id).padStart(8, '0')}` : 'N/A'),
+        bank: r.bank_name || r.fdr?.bank_name || 'N/A',
+        amount: amt,
+        amountFormatted: formatCurrencyINR(amt),
+        requestType: r.reason || r.request_type || 'Release & Refund',
+        submittedDate: r.created_at ? r.created_at.split('T')[0] : 'N/A',
+        status: r.status,
+        councilOrderRef: r.council_order_ref || null,
+        approvalDate: r.updated_at ? r.updated_at.split('T')[0] : null,
+        readinessRemarks: r.readiness_remarks || null,
+        confirmationRef: r.confirmation_reference || null,
+        confirmationVoucher: r.confirmation_reference ? `BANK_RELEASE_ADVICE_${r.confirmation_reference}.pdf` : null,
+        confirmationTimestamp: r.confirmation_timestamp || null,
+        notes: r.applicant_notes || r.reason || 'N/A',
+        officerRemarks: r.officer_remarks || null,
+        raw: r,
+      };
+    });
+  }, [serverRequests]);
+
+  // Dynamic counts for tabs
+  const counts = useMemo(() => {
+    return {
+      all: mappedRequests.length,
+      under_review: mappedRequests.filter(r => ['REQUESTED', 'UNDER_VERIFICATION', 'CORRECTION_REQUIRED', 'PENDING_APPROVAL'].includes(r.status)).length,
+      approved: mappedRequests.filter(r => r.status === 'RELEASE_APPROVED').length,
+      awaiting_confirmation: mappedRequests.filter(r => r.status === 'AWAITING_CONFIRMATION').length,
+      released: mappedRequests.filter(r => r.status === 'RELEASED_REFUNDED').length,
+      closed: mappedRequests.filter(r => ['REJECTED', 'CANCELLED'].includes(r.status)).length,
+    };
+  }, [mappedRequests]);
+
   // Filter requests matching search and role scope
   const filteredRequests = useMemo(() => {
-    return releaseRequests.filter(req => {
-      // Role scope: Institution only sees own requests in strict mode
+    return mappedRequests.filter(req => {
+      // Role scope: Institution only sees own requests
       if (isInstitution) {
         const userPid = currentUser?.aictePid || currentUser?.pid;
         const userInst = (currentUser?.institutionName || currentUser?.institution || '').toLowerCase();
@@ -63,11 +177,14 @@ export default function ReleaseRequestsPage({
         }
       }
 
+      const s = (searchTerm || '').toLowerCase().trim();
       const matchesSearch =
-        !searchTerm ||
-        req.fdrNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        req.institutionName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        req.bank.toLowerCase().includes(searchTerm.toLowerCase());
+        !s ||
+        (req.fdrNumber || '').toLowerCase().includes(s) ||
+        (req.institutionName || '').toLowerCase().includes(s) ||
+        (req.bank || '').toLowerCase().includes(s) ||
+        (req.confirmationRef || '').toLowerCase().includes(s) ||
+        String(req.id).includes(s);
 
       if (!matchesSearch) return false;
 
@@ -89,226 +206,303 @@ export default function ReleaseRequestsPage({
 
       return true;
     });
-  }, [releaseRequests, searchTerm, activeTab, isInstitution, currentUser]);
-
-  // Dynamic counts for tabs
-  const counts = useMemo(() => {
-    return {
-      all: releaseRequests.length,
-      under_review: releaseRequests.filter(r => ['REQUESTED', 'UNDER_VERIFICATION', 'CORRECTION_REQUIRED', 'PENDING_APPROVAL'].includes(r.status)).length,
-      approved: releaseRequests.filter(r => r.status === 'RELEASE_APPROVED').length,
-      awaiting_confirmation: releaseRequests.filter(r => r.status === 'AWAITING_CONFIRMATION').length,
-      released: releaseRequests.filter(r => r.status === 'RELEASED_REFUNDED').length,
-      closed: releaseRequests.filter(r => ['REJECTED', 'CANCELLED'].includes(r.status)).length,
-    };
-  }, [releaseRequests]);
+  }, [mappedRequests, searchTerm, activeTab]);
 
   // Eligible FDRs for new release request
   const eligibleFdrs = useMemo(() => {
-    return fdrs.filter(f => {
-      // Only active FDRs that do not already have an active release request
-      const hasActiveReq = releaseRequests.some(r => r.fdrNumber === f.fdrNumber && !['RELEASED_REFUNDED', 'REJECTED', 'CANCELLED'].includes(r.status));
+    return availableFdrs.filter(f => {
+      const fdrNum = f.fdrNumber || f.fdr_number;
+      const hasActiveReq = mappedRequests.some(
+        r => r.fdrNumber === fdrNum && !['RELEASED_REFUNDED', 'REJECTED', 'CANCELLED'].includes(r.status)
+      );
       if (hasActiveReq) return false;
-      if (isInstitution && f.aictePid !== '1-10928374') return false;
-      return f.status === FDR_STATUSES.ACTIVE || f.status === 'Active' || f.status === FDR_STATUSES.MATURING_SOON;
+      const st = (f.status || '').toUpperCase();
+      return st === 'ACTIVE' || st === 'MATURING_SOON' || st === 'MATURED';
     });
-  }, [fdrs, releaseRequests, isInstitution]);
+  }, [availableFdrs, mappedRequests]);
 
-  const showNotice = (msg) => {
-    setActionMessage(msg);
-    setErrorMessage(null);
-    setTimeout(() => setActionMessage(null), 4500);
-  };
+  // ==========================================
+  // REAL BACKEND ACTION HANDLERS
+  // ==========================================
 
-  const showError = (msg) => {
-    setErrorMessage(msg);
-    setActionMessage(null);
-    setTimeout(() => setErrorMessage(null), 5000);
-  };
-
-  // Safe transition trigger calling parent App.jsx handler
-  const triggerTransition = (requestId, transitionType, payload = {}) => {
-    if (onUpdateReleaseRequest) {
-      const res = onUpdateReleaseRequest(requestId, transitionType, payload);
-      if (res && res.success === false) {
-        showError(res.error);
-        return false;
-      }
+  // 1. Verification Officer: Start Review
+  const handleStartVerification = async (req) => {
+    try {
+      setIsActionInProgress(true);
+      await apiClient.startRequestVerification(req.id);
+      showNotice(`Verification initiated for ${req.fdrNumber}. Request moved to UNDER_VERIFICATION.`);
+      await fetchReleaseData();
+      if (onUpdateReleaseRequest) onUpdateReleaseRequest(req.id, 'UNDER_VERIFICATION');
+    } catch (err) {
+      showError(err.message || 'Failed to start review.');
+    } finally {
+      setIsActionInProgress(false);
     }
-    return true;
   };
 
-  // Handlers for workflow actions
-  const handleStartVerification = (req) => {
-    const ok = triggerTransition(req.id, 'START_VERIFICATION');
-    if (ok) showNotice(`Verification initiated for ${req.fdrNumber}. Request moved to UNDER_VERIFICATION.`);
+  // 2. Verification Officer: Verify & Recommend
+  const handleVerifyApprove = async (req) => {
+    try {
+      setIsActionInProgress(true);
+      await apiClient.verifyWorkflowRequest(req.id, {
+        decision: 'VERIFIED',
+        remarks: 'Tripartite security verification cleared. Forwarded to Council with recommendation for release.'
+      });
+      showNotice(`Request ${req.id} verified. Status moved to PENDING_APPROVAL.`);
+      await fetchReleaseData();
+      if (onUpdateReleaseRequest) onUpdateReleaseRequest(req.id, 'PENDING_APPROVAL');
+    } catch (err) {
+      showError(err.message || 'Failed to verify request.');
+    } finally {
+      setIsActionInProgress(false);
+    }
   };
 
-  const handleVerifyApprove = (req) => {
-    const ok = triggerTransition(req.id, 'VERIFY_APPROVE', {
-      remarks: 'Tripartite security verification cleared. Forwarded to Council with recommendation for release.'
-    });
-    if (ok) showNotice(`Request ${req.id} verified. Status moved to PENDING_APPROVAL.`);
-  };
-
+  // 3. Verification Officer: Clarify / Correction Modal
   const handleOpenCorrectionModal = (req) => {
     setSelectedRequest(req);
     setCorrectionRemarks('');
     setIsCorrectionModalOpen(true);
   };
 
-  const handleSubmitCorrection = (e) => {
+  const handleSubmitCorrection = async (e) => {
     e.preventDefault();
     if (!selectedRequest) return;
-    const ok = triggerTransition(selectedRequest.id, 'REQUEST_CORRECTION', {
-      remarks: correctionRemarks || 'Deficiency noted: Governing body program closure certificate required.'
-    });
-    setIsCorrectionModalOpen(false);
-    setSelectedRequest(null);
-    if (ok) showNotice(`Clarification requested for ${selectedRequest.fdrNumber}. Returned to institution as CORRECTION_REQUIRED.`);
+    if (!correctionRemarks.trim()) {
+      showError('Please provide clarification remarks for the institution.');
+      return;
+    }
+    try {
+      setIsActionInProgress(true);
+      await apiClient.verifyWorkflowRequest(selectedRequest.id, {
+        decision: 'CORRECTION_REQUIRED',
+        remarks: correctionRemarks.trim()
+      });
+      setIsCorrectionModalOpen(false);
+      setSelectedRequest(null);
+      showNotice(`Clarification requested for ${selectedRequest.fdrNumber}. Returned to institution as CORRECTION_REQUIRED.`);
+      await fetchReleaseData();
+      if (onUpdateReleaseRequest) onUpdateReleaseRequest(selectedRequest.id, 'CORRECTION_REQUIRED');
+    } catch (err) {
+      showError(err.message || 'Failed to request clarification.');
+    } finally {
+      setIsActionInProgress(false);
+    }
   };
 
+  // 4. Institution Officer: Resubmit Clarification
   const handleOpenResubmitModal = (req) => {
     setSelectedRequest(req);
     setResubmitRemarks('');
     setIsResubmitModalOpen(true);
   };
 
-  const handleSubmitResubmission = (e) => {
+  const handleSubmitResubmission = async (e) => {
     e.preventDefault();
     if (!selectedRequest) return;
-    const ok = triggerTransition(selectedRequest.id, 'RESUBMIT', {
-      remarks: resubmitRemarks || 'Amended program closure documentation submitted.'
-    });
-    setIsResubmitModalOpen(false);
-    setSelectedRequest(null);
-    if (ok) showNotice(`Clarification resubmitted for ${selectedRequest.fdrNumber}. Request re-queued as REQUESTED.`);
+    if (!resubmitRemarks.trim()) {
+      showError('Please provide resubmission remarks / clarification response.');
+      return;
+    }
+    try {
+      setIsActionInProgress(true);
+      await apiClient.resubmitWorkflowRequest(selectedRequest.id, {
+        remarks: resubmitRemarks.trim()
+      });
+      setIsResubmitModalOpen(false);
+      setSelectedRequest(null);
+      showNotice(`Clarification resubmitted for ${selectedRequest.fdrNumber}. Request re-queued as REQUESTED.`);
+      await fetchReleaseData();
+      if (onUpdateReleaseRequest) onUpdateReleaseRequest(selectedRequest.id, 'REQUESTED');
+    } catch (err) {
+      showError(err.message || 'Failed to resubmit clarification.');
+    } finally {
+      setIsActionInProgress(false);
+    }
   };
 
-  const handleApproveRelease = (req) => {
-    const orderRef = `AICTE/FIN/REL/2024/${Math.floor(1000 + Math.random() * 9000)}`;
-    const ok = triggerTransition(req.id, 'APPROVE', { orderRef });
-    if (ok) showNotice(`Council Release Sanction ratified (${orderRef}). Request is now RELEASE_APPROVED. Next: Confirm Readiness.`);
+  // 5. Approving Authority: Approve Release
+  const handleApproveRelease = async (req) => {
+    try {
+      setIsActionInProgress(true);
+      const orderRef = `AICTE/FIN/REL/2026/${Math.floor(1000 + Math.random() * 9000)}`;
+      await apiClient.approveWorkflowRequest(req.id, {
+        decision: 'APPROVED',
+        council_order_ref: orderRef,
+        reason: 'Council Release Sanction ratified per APH Clause 14.'
+      });
+      showNotice(`Council Release Sanction ratified (${orderRef}). Request is now RELEASE_APPROVED. Next: Confirm Readiness.`);
+      await fetchReleaseData();
+      if (onUpdateReleaseRequest) onUpdateReleaseRequest(req.id, 'RELEASE_APPROVED');
+    } catch (err) {
+      showError(err.message || 'Failed to approve release request.');
+    } finally {
+      setIsActionInProgress(false);
+    }
   };
 
+  // 6. Approving Authority: Reject Modal
   const handleOpenRejectModal = (req) => {
     setSelectedRequest(req);
     setRejectReason('');
     setIsRejectModalOpen(true);
   };
 
-  const handleSubmitRejection = (e) => {
+  const handleSubmitRejection = async (e) => {
     e.preventDefault();
     if (!selectedRequest) return;
-    const ok = triggerTransition(selectedRequest.id, 'REJECT', {
-      reason: rejectReason || 'Release criteria not satisfied under APH 2024-25 Clause 14.'
-    });
-    setIsRejectModalOpen(false);
-    setSelectedRequest(null);
-    if (ok) showNotice(`Release Request ${selectedRequest.id} REJECTED. Underlying FDR remains ACTIVE in accordance with regulatory invariants.`);
+    if (!rejectReason.trim()) {
+      showError('Mandatory rejection reason required by AICTE statutory policy.');
+      return;
+    }
+    try {
+      setIsActionInProgress(true);
+      await apiClient.approveWorkflowRequest(selectedRequest.id, {
+        decision: 'REJECTED',
+        reason: rejectReason.trim()
+      });
+      setIsRejectModalOpen(false);
+      setSelectedRequest(null);
+      showNotice(`Release Request ${selectedRequest.id} REJECTED. Underlying FDR status remains unchanged.`);
+      await fetchReleaseData();
+      if (onUpdateReleaseRequest) onUpdateReleaseRequest(selectedRequest.id, 'REJECTED');
+    } catch (err) {
+      showError(err.message || 'Failed to reject release request.');
+    } finally {
+      setIsActionInProgress(false);
+    }
   };
 
+  // 7. Designated Officer: Confirm Readiness (Required before confirmation)
   const handleOpenReadinessModal = (req) => {
-    // Invariant check: only permitted from RELEASE_APPROVED
     if (req.status !== 'RELEASE_APPROVED') {
       showError(`Cannot confirm readiness: current status is ${req.status}, must be RELEASE_APPROVED.`);
       return;
     }
     setSelectedRequest(req);
-    setReadinessRemarks(`NOC issued per Council Order ${req.councilOrderRef || '918/2024'}. Branch communication established. Supporting ledger details ready for recording.`);
+    setReadinessRemarks(`NOC issued per Council Order ${req.councilOrderRef || '918/2026'}. Branch communication established. Supporting ledger details ready for recording.`);
     setIsReadinessModalOpen(true);
   };
 
-  const handleSubmitReadiness = (e) => {
+  const handleSubmitReadiness = async (e) => {
     e.preventDefault();
     if (!selectedRequest) return;
-    const ok = triggerTransition(selectedRequest.id, 'CONFIRM_READINESS', {
-      remarks: readinessRemarks
-    });
-    setIsReadinessModalOpen(false);
-    setSelectedRequest(null);
-    if (ok) showNotice(`Readiness confirmed for ${selectedRequest.fdrNumber}. Status moved to AWAITING_CONFIRMATION. Bank payment advice may now be recorded.`);
+    try {
+      setIsActionInProgress(true);
+      await apiClient.setReleaseReadiness(selectedRequest.id, {
+        remarks: readinessRemarks || 'Supporting confirmation details are ready for recording.'
+      });
+      setIsReadinessModalOpen(false);
+      setSelectedRequest(null);
+      showNotice(`Readiness confirmed for ${selectedRequest.fdrNumber}. Status moved to AWAITING_CONFIRMATION. Bank payment advice may now be recorded.`);
+      await fetchReleaseData();
+      if (onUpdateReleaseRequest) onUpdateReleaseRequest(selectedRequest.id, 'AWAITING_CONFIRMATION');
+    } catch (err) {
+      showError(err.message || 'Failed to confirm release readiness.');
+    } finally {
+      setIsActionInProgress(false);
+    }
   };
 
+  // 8. Designated Officer: Confirm Release with Bank Voucher & UTR
   const handleOpenVoucherModal = (req) => {
-    // Invariant check: CANNOT skip AWAITING_CONFIRMATION!
     if (req.status !== 'AWAITING_CONFIRMATION') {
       showError(`Invalid workflow action: Cannot confirm release from ${req.status}. Readiness must be confirmed first (status must be AWAITING_CONFIRMATION).`);
       return;
     }
     setSelectedRequest(req);
-    setVoucherRef(`UTR-${req.bank.slice(0, 3).toUpperCase()}-2024-${Math.floor(100000 + Math.random() * 900000)}`);
+    setVoucherRef(`UTR-${(req.bank || 'SBI').slice(0, 3).toUpperCase()}-2026-${Math.floor(100000 + Math.random() * 900000)}`);
     setVoucherFile(null);
     setIsUploadVoucherModalOpen(true);
   };
 
-  const handleSubmitVoucher = (e) => {
+  const handleSubmitVoucher = async (e) => {
     e.preventDefault();
     if (!selectedRequest) return;
-    const ok = triggerTransition(selectedRequest.id, 'CONFIRM_RELEASE', {
-      confirmationRef: voucherRef,
-      voucherFile: voucherFile ? voucherFile.name : `BANK_RELEASE_ADVICE_${selectedRequest.fdrNumber}.pdf`
-    });
-    setIsUploadVoucherModalOpen(false);
-    setSelectedRequest(null);
-    if (ok) showNotice(`Release & Refund Confirmed! UTR ${voucherRef} recorded. Request and underlying FDR moved to RELEASED_REFUNDED.`);
+    if (!voucherRef.trim()) {
+      showError('Please specify a valid UTR / bank voucher reference.');
+      return;
+    }
+    try {
+      setIsActionInProgress(true);
+      await apiClient.confirmReleaseDisbursement(selectedRequest.id, {
+        confirmation_reference: voucherRef.trim(),
+        remarks: `Disbursement confirmation recorded (SIMULATED/DEMO). Ref: ${voucherRef.trim()}`
+      });
+      setIsUploadVoucherModalOpen(false);
+      setSelectedRequest(null);
+      showNotice(`Release & Refund Confirmed! UTR ${voucherRef.trim()} recorded. Request moved to RELEASED_REFUNDED (Demo Simulation).`);
+      await fetchReleaseData();
+      if (onUpdateReleaseRequest) onUpdateReleaseRequest(selectedRequest.id, 'RELEASED_REFUNDED');
+      if (onUpdateFdrStatus) onUpdateFdrStatus(selectedRequest.fdrId, 'RELEASED_REFUNDED');
+    } catch (err) {
+      showError(err.message || 'Failed to confirm release disbursement.');
+    } finally {
+      setIsActionInProgress(false);
+    }
   };
 
+  // 9. Cancel Request Modal
   const handleOpenCancelModal = (req) => {
     setSelectedRequest(req);
     setCancelReason('');
     setIsCancelModalOpen(true);
   };
 
-  const handleSubmitCancel = (e) => {
+  const handleSubmitCancel = async (e) => {
     e.preventDefault();
     if (!selectedRequest) return;
-    const ok = triggerTransition(selectedRequest.id, 'CANCEL', {
-      reason: cancelReason || 'Withdrawn by applicant institution.'
-    });
-    setIsCancelModalOpen(false);
-    setSelectedRequest(null);
-    if (ok) showNotice(`Release request ${selectedRequest.id} cancelled. Underlying FDR reverted to ACTIVE.`);
+    if (!cancelReason.trim()) {
+      showError('Mandatory cancellation reason required.');
+      return;
+    }
+    try {
+      setIsActionInProgress(true);
+      await apiClient.cancelWorkflowRequest(selectedRequest.id, {
+        reason: cancelReason.trim()
+      });
+      setIsCancelModalOpen(false);
+      setSelectedRequest(null);
+      showNotice(`Release request ${selectedRequest.id} cancelled. Underlying FDR remains in AICTE custody.`);
+      await fetchReleaseData();
+      if (onUpdateReleaseRequest) onUpdateReleaseRequest(selectedRequest.id, 'CANCELLED');
+    } catch (err) {
+      showError(err.message || 'Failed to cancel release request.');
+    } finally {
+      setIsActionInProgress(false);
+    }
   };
 
+  // 10. View Advice Modal
   const handleOpenViewAdvice = (req) => {
     setSelectedRequest(req);
     setIsViewAdviceModalOpen(true);
   };
 
-  const handleCreateRequest = (e) => {
+  // 11. Create Release Request
+  const handleCreateRequest = async (e) => {
     e.preventDefault();
-    const targetFdr = fdrs.find(f => f.fdrNumber === newRequestFdr) || eligibleFdrs[0];
+    const targetFdr = availableFdrs.find(f => (f.fdrNumber || f.fdr_number) === newRequestFdr) || eligibleFdrs[0];
     if (!targetFdr) {
       showError('Please select a valid FDR instrument to release.');
       return;
     }
 
-    const newReq = {
-      id: `rel_${Date.now()}`,
-      fdrId: targetFdr.id,
-      fdrNumber: targetFdr.fdrNumber,
-      institutionName: targetFdr.institutionName,
-      aictePid: targetFdr.aictePid,
-      bank: targetFdr.bank,
-      amount: targetFdr.amount,
-      amountFormatted: targetFdr.amountFormatted,
-      requestType: newRequestReason,
-      submittedDate: new Date().toISOString().split('T')[0],
-      status: 'REQUESTED',
-      councilOrderRef: null,
-      approvalDate: null,
-      readinessRemarks: null,
-      confirmationRef: null,
-      confirmationVoucher: null,
-      notes: newRequestNotes || 'Statutory compliance complete. Excess deposit refund requested per APH Regulation 14(C).'
-    };
-
-    if (onCreateReleaseRequest) {
-      onCreateReleaseRequest(newReq);
+    try {
+      setIsActionInProgress(true);
+      await apiClient.createReleaseRequest(targetFdr.id || targetFdr.fdr_id, {
+        reason: newRequestReason,
+        applicant_notes: newRequestNotes || 'Statutory compliance complete. Excess deposit refund requested per APH Regulation 14(C).'
+      });
+      setIsSubmitModalOpen(false);
+      setNewRequestNotes('');
+      showNotice(`Release request submitted for ${targetFdr.fdrNumber || targetFdr.fdr_number} (Status: REQUESTED). Queued for Scrutiny.`);
+      await fetchReleaseData();
+    } catch (err) {
+      showError(err.message || 'Failed to create release request.');
+    } finally {
+      setIsActionInProgress(false);
     }
-    setIsSubmitModalOpen(false);
-    showNotice(`Release request submitted for ${newReq.fdrNumber} (Status: REQUESTED). Queued for Regional Scrutiny.`);
   };
 
   const handleExportCSV = () => {
@@ -355,6 +549,17 @@ export default function ReleaseRequestsPage({
 
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
+            onClick={fetchReleaseData}
+            disabled={isLoading || isActionInProgress}
+            className="rounded-xl bg-surface-container-lowest border border-surface-container text-on-surface hover:bg-surface-container-low font-label-md text-xs px-3.5 py-2 shadow-xs inline-flex items-center gap-1.5 transition-colors font-semibold disabled:opacity-50"
+            type="button"
+            title="Refresh from server"
+          >
+            <span className={`material-symbols-outlined text-[17px] ${isLoading ? 'animate-spin' : ''}`}>sync</span>
+            <span>Refresh</span>
+          </button>
+
+          <button
             onClick={handleExportCSV}
             className="rounded-xl bg-surface-container-lowest border border-surface-container text-on-surface hover:bg-surface-container-low font-label-md text-xs px-3.5 py-2 shadow-xs inline-flex items-center gap-1.5 transition-colors font-semibold"
             type="button"
@@ -367,7 +572,7 @@ export default function ReleaseRequestsPage({
             <button
               onClick={() => {
                 if (eligibleFdrs.length > 0) {
-                  setNewRequestFdr(eligibleFdrs[0].fdrNumber);
+                  setNewRequestFdr(eligibleFdrs[0].fdrNumber || eligibleFdrs[0].fdr_number);
                 }
                 setIsSubmitModalOpen(true);
               }}
@@ -399,7 +604,23 @@ export default function ReleaseRequestsPage({
             <span className="material-symbols-outlined text-rose-700 text-[18px]">error</span>
             <span>{errorMessage}</span>
           </div>
-          <span className="font-mono text-rose-800 font-bold bg-rose-100 px-2 py-0.5 rounded">INVALID TRANSITION 409</span>
+          <span className="font-mono text-rose-800 font-bold bg-rose-100 px-2 py-0.5 rounded">ACTION FAILED</span>
+        </div>
+      )}
+
+      {/* Fetch Error Banner with Retry */}
+      {fetchError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-900 rounded-xl flex items-center justify-between text-xs shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-rose-700 text-[20px]">cloud_off</span>
+            <span>{fetchError}</span>
+          </div>
+          <button
+            onClick={fetchReleaseData}
+            className="px-3 py-1 rounded-lg bg-rose-700 hover:bg-rose-800 text-white font-semibold"
+          >
+            Retry
+          </button>
         </div>
       )}
 
@@ -412,8 +633,8 @@ export default function ReleaseRequestsPage({
             <div className="text-[11px] text-teal-900/90 leading-relaxed">
               1. <strong>Verification Phase:</strong> Scrutiny Officer verifies eligibility and recommends case (<code className="font-mono font-semibold">UNDER_VERIFICATION → PENDING_APPROVAL</code>).<br />
               2. <strong>Approval Phase:</strong> Approving Authority issues Council Sanction (<code className="font-mono font-semibold">RELEASE_APPROVED</code>). If rejected, the underlying FDR remains <strong>Active</strong>.<br />
-              3. <strong>Readiness Phase:</strong> Designated Officer confirms readiness (<code className="font-mono font-semibold">AWAITING_CONFIRMATION</code>). <em>Direct confirmation from RELEASE_APPROVED is forbidden.</em><br />
-              4. <strong>Settlement Phase:</strong> Bank disbursement advice and UTR are recorded (<code className="font-mono font-semibold">RELEASED_REFUNDED</code>). No actual funds are transferred.
+              3. <strong>Readiness Phase:</strong> Designated Officer confirms readiness (<code className="font-mono font-semibold">AWAITING_CONFIRMATION</code>). <em>Direct confirmation from RELEASE_APPROVED is rejected with 409 Conflict.</em><br />
+              4. <strong>Settlement Phase:</strong> Bank disbursement advice and UTR are recorded (<code className="font-mono font-semibold">RELEASED_REFUNDED</code>). <em>Disbursement confirmation is simulated for demonstration and audit recording; no real funds are transferred.</em>
             </div>
           </div>
         </div>
@@ -549,7 +770,17 @@ export default function ReleaseRequestsPage({
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-container">
-              {filteredRequests.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan="7" className="py-12 text-center text-secondary">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <span className="material-symbols-outlined text-[32px] text-primary animate-spin">progress_activity</span>
+                      <span className="font-semibold text-xs text-on-surface">Loading release requests from backend...</span>
+                      <span className="text-[11px] text-secondary">Synchronizing regulatory state</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredRequests.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="py-12 text-center text-secondary">
                     <div className="flex flex-col items-center justify-center gap-1.5">
@@ -672,7 +903,8 @@ export default function ReleaseRequestsPage({
                               {(isVerifier || isAdmin) && (
                                 <button
                                   onClick={() => handleStartVerification(req)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-primary hover:bg-primary-container text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1 transition-colors"
+                                  disabled={isActionInProgress}
+                                  className="px-2.5 py-1.5 rounded-lg bg-primary hover:bg-primary-container text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1 transition-colors disabled:opacity-50"
                                   title="Take ownership of review"
                                 >
                                   <span className="material-symbols-outlined text-[15px]">assignment_turned_in</span>
@@ -682,11 +914,12 @@ export default function ReleaseRequestsPage({
                               {(isInstitution || isAdmin) && (
                                 <button
                                   onClick={() => handleOpenCancelModal(req)}
-                                  className="px-2.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-semibold transition-colors inline-flex items-center gap-1"
-                                  title="Cancel release request before verification"
+                                  disabled={isActionInProgress}
+                                  className="px-2 py-1.5 rounded-lg border border-surface-container text-secondary hover:text-error hover:border-rose-300 text-xs font-medium transition-colors inline-flex items-center gap-1 disabled:opacity-50"
+                                  title="Withdraw release request"
                                 >
                                   <span className="material-symbols-outlined text-[15px]">cancel</span>
-                                  <span>Cancel</span>
+                                  <span>Withdraw</span>
                                 </button>
                               )}
                             </>
@@ -699,7 +932,8 @@ export default function ReleaseRequestsPage({
                                 <>
                                   <button
                                     onClick={() => handleVerifyApprove(req)}
-                                    className="px-2.5 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1 transition-colors"
+                                    disabled={isActionInProgress}
+                                    className="px-2.5 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1 transition-colors disabled:opacity-50"
                                     title="Recommend for Council Approval"
                                   >
                                     <span className="material-symbols-outlined text-[15px]">thumb_up</span>
@@ -707,7 +941,8 @@ export default function ReleaseRequestsPage({
                                   </button>
                                   <button
                                     onClick={() => handleOpenCorrectionModal(req)}
-                                    className="px-2 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 text-xs font-semibold transition-colors inline-flex items-center gap-1"
+                                    disabled={isActionInProgress}
+                                    className="px-2 py-1.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 text-xs font-semibold transition-colors inline-flex items-center gap-1 disabled:opacity-50"
                                     title="Request clarification / return for correction"
                                   >
                                     <span className="material-symbols-outlined text-[15px]">rate_review</span>
@@ -724,7 +959,8 @@ export default function ReleaseRequestsPage({
                               {(isInstitution || isAdmin) && (
                                 <button
                                   onClick={() => handleOpenResubmitModal(req)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1 transition-colors"
+                                  disabled={isActionInProgress}
+                                  className="px-2.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1 transition-colors disabled:opacity-50"
                                   title="Resubmit amended documents"
                                 >
                                   <span className="material-symbols-outlined text-[15px]">replay</span>
@@ -741,7 +977,8 @@ export default function ReleaseRequestsPage({
                                 <>
                                   <button
                                     onClick={() => handleApproveRelease(req)}
-                                    className="px-2.5 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1 transition-colors"
+                                    disabled={isActionInProgress}
+                                    className="px-2.5 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1 transition-colors disabled:opacity-50"
                                     title="Issue Council Release Sanction"
                                   >
                                     <span className="material-symbols-outlined text-[15px]">gavel</span>
@@ -749,7 +986,8 @@ export default function ReleaseRequestsPage({
                                   </button>
                                   <button
                                     onClick={() => handleOpenRejectModal(req)}
-                                    className="px-2 py-1.5 rounded-lg border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 text-xs font-semibold transition-colors inline-flex items-center gap-1"
+                                    disabled={isActionInProgress}
+                                    className="px-2 py-1.5 rounded-lg border border-rose-300 bg-rose-50 text-rose-700 hover:bg-rose-100 text-xs font-semibold transition-colors inline-flex items-center gap-1 disabled:opacity-50"
                                     title="Reject release request"
                                   >
                                     <span className="material-symbols-outlined text-[15px]">close</span>
@@ -766,7 +1004,8 @@ export default function ReleaseRequestsPage({
                               {(isApprover || isAdmin || isVerifier) && (
                                 <button
                                   onClick={() => handleOpenReadinessModal(req)}
-                                  className="px-3 py-1.5 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1 transition-colors"
+                                  disabled={isActionInProgress}
+                                  className="px-3 py-1.5 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1 transition-colors disabled:opacity-50"
                                   title="Confirm release readiness (moves to AWAITING_CONFIRMATION)"
                                 >
                                   <span className="material-symbols-outlined text-[15px]">rule</span>
@@ -779,14 +1018,17 @@ export default function ReleaseRequestsPage({
                           {/* 6. AWAITING_CONFIRMATION State Actions: Record final voucher */}
                           {req.status === 'AWAITING_CONFIRMATION' && (
                             <>
-                              <button
-                                onClick={() => handleOpenVoucherModal(req)}
-                                className="px-3 py-1.5 rounded-lg bg-purple-700 hover:bg-purple-800 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1 transition-colors"
-                                title="Upload Bank Credit Advice & UTR"
-                              >
-                                <span className="material-symbols-outlined text-[15px]">upload_file</span>
-                                <span>Upload Voucher & UTR</span>
-                              </button>
+                              {(isApprover || isAdmin) && (
+                                <button
+                                  onClick={() => handleOpenVoucherModal(req)}
+                                  disabled={isActionInProgress}
+                                  className="px-3 py-1.5 rounded-lg bg-purple-700 hover:bg-purple-800 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1 transition-colors disabled:opacity-50"
+                                  title="Upload Bank Credit Advice & UTR"
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">upload_file</span>
+                                  <span>Upload Voucher & UTR</span>
+                                </button>
+                              )}
                             </>
                           )}
 
@@ -822,15 +1064,19 @@ export default function ReleaseRequestsPage({
         </div>
       </div>
 
-      {/* MODAL 1: Initiate Release Request */}
+      {/* ========================================== */}
+      {/* MODALS */}
+      {/* ========================================== */}
+
+      {/* MODAL 1: Create Release Request */}
       {isSubmitModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-on-surface/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-surface-container-lowest rounded-2xl border border-surface-container shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in duration-200">
             <div className="px-6 py-5 border-b border-surface-container flex items-center justify-between bg-surface-container-low/40">
               <div className="flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-primary text-[22px]">add_circle</span>
+                <span className="material-symbols-outlined text-primary text-[22px]">assignment_add</span>
                 <h2 className="font-headline-sm text-base font-bold text-on-surface">
-                  Initiate Security Deposit Release Request
+                  Initiate FDR Release & Refund Request
                 </h2>
               </div>
               <button
@@ -844,22 +1090,22 @@ export default function ReleaseRequestsPage({
             <form onSubmit={handleCreateRequest} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-on-surface mb-1">
-                  Select Pledged Fixed Deposit Receipt <span className="text-error">*</span>
+                  Select Pledged FDR Instrument <span className="text-error">*</span>
                 </label>
                 {eligibleFdrs.length === 0 ? (
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
-                    No active eligible FDRs found without existing pending release petitions.
+                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs">
+                    No active or mature FDR instruments eligible for release request. Existing instruments may already have active requests.
                   </div>
                 ) : (
                   <select
                     value={newRequestFdr}
                     onChange={(e) => setNewRequestFdr(e.target.value)}
-                    className="w-full text-xs rounded-xl border border-surface-container-high bg-surface-container-low px-3 py-2 text-on-surface font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full text-xs rounded-xl border border-surface-container-high bg-surface-container-low p-2.5 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
                     required
                   >
                     {eligibleFdrs.map(f => (
-                      <option key={f.id} value={f.fdrNumber}>
-                        {f.fdrNumber} — {f.bank} ({f.amountFormatted})
+                      <option key={f.id || f.fdr_id} value={f.fdrNumber || f.fdr_number}>
+                        {f.fdrNumber || f.fdr_number} — {f.bank || f.bank_name} ({f.amountFormatted || formatCurrencyINR(f.amount)})
                       </option>
                     ))}
                   </select>
@@ -868,18 +1114,18 @@ export default function ReleaseRequestsPage({
 
               <div>
                 <label className="block text-xs font-semibold text-on-surface mb-1">
-                  Statutory Grounds for Release <span className="text-error">*</span>
+                  Grounds for Release Petition <span className="text-error">*</span>
                 </label>
                 <select
                   value={newRequestReason}
                   onChange={(e) => setNewRequestReason(e.target.value)}
-                  className="w-full text-xs rounded-xl border border-surface-container-high bg-surface-container-low px-3 py-2 text-on-surface font-medium focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full text-xs rounded-xl border border-surface-container-high bg-surface-container-low p-2.5 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
                   required
                 >
                   <option value="Closure of Academic Programme">Closure of Academic Programme (All batches graduated)</option>
                   <option value="Excess Collateral Refund">Excess Collateral Refund (Post Statutory 8-Year Period)</option>
                   <option value="Autonomous Status Transition">Autonomous Status Transition (Reduced Collateral Requirement)</option>
-                  <option value="Surplus Reserve Release">Surplus Reserve Release (APH 2024-25 Clause 14(C))</option>
+                  <option value="Surplus Reserve Release">Surplus Reserve Release (APH Regulation Clause 14(C))</option>
                 </select>
               </div>
 
@@ -889,14 +1135,8 @@ export default function ReleaseRequestsPage({
                 </label>
                 <div className="border border-dashed border-surface-container-high rounded-xl p-3 bg-surface-container-low/40 text-center">
                   <span className="material-symbols-outlined text-secondary text-[24px]">cloud_upload</span>
-                  <div className="text-xs text-secondary mt-1">Select PDF resolution document</div>
-                  <input type="file" accept=".pdf" className="hidden" id="release-doc-upload" />
-                  <label
-                    htmlFor="release-doc-upload"
-                    className="mt-2 inline-block px-3 py-1 bg-surface-container text-xs font-semibold rounded-lg cursor-pointer hover:bg-surface-container-high"
-                  >
-                    Choose PDF
-                  </label>
+                  <div className="text-xs text-secondary mt-1">Supporting resolution registered in dossier</div>
+                  <div className="text-[10px] text-secondary/80 mt-0.5">Verification officer checks governing body certificates during review</div>
                 </div>
               </div>
 
@@ -923,10 +1163,11 @@ export default function ReleaseRequestsPage({
                 </button>
                 <button
                   type="submit"
-                  disabled={eligibleFdrs.length === 0}
-                  className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-white text-xs font-semibold shadow-xs disabled:opacity-50"
+                  disabled={eligibleFdrs.length === 0 || isActionInProgress}
+                  className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-container text-white text-xs font-semibold shadow-xs disabled:opacity-50 inline-flex items-center gap-1.5"
                 >
-                  Submit Release Petition
+                  {isActionInProgress && <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>}
+                  <span>Submit Release Petition</span>
                 </button>
               </div>
             </form>
@@ -965,7 +1206,7 @@ export default function ReleaseRequestsPage({
                   <span>Statutory Readiness Checkpoint:</span>
                 </div>
                 <p className="text-[11px] leading-relaxed">
-                  Council Release Order <strong>{selectedRequest.councilOrderRef || 'AICTE/FIN/REL/2024/918'}</strong> has been issued. Confirming readiness certifies that all institutional clearances and NOC letters are prepared. This step advances status to <strong>AWAITING_CONFIRMATION</strong>; it does not claim funds have moved.
+                  Council Release Order <strong>{selectedRequest.councilOrderRef || 'AICTE/FIN/REL/2026/918'}</strong> has been issued. Confirming readiness certifies that all institutional clearances and NOC letters are prepared. This step advances status to <strong>AWAITING_CONFIRMATION</strong>; it explicitly records administrative readiness without moving funds.
                 </p>
               </div>
 
@@ -992,9 +1233,11 @@ export default function ReleaseRequestsPage({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold shadow-xs"
+                  disabled={isActionInProgress}
+                  className="px-4 py-2 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold shadow-xs disabled:opacity-50 inline-flex items-center gap-1.5"
                 >
-                  Confirm Readiness Sign-off
+                  {isActionInProgress && <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>}
+                  <span>Confirm Readiness Sign-off</span>
                 </button>
               </div>
             </form>
@@ -1008,10 +1251,10 @@ export default function ReleaseRequestsPage({
           <div className="bg-surface-container-lowest rounded-2xl border border-surface-container shadow-2xl max-w-lg w-full overflow-hidden animate-in fade-in duration-200">
             <div className="px-6 py-5 border-b border-surface-container flex items-center justify-between bg-purple-50/60">
               <div className="flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-purple-800 text-[22px]">receipt_long</span>
+                <span className="material-symbols-outlined text-purple-700 text-[22px]">upload_file</span>
                 <div>
                   <h2 className="font-headline-sm text-base font-bold text-on-surface">
-                    Record Bank Disbursement & Close Custody
+                    Record Disbursement Confirmation
                   </h2>
                   <p className="text-xs text-secondary">
                     FDR: <span className="font-mono font-bold text-on-surface">{selectedRequest.fdrNumber}</span>
@@ -1028,47 +1271,54 @@ export default function ReleaseRequestsPage({
 
             <form onSubmit={handleSubmitVoucher} className="p-6 space-y-4">
               <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 text-xs text-purple-950 space-y-1">
-                <div>Council Order: <strong>{selectedRequest.councilOrderRef || 'AICTE/FIN/REL/2024/918'}</strong></div>
-                <div className="text-[11px] text-purple-900/80">
-                  Readiness confirmed on {selectedRequest.approvalDate || 'recent date'}. Upload the scheduled bank credit advice or UTR acknowledgment to finalize deposit status as <strong className="text-emerald-800">RELEASED_REFUNDED</strong>.
+                <div className="font-bold flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[16px] text-purple-700">warning</span>
+                  <span>Statutory Demonstration Protocol:</span>
                 </div>
+                <p className="text-[11px] leading-relaxed">
+                  In this demonstration environment, funds transfer is simulated. Entering the bank confirmation UTR reference permanently sets request status to <strong>RELEASED_REFUNDED</strong> and closes the statutory lien in the registry.
+                </p>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-on-surface mb-1">
-                  Bank UTR / Transaction Reference Number <span className="text-error">*</span>
+                  Bank UTR / Confirmation Reference <span className="text-error">*</span>
                 </label>
                 <input
                   type="text"
                   value={voucherRef}
                   onChange={(e) => setVoucherRef(e.target.value)}
-                  placeholder="e.g. UTR-SBIN-2024-998122"
-                  className="w-full text-xs font-mono rounded-xl border border-surface-container-high bg-surface-container-low px-3 py-2 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="e.g. UTR-SBI-2026-928471"
+                  className="w-full text-xs rounded-xl border border-surface-container-high bg-surface-container-low p-2.5 font-mono text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
                   required
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-on-surface mb-1">
-                  Bank Credit Advice / Disbursement Voucher (PDF)
+                  Upload Bank Credit Advice / Voucher Document (Optional PDF)
                 </label>
                 <div className="border border-dashed border-surface-container-high rounded-xl p-3 bg-surface-container-low/40 text-center">
                   <span className="material-symbols-outlined text-secondary text-[24px]">description</span>
                   <div className="text-xs text-secondary mt-1">
-                    {voucherFile ? voucherFile.name : 'Upload bank settlement confirmation PDF'}
+                    {voucherFile ? voucherFile.name : 'Voucher ledger documentation registered'}
                   </div>
                   <input
                     type="file"
-                    accept=".pdf,.png,.jpg"
-                    onChange={(e) => setVoucherFile(e.target.files[0])}
+                    accept=".pdf"
                     className="hidden"
                     id="voucher-file-upload"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setVoucherFile(e.target.files[0]);
+                      }
+                    }}
                   />
                   <label
                     htmlFor="voucher-file-upload"
                     className="mt-2 inline-block px-3 py-1 bg-surface-container text-xs font-semibold rounded-lg cursor-pointer hover:bg-surface-container-high"
                   >
-                    {voucherFile ? 'Change File' : 'Browse File'}
+                    {voucherFile ? 'Change File' : 'Browse PDF'}
                   </label>
                 </div>
               </div>
@@ -1083,9 +1333,11 @@ export default function ReleaseRequestsPage({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-semibold shadow-xs"
+                  disabled={isActionInProgress}
+                  className="px-4 py-2 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-semibold shadow-xs disabled:opacity-50 inline-flex items-center gap-1.5"
                 >
-                  Confirm Release & Close Lien
+                  {isActionInProgress && <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>}
+                  <span>Confirm Release & Record Voucher</span>
                 </button>
               </div>
             </form>
@@ -1146,9 +1398,11 @@ export default function ReleaseRequestsPage({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-semibold shadow-xs"
+                  disabled={isActionInProgress}
+                  className="px-4 py-2 rounded-xl bg-rose-700 hover:bg-rose-800 text-white text-xs font-semibold shadow-xs disabled:opacity-50 inline-flex items-center gap-1.5"
                 >
-                  Confirm Rejection
+                  {isActionInProgress && <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>}
+                  <span>Confirm Rejection</span>
                 </button>
               </div>
             </form>
@@ -1205,9 +1459,11 @@ export default function ReleaseRequestsPage({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs"
+                  disabled={isActionInProgress}
+                  className="px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold shadow-xs disabled:opacity-50 inline-flex items-center gap-1.5"
                 >
-                  Return for Clarification
+                  {isActionInProgress && <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>}
+                  <span>Return for Clarification</span>
                 </button>
               </div>
             </form>
@@ -1241,7 +1497,7 @@ export default function ReleaseRequestsPage({
 
             <form onSubmit={handleSubmitResubmission} className="p-6 space-y-4">
               <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-950">
-                Previous Observation: <em>{selectedRequest.notes}</em>
+                Previous Observation: <em>{selectedRequest.officerRemarks || selectedRequest.notes}</em>
               </div>
 
               <div>
@@ -1268,9 +1524,11 @@ export default function ReleaseRequestsPage({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs"
+                  disabled={isActionInProgress}
+                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs disabled:opacity-50 inline-flex items-center gap-1.5"
                 >
-                  Resubmit for Review
+                  {isActionInProgress && <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>}
+                  <span>Resubmit for Review</span>
                 </button>
               </div>
             </form>
@@ -1331,9 +1589,11 @@ export default function ReleaseRequestsPage({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs"
+                  disabled={isActionInProgress}
+                  className="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold shadow-xs disabled:opacity-50 inline-flex items-center gap-1.5"
                 >
-                  Confirm Cancellation
+                  {isActionInProgress && <span className="material-symbols-outlined text-[16px] animate-spin">progress_activity</span>}
+                  <span>Confirm Cancellation</span>
                 </button>
               </div>
             </form>
@@ -1366,6 +1626,10 @@ export default function ReleaseRequestsPage({
             </div>
 
             <div className="p-6 space-y-4 text-xs">
+              <div className="p-3 bg-teal-50 rounded-xl border border-teal-200 text-[11px] text-teal-950">
+                <strong>Simulated Disbursement Disclaimer:</strong> This advice record documents regulatory confirmation under the demonstration environment. No physical banking transfer occurred.
+              </div>
+
               <div className="grid grid-cols-2 gap-3 bg-surface-container-low/50 p-4 rounded-xl border border-surface-container">
                 <div>
                   <span className="text-[10px] uppercase font-bold text-secondary block">Council Sanction Ref</span>

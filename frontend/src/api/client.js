@@ -274,6 +274,90 @@ export const apiClient = {
     });
   },
 
+  // Workflow Requests & Renewals
+  async getRequests(params = {}) {
+    const q = new URLSearchParams();
+    if (params.request_type && params.request_type !== 'all') q.set('request_type', params.request_type);
+    if (params.status && params.status !== 'all') q.set('status', params.status);
+    if (params.fdr_id) q.set('fdr_id', params.fdr_id);
+    if (params.institution_id) q.set('institution_id', params.institution_id);
+    const qs = q.toString() ? '?' + q.toString() : '';
+    return await apiFetch('/api/v1/requests' + qs);
+  },
+
+  async getRequest(requestId) {
+    return await apiFetch('/api/v1/requests/' + requestId);
+  },
+
+  async createRenewalRequest(fdrId, data) {
+    return await apiFetch('/api/v1/fdrs/' + fdrId + '/renewals', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async startRequestVerification(requestId) {
+    return await apiFetch('/api/v1/requests/' + requestId + '/start-verification', {
+      method: 'POST',
+    });
+  },
+
+  async verifyWorkflowRequest(requestId, verifyData) {
+    return await apiFetch('/api/v1/requests/' + requestId + '/verify', {
+      method: 'POST',
+      body: JSON.stringify(verifyData),
+    });
+  },
+
+  async approveWorkflowRequest(requestId, approveData) {
+    return await apiFetch('/api/v1/requests/' + requestId + '/approval', {
+      method: 'POST',
+      body: JSON.stringify(approveData),
+    });
+  },
+
+  async completeRenewalRequest(requestId, completeData) {
+    return await apiFetch('/api/v1/requests/' + requestId + '/complete', {
+      method: 'POST',
+      body: JSON.stringify(completeData),
+    });
+  },
+
+  async createReleaseRequest(fdrId, data) {
+    return await apiFetch('/api/v1/fdrs/' + fdrId + '/release-requests', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async resubmitWorkflowRequest(requestId, data = {}) {
+    return await apiFetch('/api/v1/requests/' + requestId + '/resubmit', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async cancelWorkflowRequest(requestId, data) {
+    return await apiFetch('/api/v1/requests/' + requestId + '/cancel', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async setReleaseReadiness(requestId, data = {}) {
+    return await apiFetch('/api/v1/requests/' + requestId + '/release-confirmation/ready', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async confirmReleaseDisbursement(requestId, data) {
+    return await apiFetch('/api/v1/requests/' + requestId + '/release-confirmation', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   async getDuplicateCandidates(fdrId) {
     return await apiFetch(`/api/v1/fdrs/${fdrId}/duplicate-candidates`);
   },
