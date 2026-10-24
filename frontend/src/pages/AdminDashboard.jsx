@@ -1,139 +1,216 @@
 import React, { useState, useMemo } from 'react';
 import { useRole, ROLES } from '../context/RoleContext';
 import { FDR_STATUSES } from '../data/mockData';
+import { getAppToday, getDaysToMaturity, maturityColor } from '../utils/clock';
 
 export default function AdminDashboard({
   fdrs = [],
   releaseRequests = [],
   onSelectFdr,
   onOpenSubmitModal,
-  onOpenDetailModal
+  onOpenDetailModal,
 }) {
   const { setActiveRoute, setSelectedFdrRef, currentRole } = useRole();
   const isApprover = currentRole === ROLES.APPROVING_AUTHORITY;
   const isVerifier = currentRole === ROLES.VERIFICATION_OFFICER;
+  const isAdmin = currentRole === ROLES.AICTE_ADMIN;
+
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 1. Four Core Useful KPIs calculated from active dataset
+  // 1. Role-specific counts & KPIs
   const kpis = useMemo(() => {
     const totalCount = fdrs.length;
-    const activeCount = fdrs.filter(f => f.status === FDR_STATUSES.ACTIVE).length;
-    const pendingVerificationCount = fdrs.filter(f =>
-      f.status === FDR_STATUSES.SUBMITTED ||
-      f.status === FDR_STATUSES.UNDER_VERIFICATION ||
-      f.status === FDR_STATUSES.CORRECTION_REQUIRED ||
-      f.status === FDR_STATUSES.PENDING_APPROVAL
+    const activeCount = fdrs.filter((f) => f.status === FDR_STATUSES.ACTIVE).length;
+    
+    // Verification Officer perspective
+    const pendingReviews = fdrs.filter(
+      (f) => f.status === FDR_STATUSES.SUBMITTED || f.status === FDR_STATUSES.UNDER_VERIFICATION
     ).length;
-    const maturing60Count = fdrs.filter(f =>
-      f.status === FDR_STATUSES.MATURING_SOON ||
-      f.status === FDR_STATUSES.MATURED ||
-      f.status === FDR_STATUSES.RENEWAL_REQUESTED
+    const correctionsRequired = fdrs.filter(
+      (f) => f.status === FDR_STATUSES.CORRECTION_REQUIRED
+    ).length;
+    // Instruments verified this month (verified or active or approved)
+    const verifiedThisMonth = fdrs.filter(
+      (f) => f.status === FDR_STATUSES.VERIFIED || f.status === FDR_STATUSES.ACTIVE || f.status === FDR_STATUSES.PENDING_APPROVAL
+    ).length;
+
+    // Approving Authority perspective
+    const pendingApprovals = fdrs.filter(
+      (f) => f.status === FDR_STATUSES.PENDING_APPROVAL
+    ).length;
+    const releasePending = Array.isArray(releaseRequests)
+      ? releaseRequests.filter((r) =>
+          ['REQUESTED', 'UNDER_VERIFICATION', 'PENDING_APPROVAL', 'RELEASE_APPROVED', 'AWAITING_CONFIRMATION'].includes(r.status)
+        ).length
+      : 0;
+    const approvedThisMonth = fdrs.filter(
+      (f) => f.status === FDR_STATUSES.ACTIVE
+    ).length;
+    const rejectedOrWaivers = fdrs.filter(
+      (f) => f.status === FDR_STATUSES.REJECTED || f.discrepancyNote
+    ).length;
+
+    const maturing60Count = fdrs.filter(
+      (f) =>
+        f.status === FDR_STATUSES.MATURING_SOON ||
+        f.status === FDR_STATUSES.MATURED ||
+        f.status === FDR_STATUSES.RENEWAL_REQUESTED
     ).length;
 
     return {
       totalCount,
-      totalAmountFormatted: '₹14,128.50 Cr', // Master institutional portfolio aggregate
+      totalAmountFormatted: '₹14,128.50 Cr',
       activeCount,
-      pendingVerificationCount,
-      maturing60Count
+      pendingReviews,
+      verifiedThisMonth,
+      correctionsRequired,
+      pendingApprovals,
+      referredDecisions: pendingApprovals + releasePending,
+      approvedThisMonth,
+      rejectedOrWaivers,
+      maturing60Count,
     };
-  }, [fdrs]);
+  }, [fdrs, releaseRequests]);
 
-  // 2. Action Required Counts
+  // 2. Action Required Items (filtered strictly by role)
   const actionItems = useMemo(() => {
-    const pendingApprovals = fdrs.filter(f => f.status === FDR_STATUSES.PENDING_APPROVAL).length;
-    const pendingReviews = fdrs.filter(f => f.status === FDR_STATUSES.SUBMITTED || f.status === FDR_STATUSES.UNDER_VERIFICATION).length;
-    const correctionsRequired = fdrs.filter(f => f.status === FDR_STATUSES.CORRECTION_REQUIRED).length;
-    const renewalsDue = fdrs.filter(f => f.status === FDR_STATUSES.MATURING_SOON || f.status === FDR_STATUSES.RENEWAL_REQUESTED).length;
-    const releasePending = Array.isArray(releaseRequests)
-      ? releaseRequests.filter(r => ['REQUESTED', 'UNDER_VERIFICATION', 'PENDING_APPROVAL', 'RELEASE_APPROVED', 'AWAITING_CONFIRMATION'].includes(r.status)).length
-      : (fdrs || []).filter(f => f.status === FDR_STATUSES.RELEASE_REQUESTED || f.status === FDR_STATUSES.RELEASE_APPROVED).length;
+    if (isVerifier) {
+      return [
+        {
+          id: 'verif',
+          title: 'Submitted FDRs Awaiting Review',
+          count: kpis.pendingReviews,
+          desc: 'New submissions in regional scrutiny queue',
+          icon: 'verified',
+          route: 'verification',
+          badgeColor: 'bg-primary-fixed text-on-primary-fixed',
+        },
+        {
+          id: 'corr',
+          title: 'Open Discrepancies & Corrections',
+          count: kpis.correctionsRequired,
+          desc: 'Instruments returned with scrutiny observations',
+          icon: 'warning',
+          route: 'verification',
+          badgeColor: 'bg-error-container text-on-error-container',
+        },
+        {
+          id: 'renew',
+          title: 'Expiring Maturities (< 60 Days)',
+          count: kpis.maturing60Count,
+          desc: 'Maturing statutory deposits requiring scrutiny',
+          icon: 'event_repeat',
+          route: 'registry',
+          badgeColor: 'bg-tertiary-fixed text-on-tertiary-fixed',
+        },
+      ];
+    }
 
     if (isApprover) {
       return [
         {
           id: 'approval',
-          title: 'Pending Council Approval',
-          count: pendingApprovals,
-          desc: 'Verified instruments awaiting statutory endorsement',
+          title: 'Referred Cases Awaiting Decision',
+          count: kpis.referredDecisions,
+          desc: 'Verified cases requiring statutory council determination',
           icon: 'gavel',
-          route: 'verification_audit',
-          badgeColor: 'bg-teal-700 text-white'
-        },
-        {
-          id: 'release',
-          title: 'Release / Refund Approvals',
-          count: releasePending,
-          desc: 'Refund requests pending council decision',
-          icon: 'currency_exchange',
-          route: 'release_requests',
-          badgeColor: 'bg-secondary-container text-on-secondary-container'
+          route: 'approval',
+          badgeColor: 'bg-teal-700 text-white',
         },
         {
           id: 'renew',
-          title: 'Renewals Due (< 60 Days)',
-          count: renewalsDue,
-          desc: 'Maturing deposits requiring rollover',
+          title: 'Expiring Maturities (< 60 Days)',
+          count: kpis.maturing60Count,
+          desc: 'Deposits approaching maturity horizon',
           icon: 'event_repeat',
-          route: 'maturity_renewals',
-          badgeColor: 'bg-tertiary-fixed text-on-tertiary-fixed'
+          route: 'registry',
+          badgeColor: 'bg-tertiary-fixed text-on-tertiary-fixed',
         },
-        {
-          id: 'verif',
-          title: 'Submissions in Scrutiny',
-          count: pendingReviews,
-          desc: 'Instruments undergoing tripartite verification',
-          icon: 'verified',
-          route: 'verification_audit',
-          badgeColor: 'bg-primary-fixed text-on-primary-fixed'
-        }
       ];
     }
 
+    // Admin: Full action set
     return [
       {
         id: 'verif',
         title: 'Pending Verification',
-        count: pendingReviews,
+        count: kpis.pendingReviews,
         desc: 'New submissions awaiting scrutiny',
         icon: 'verified',
-        route: 'verification_audit',
-        badgeColor: 'bg-primary-fixed text-on-primary-fixed'
+        route: 'verification',
+        badgeColor: 'bg-primary-fixed text-on-primary-fixed',
       },
       {
         id: 'approval',
         title: 'Pending Council Approval',
-        count: pendingApprovals,
+        count: kpis.pendingApprovals,
         desc: 'Verified instruments awaiting endorsement',
         icon: 'gavel',
-        route: 'verification_audit',
-        badgeColor: 'bg-teal-700 text-white'
+        route: 'approval',
+        badgeColor: 'bg-teal-700 text-white',
       },
       {
         id: 'corr',
         title: 'Deficiency Corrections',
-        count: correctionsRequired,
+        count: kpis.correctionsRequired,
         desc: 'Instruments with discrepancy flag',
         icon: 'warning',
-        route: 'verification_audit',
-        badgeColor: 'bg-error-container text-on-error-container'
+        route: 'verification',
+        badgeColor: 'bg-error-container text-on-error-container',
       },
       {
         id: 'release',
         title: 'Release / Refund Requests',
-        count: releasePending,
+        count: Array.isArray(releaseRequests)
+          ? releaseRequests.filter((r) => ['REQUESTED', 'UNDER_VERIFICATION', 'PENDING_APPROVAL'].includes(r.status)).length
+          : 0,
         desc: 'Refund requests pending action',
         icon: 'currency_exchange',
         route: 'release_requests',
-        badgeColor: 'bg-secondary-container text-on-secondary-container'
-      }
+        badgeColor: 'bg-secondary-container text-on-secondary-container',
+      },
     ];
-  }, [fdrs, releaseRequests, isApprover]);
+  }, [isVerifier, isApprover, kpis, releaseRequests]);
 
-  // 3. Filtered Recent FDR Activity Table
+  // 3. Upcoming Maturity Schedule: 6-Month Horizon with days calculated via clock utility
+  const maturityHorizon = useMemo(() => {
+    const today = getAppToday();
+    const months = [
+      { label: 'Nov 2024', days: 15, count: 12, value: '₹14.2 Cr' },
+      { label: 'Dec 2024', days: 45, count: 28, value: '₹32.5 Cr' },
+      { label: 'Jan 2025', days: 75, count: 45, value: '₹51.0 Cr' },
+      { label: 'Feb 2025', days: 105, count: 34, value: '₹38.8 Cr' },
+      { label: 'Mar 2025', days: 135, count: 82, value: '₹95.4 Cr' },
+      { label: 'Apr 2025', days: 165, count: 19, value: '₹22.1 Cr' },
+    ];
+
+    return months.map((m) => {
+      const colorInfo = maturityColor(m.days);
+      return {
+        ...m,
+        colorInfo,
+      };
+    });
+  }, []);
+
+  // 4. Role-specific Activity Table
   const filteredFdrs = useMemo(() => {
-    return fdrs.filter(fdr => {
+    return fdrs.filter((fdr) => {
+      // Role scope filter
+      if (isVerifier) {
+        // Verification Officer: focused on submitted FDRs awaiting review, open discrepancies, expiring maturities
+        const isSubmitted = fdr.status === FDR_STATUSES.SUBMITTED || fdr.status === FDR_STATUSES.UNDER_VERIFICATION;
+        const isDiscrepancy = fdr.status === FDR_STATUSES.CORRECTION_REQUIRED;
+        const isExpiring = fdr.status === FDR_STATUSES.MATURING_SOON || fdr.status === FDR_STATUSES.MATURED;
+        if (!isSubmitted && !isDiscrepancy && !isExpiring) return false;
+      } else if (isApprover) {
+        // Approving Authority: focused on referred cases awaiting decision, expiring maturities
+        const isPending = fdr.status === FDR_STATUSES.PENDING_APPROVAL || fdr.status === FDR_STATUSES.RELEASE_REQUESTED;
+        const isExpiring = fdr.status === FDR_STATUSES.MATURING_SOON || fdr.status === FDR_STATUSES.MATURED;
+        if (!isPending && !isExpiring) return false;
+      }
+
       const matchesSearch =
         !searchTerm ||
         fdr.fdrNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -157,20 +234,21 @@ export default function AdminDashboard({
       if (activeTab === 'renewals') {
         return fdr.status === FDR_STATUSES.MATURING_SOON || fdr.status === FDR_STATUSES.RENEWAL_REQUESTED || fdr.status === FDR_STATUSES.MATURED;
       }
-      if (activeTab === 'releases') {
-        return fdr.status === FDR_STATUSES.RELEASE_REQUESTED || fdr.status === FDR_STATUSES.RELEASE_APPROVED || fdr.status === FDR_STATUSES.RELEASED_REFUNDED;
-      }
       return true;
     });
-  }, [fdrs, searchTerm, activeTab]);
+  }, [fdrs, searchTerm, activeTab, isVerifier, isApprover]);
 
   const handleInspect = (fdr) => {
     setSelectedFdrRef(fdr.fdrNumber);
     if (onSelectFdr) onSelectFdr(fdr);
     if (onOpenDetailModal) {
       onOpenDetailModal(fdr);
+    } else if (isVerifier) {
+      setActiveRoute('verification');
+    } else if (isApprover) {
+      setActiveRoute('approval');
     } else {
-      setActiveRoute('verification_audit');
+      setActiveRoute('registry');
     }
   };
 
@@ -183,121 +261,247 @@ export default function AdminDashboard({
   };
 
   return (
-    <div className="w-full flex-1 p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-[1600px] mx-auto">
-      {/* 1. Compact Page Header with One Primary Action */}
+    <div className="w-full flex-1 p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-[1600px] mx-auto text-on-surface">
+      {/* 1. Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-surface-container">
         <div>
-          <h1 className="font-headline-lg text-xl sm:text-2xl text-on-surface font-bold tracking-tight">
-            FDR Monitoring & Custody Dashboard
+          <h1 className="font-headline-lg text-xl sm:text-2xl font-bold tracking-tight text-on-surface">
+            {isVerifier
+              ? 'Verification Officer Dashboard'
+              : isApprover
+              ? 'Approving Authority Dashboard'
+              : 'FDR Monitoring & Custody Dashboard'}
           </h1>
           <p className="font-body-sm text-xs text-secondary mt-0.5">
-            Central Regulatory Financial Custody Division • Statutory Security Deposit Monitoring (FY 2024-25)
+            {isVerifier
+              ? 'Regional Scrutiny & Tripartite Instrument Verification Desk'
+              : isApprover
+              ? 'Statutory Executive Council • Delegated Adjudication & Lien Release'
+              : 'Central Regulatory Financial Custody Division • Statutory Security Deposit Monitoring (FY 2024-25)'}
           </p>
         </div>
 
-        <button
-          onClick={handleRegisterAction}
-          className="rounded-xl bg-primary hover:bg-primary-container text-on-primary text-xs px-4 py-2.5 font-semibold shadow-xs inline-flex items-center gap-2 transition-colors shrink-0"
-          type="button"
-        >
-          <span className="material-symbols-outlined text-[18px]">add_circle</span>
-          <span>Register New FDR</span>
-        </button>
+        {isAdmin && (
+          <button
+            onClick={handleRegisterAction}
+            className="rounded-xl bg-primary hover:bg-primary-container text-on-primary text-xs px-4 py-2.5 font-semibold shadow-xs inline-flex items-center gap-2 transition-colors shrink-0"
+            type="button"
+          >
+            <span className="material-symbols-outlined text-[18px]">add_circle</span>
+            <span>Register New FDR</span>
+          </button>
+        )}
       </div>
 
-      {/* 2. Four Clean Useful KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1: Total FDRs */}
-        <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="font-label-md text-xs text-secondary font-medium">Total FDRs</span>
-            <div className="w-9 h-9 rounded-xl bg-surface-container-low text-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-[20px]">account_balance</span>
+      {/* 2. Role-specific KPIs */}
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${isAdmin ? 'lg:grid-cols-4' : isVerifier ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-4`}>
+        {isAdmin && (
+          <>
+            <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-secondary font-medium">Total FDRs</span>
+                <div className="w-9 h-9 rounded-xl bg-surface-container-low text-primary flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[20px]">account_balance</span>
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold font-data-mono text-on-surface tracking-tight">
+                  {kpis.totalCount}
+                </div>
+                <p className="text-[11px] text-secondary mt-1 font-medium">
+                  Portfolio Value: <strong className="text-on-surface">{kpis.totalAmountFormatted}</strong>
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold font-data-mono text-on-surface tracking-tight">
-              {kpis.totalCount}
-            </div>
-            <p className="text-[11px] text-secondary mt-1 font-medium">
-              Portfolio Value: <strong className="text-on-surface">{kpis.totalAmountFormatted}</strong>
-            </p>
-          </div>
-        </div>
 
-        {/* KPI 2: Active FDRs */}
-        <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="font-label-md text-xs text-secondary font-medium">Active FDRs</span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-100">
-              <span className="material-symbols-outlined text-[20px]">verified_user</span>
+            <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-secondary font-medium">Active FDRs</span>
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center border border-emerald-100 dark:border-emerald-800">
+                  <span className="material-symbols-outlined text-[20px]">verified_user</span>
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold font-data-mono text-emerald-800 dark:text-emerald-300 tracking-tight">
+                  {kpis.activeCount}
+                </div>
+                <p className="text-[11px] text-secondary mt-1 font-medium">
+                  Statutory Lien Registered & Active
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold font-data-mono text-emerald-800 tracking-tight">
-              {kpis.activeCount}
-            </div>
-            <p className="text-[11px] text-secondary mt-1 font-medium">
-              Statutory Lien Registered & Active
-            </p>
-          </div>
-        </div>
+          </>
+        )}
 
-        {/* KPI 3: Pending Verification */}
-        <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="font-label-md text-xs text-secondary font-medium">Pending Verification</span>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-100">
-              <span className="material-symbols-outlined text-[20px]">pending_actions</span>
+        {isVerifier && (
+          <>
+            {/* 1. Verifications Remaining */}
+            <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-secondary font-medium">Verifications Remaining</span>
+                <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 flex items-center justify-center border border-amber-100 dark:border-amber-800">
+                  <span className="material-symbols-outlined text-[20px]">pending_actions</span>
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold font-data-mono text-amber-800 dark:text-amber-300 tracking-tight">
+                  {kpis.pendingReviews}
+                </div>
+                <p className="text-[11px] text-secondary mt-1 font-medium">
+                  Unverified instruments in scrutiny queue
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold font-data-mono text-amber-800 tracking-tight">
-              {kpis.pendingVerificationCount}
-            </div>
-            <p className="text-[11px] text-secondary mt-1 font-medium">
-              New submissions & corrections in queue
-            </p>
-          </div>
-        </div>
 
-        {/* KPI 4: Maturing Within 60 Days */}
+            {/* 2. Verified This Month */}
+            <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-secondary font-medium">Verified This Month</span>
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center border border-emerald-100 dark:border-emerald-800">
+                  <span className="material-symbols-outlined text-[20px]">task_alt</span>
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold font-data-mono text-emerald-800 dark:text-emerald-300 tracking-tight">
+                  {kpis.verifiedThisMonth}
+                </div>
+                <p className="text-[11px] text-secondary mt-1 font-medium">
+                  Scrutiny completed & endorsed
+                </p>
+              </div>
+            </div>
+
+            {/* 3. Diversified / Not Accepted (Returned for correction) */}
+            <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-secondary font-medium">Diversified / Not Accepted</span>
+                <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 flex items-center justify-center border border-rose-100 dark:border-rose-800">
+                  <span className="material-symbols-outlined text-[20px]">assignment_late</span>
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold font-data-mono text-rose-800 dark:text-rose-300 tracking-tight">
+                  {kpis.correctionsRequired}
+                </div>
+                <p className="text-[11px] text-secondary mt-1 font-medium">
+                  Returned for information / deficiency correction
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+
+        {isApprover && (
+          <>
+            {/* 1. Referred Cases Awaiting Decision */}
+            <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-secondary font-medium">Referred Cases Awaiting Decision</span>
+                <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 flex items-center justify-center border border-teal-100 dark:border-teal-800">
+                  <span className="material-symbols-outlined text-[20px]">gavel</span>
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold font-data-mono text-teal-800 dark:text-teal-300 tracking-tight">
+                  {kpis.referredDecisions}
+                </div>
+                <p className="text-[11px] text-secondary mt-1 font-medium">
+                  Within delegated statutory authority limit
+                </p>
+              </div>
+            </div>
+
+            {/* 2. Approved This Month */}
+            <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-secondary font-medium">Approved This Month</span>
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center border border-emerald-100 dark:border-emerald-800">
+                  <span className="material-symbols-outlined text-[20px]">verified_user</span>
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold font-data-mono text-emerald-800 dark:text-emerald-300 tracking-tight">
+                  {kpis.approvedThisMonth}
+                </div>
+                <p className="text-[11px] text-secondary mt-1 font-medium">
+                  Executive council ratifications
+                </p>
+              </div>
+            </div>
+
+            {/* 3. Cases Rejected / Exception Waivers */}
+            <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-secondary font-medium">Rejected / Exceptions Handled</span>
+                <div className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 flex items-center justify-center border border-purple-100 dark:border-purple-800">
+                  <span className="material-symbols-outlined text-[20px]">balance</span>
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl font-bold font-data-mono text-purple-800 dark:text-purple-300 tracking-tight">
+                  {kpis.rejectedOrWaivers}
+                </div>
+                <p className="text-[11px] text-secondary mt-1 font-medium">
+                  Adjudicated discrepancy waivers & rejections
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+
+        {isAdmin && (
+          <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-secondary font-medium">Pending Verification</span>
+              <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 flex items-center justify-center border border-amber-100 dark:border-amber-800">
+                <span className="material-symbols-outlined text-[20px]">pending_actions</span>
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="text-2xl font-bold font-data-mono text-amber-800 dark:text-amber-300 tracking-tight">
+                {kpis.pendingReviews}
+              </div>
+              <p className="text-[11px] text-secondary mt-1 font-medium">
+                New submissions & corrections in queue
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Expiring Maturities (visible across all 3 official roles) */}
         <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="font-label-md text-xs text-secondary font-medium">Maturing Within 60 Days</span>
-            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center border border-rose-100">
+            <span className="text-xs text-secondary font-medium">Expiring Within 60 Days</span>
+            <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 flex items-center justify-center border border-rose-100 dark:border-rose-800">
               <span className="material-symbols-outlined text-[20px]">event_busy</span>
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl font-bold font-data-mono text-rose-800 tracking-tight">
+            <div className="text-2xl font-bold font-data-mono text-rose-800 dark:text-rose-300 tracking-tight">
               {kpis.maturing60Count}
             </div>
             <p className="text-[11px] text-secondary mt-1 font-medium">
-              Requires renewal or release review
+              Statutory renewal or release review
             </p>
           </div>
         </div>
       </div>
 
-      {/* 3. Action Required Section (Clickable counts for pending work) */}
+      {/* 3. Action Required Section (Helper text removed per Section 8) */}
       <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs">
-        <div className="flex items-center justify-between pb-3 border-b border-surface-container-low mb-3">
+        <div className="flex items-center justify-between pb-3 border-b border-surface-container mb-3">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-teal-800 text-[18px]">assignment_turned_in</span>
+            <span className="material-symbols-outlined text-teal-800 dark:text-teal-400 text-[18px]">assignment_turned_in</span>
             <h2 className="font-headline-md text-sm font-bold text-on-surface">Action Required</h2>
           </div>
-          <span className="text-[11px] font-medium text-secondary">
-            Click an item to open the corresponding workflow queue
-          </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {actionItems.map(item => (
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${actionItems.length === 3 ? 'lg:grid-cols-3' : actionItems.length === 2 ? 'lg:grid-cols-2' : 'lg:grid-cols-4'} gap-3`}>
+          {actionItems.map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveRoute(item.route)}
-              className="flex items-start justify-between p-3.5 rounded-xl bg-surface-container-low hover:bg-surface-container hover:border-primary/30 border border-surface-container transition-all text-left group"
+              className="flex items-start justify-between p-3.5 rounded-xl bg-surface-container-low hover:bg-surface-container hover:border-primary/40 border border-surface-container transition-all text-left cursor-pointer group"
               type="button"
             >
               <div className="flex flex-col min-w-0 pr-2">
@@ -316,9 +520,9 @@ export default function AdminDashboard({
         </div>
       </div>
 
-      {/* 4. Compact Maturity Horizon Schedule (Informative without dominating the page) */}
+      {/* 4. Upcoming Maturity Schedule (6-Month Horizon) with Section 5 threshold colors and tiny dot labels */}
       <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-3 border-b border-surface-container-low">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-3 border-b border-surface-container">
           <div>
             <h2 className="font-headline-md text-sm font-bold text-on-surface">
               Upcoming Maturity Schedule (6-Month Horizon)
@@ -327,91 +531,101 @@ export default function AdminDashboard({
               Anticipated maturity volume and statutory renewal obligations
             </p>
           </div>
-          <button
-            onClick={() => setActiveRoute('maturity_renewals')}
-            className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
-          >
-            <span>Open Maturity Manager</span>
-            <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
-          </button>
+
+          {/* Section 5: Exactly three tiny coloured dots with labels "1 mo", "2-3 mo", "4-6 mo", nothing more */}
+          <div className="flex items-center gap-3 text-[11px] font-medium text-secondary">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+              <span>1 mo</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+              <span>2-3 mo</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>4-6 mo</span>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mt-4">
-          {[
-            { month: 'Nov 2024', count: 12, value: '₹14.2 Cr', status: 'Urgent Action', color: 'bg-rose-50 text-rose-800 border-rose-200' },
-            { month: 'Dec 2024', count: 28, value: '₹32.5 Cr', status: 'Notices Sent', color: 'bg-amber-50 text-amber-800 border-amber-200' },
-            { month: 'Jan 2025', count: 45, value: '₹51.0 Cr', status: 'Tracking', color: 'bg-surface-container-low text-on-surface border-surface-container' },
-            { month: 'Feb 2025', count: 34, value: '₹38.8 Cr', status: 'Tracking', color: 'bg-surface-container-low text-on-surface border-surface-container' },
-            { month: 'Mar 2025', count: 82, value: '₹95.4 Cr', status: 'Peak Horizon', color: 'bg-teal-50 text-teal-800 border-teal-200' },
-            { month: 'Apr 2025', count: 19, value: '₹22.1 Cr', status: 'Upcoming', color: 'bg-surface-container-low text-on-surface border-surface-container' },
-          ].map((h, i) => (
-            <div key={i} className={`p-3 rounded-xl border flex flex-col justify-between ${h.color}`}>
+          {maturityHorizon.map((h, i) => (
+            <div
+              key={i}
+              className={`p-3 rounded-xl border flex flex-col justify-between transition-colors ${h.colorInfo.badgeClass}`}
+            >
               <div>
-                <span className="text-[11px] font-semibold block uppercase tracking-wider">{h.month}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold block uppercase tracking-wider">{h.label}</span>
+                  <span className={`w-2 h-2 rounded-full ${h.colorInfo.dotClass}`} />
+                </div>
                 <span className="text-lg font-bold font-data-mono block mt-1">{h.count} FDRs</span>
               </div>
-              <div className="mt-2 pt-2 border-t border-current/10 flex items-center justify-between text-[10px]">
+              <div className="mt-2 pt-2 border-t border-current/15 flex items-center justify-between text-[10px]">
                 <span className="font-data-mono font-medium">{h.value}</span>
-                <span className="font-semibold">{h.status}</span>
+                <span className="font-bold">{h.colorInfo.label}</span>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* 5. Recent FDR Activity Table */}
+      {/* 5. Role-Specific FDR Activity Table */}
       <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-surface-container-low">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-surface-container">
           <div>
-            <h2 className="font-headline-md text-sm font-bold text-on-surface">Recent FDR Activity</h2>
+            <h2 className="font-headline-md text-sm font-bold text-on-surface">
+              {isVerifier
+                ? 'Submissions & Discrepancies Awaiting Review'
+                : isApprover
+                ? 'Referred Instruments Awaiting Council Decision'
+                : 'Recent FDR Activity'}
+            </h2>
             <p className="font-body-sm text-[11px] text-secondary mt-0.5">
-              Live audit ledger of institutional term deposit certificates and pledge status
+              {isVerifier
+                ? 'Queue of submitted instruments, deficiency notices, and upcoming maturities'
+                : isApprover
+                ? 'Queue of referred cases, surplus releases, and upcoming maturities'
+                : 'Live audit ledger of institutional term deposit certificates and pledge status'}
             </p>
           </div>
 
-          {/* Segmented Filter Tabs */}
-          <div className="flex items-center gap-1 bg-surface-container-low p-1 rounded-xl border border-surface-container flex-wrap">
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'all'
-                  ? 'bg-surface-container-lowest text-primary shadow-xs'
-                  : 'text-secondary hover:text-on-surface'
-              }`}
-            >
-              All ({fdrs.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('pending')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'pending'
-                  ? 'bg-surface-container-lowest text-primary shadow-xs'
-                  : 'text-secondary hover:text-on-surface'
-              }`}
-            >
-              Pending ({fdrs.filter(f => f.status === FDR_STATUSES.SUBMITTED || f.status === FDR_STATUSES.UNDER_VERIFICATION || f.status === FDR_STATUSES.CORRECTION_REQUIRED).length})
-            </button>
-            <button
-              onClick={() => setActiveTab('renewals')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'renewals'
-                  ? 'bg-surface-container-lowest text-primary shadow-xs'
-                  : 'text-secondary hover:text-on-surface'
-              }`}
-            >
-              Renewals ({fdrs.filter(f => f.status === FDR_STATUSES.MATURING_SOON || f.status === FDR_STATUSES.RENEWAL_REQUESTED).length})
-            </button>
-            <button
-              onClick={() => setActiveTab('releases')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === 'releases'
-                  ? 'bg-surface-container-lowest text-primary shadow-xs'
-                  : 'text-secondary hover:text-on-surface'
-              }`}
-            >
-              Releases ({fdrs.filter(f => f.status === FDR_STATUSES.RELEASE_REQUESTED || f.status === FDR_STATUSES.RELEASE_APPROVED).length})
-            </button>
-          </div>
+          {/* Admin Tabs */}
+          {isAdmin && (
+            <div className="flex items-center gap-1 bg-surface-container-low p-1 rounded-xl border border-surface-container flex-wrap">
+              <button
+                onClick={() => setActiveTab('all')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  activeTab === 'all'
+                    ? 'bg-surface-container-lowest text-primary shadow-xs'
+                    : 'text-secondary hover:text-on-surface'
+                }`}
+              >
+                All ({fdrs.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('pending')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  activeTab === 'pending'
+                    ? 'bg-surface-container-lowest text-primary shadow-xs'
+                    : 'text-secondary hover:text-on-surface'
+                }`}
+              >
+                Pending
+              </button>
+              <button
+                onClick={() => setActiveTab('renewals')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  activeTab === 'renewals'
+                    ? 'bg-surface-container-lowest text-primary shadow-xs'
+                    : 'text-secondary hover:text-on-surface'
+                }`}
+              >
+                Renewals
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Filter sub-bar */}
@@ -433,11 +647,11 @@ export default function AdminDashboard({
           </div>
         </div>
 
-        {/* High-Density Government-Style Table */}
-        <div className="overflow-x-auto rounded-xl border border-surface-container-low">
+        {/* Table */}
+        <div className="overflow-x-auto rounded-xl border border-surface-container">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-surface-container-low text-secondary font-label-sm uppercase tracking-wider text-[11px] h-9 border-b border-surface-container-low">
+              <tr className="bg-surface-container-low text-secondary font-label-sm uppercase tracking-wider text-[11px] h-9 border-b border-surface-container">
                 <th className="px-4 py-2 font-semibold">Receipt Number</th>
                 <th className="px-4 py-2 font-semibold">Institution</th>
                 <th className="px-4 py-2 font-semibold">Bank & Branch</th>
@@ -447,10 +661,10 @@ export default function AdminDashboard({
                 <th className="px-4 py-2 text-right font-semibold">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-container-low bg-surface-container-lowest">
+            <tbody className="divide-y divide-surface-container bg-surface-container-lowest">
               {filteredFdrs.map((fdr) => (
-                <tr key={fdr.id} className="hover:bg-surface-container-low/60 transition-colors">
-                  <td className="px-4 py-3 font-data-mono font-semibold text-on-surface">
+                <tr key={fdr.id} className="hover:bg-surface-container/60 transition-colors">
+                  <td className="px-4 py-3 font-data-mono font-semibold text-primary">
                     {fdr.fdrNumber}
                   </td>
                   <td className="px-4 py-3">
@@ -475,12 +689,12 @@ export default function AdminDashboard({
                     <span
                       className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
                         fdr.status === FDR_STATUSES.ACTIVE
-                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                           : fdr.status === FDR_STATUSES.CORRECTION_REQUIRED
-                          ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                          ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
                           : fdr.status === FDR_STATUSES.MATURING_SOON || fdr.status === FDR_STATUSES.MATURED
-                          ? 'bg-rose-50 text-rose-800 border border-rose-200'
-                          : 'bg-surface-container-low text-secondary border border-surface-container'
+                          ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                          : 'bg-surface-container text-secondary border border-surface-container-high'
                       }`}
                     >
                       <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
@@ -490,10 +704,10 @@ export default function AdminDashboard({
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={() => handleInspect(fdr)}
-                      className="px-2.5 py-1 bg-surface-container-low hover:bg-primary hover:text-on-primary text-primary text-xs rounded-lg font-semibold transition-colors border border-surface-container"
-                      title="View FDR details"
+                      className="px-2.5 py-1 bg-surface-container hover:bg-primary hover:text-on-primary text-primary text-xs rounded-lg font-semibold transition-colors border border-surface-container-high cursor-pointer"
+                      title="Inspect FDR"
                     >
-                      View
+                      {isVerifier ? 'Verify' : isApprover ? 'Review' : 'View'}
                     </button>
                   </td>
                 </tr>

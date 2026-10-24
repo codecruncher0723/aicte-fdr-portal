@@ -3,7 +3,7 @@ import { useRole } from '../context/RoleContext';
 import { FDR_STATUSES, exportToCSV } from '../data/mockData';
 
 export default function MasterRegistry({ fdrs, onSelectFdr, onOpenSubmitModal }) {
-  const { setActiveRoute, setSelectedFdrRef, searchQuery, setSearchQuery } = useRole();
+  const { currentRole, setActiveRoute, setSelectedFdrRef, searchQuery, setSearchQuery } = useRole();
 
   const [regionFilter, setRegionFilter] = useState('all');
   const [bankFilter, setBankFilter] = useState('all');
@@ -108,8 +108,13 @@ export default function MasterRegistry({ fdrs, onSelectFdr, onOpenSubmitModal })
 
   const handleView = (fdr) => {
     setSelectedFdrRef(fdr.fdrNumber);
-    if (onSelectFdr) onSelectFdr(fdr);
-    setActiveRoute('verification_audit');
+    if (onSelectFdr) {
+      onSelectFdr(fdr);
+    } else if (currentRole === 'APPROVING_AUTHORITY') {
+      setActiveRoute('approval');
+    } else if (currentRole === 'VERIFICATION_OFFICER') {
+      setActiveRoute('verification');
+    }
   };
 
   return (

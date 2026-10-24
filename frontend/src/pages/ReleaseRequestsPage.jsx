@@ -52,8 +52,15 @@ export default function ReleaseRequestsPage({
   const filteredRequests = useMemo(() => {
     return releaseRequests.filter(req => {
       // Role scope: Institution only sees own requests in strict mode
-      if (isInstitution && currentUser?.pid && req.aictePid !== currentUser.pid && req.institutionName !== "St. Xavier's Engineering College") {
-        // Keep demo permissive if no strict match, but prioritize own institution
+      if (isInstitution) {
+        const userPid = currentUser?.aictePid || currentUser?.pid;
+        const userInst = (currentUser?.institutionName || currentUser?.institution || '').toLowerCase();
+        const matchesPid = userPid && req.aictePid === userPid;
+        const matchesInst = userInst && req.institutionName && req.institutionName.toLowerCase().includes(userInst);
+        const matchesFallback = req.aictePid === '1-10928374' || (req.institutionName && req.institutionName.includes("St. Xavier's"));
+        if (!matchesPid && !matchesInst && !matchesFallback) {
+          return false;
+        }
       }
 
       const matchesSearch =

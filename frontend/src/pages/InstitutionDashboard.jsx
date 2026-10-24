@@ -8,15 +8,23 @@ export default function InstitutionDashboard({
   onOpenScrutinyModal,
   onSelectFdr
 }) {
-  const { setActiveRoute, setSelectedFdrRef } = useRole();
+  const { setActiveRoute, setSelectedFdrRef, currentUser } = useRole();
 
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // College-specific FDRs (St. Xavier's Engineering College, PID: 1-10928374)
+  // College-specific FDRs for current institution
   const collegeFdrs = useMemo(() => {
-    return fdrs.filter(f => f.aictePid === '1-10928374');
-  }, [fdrs]);
+    const userPid = currentUser?.aictePid || currentUser?.pid || '1-10928374';
+    const userInst = (currentUser?.institutionName || currentUser?.institution || '').toLowerCase();
+
+    return fdrs.filter(f => {
+      if (f.aictePid === userPid) return true;
+      if (userInst && f.institutionName && f.institutionName.toLowerCase().includes(userInst)) return true;
+      if (f.aictePid === '1-10928374' || (f.institutionName && f.institutionName.includes("St. Xavier's"))) return true;
+      return false;
+    });
+  }, [fdrs, currentUser]);
 
   const filteredFdrs = useMemo(() => {
     return collegeFdrs.filter(f => {
@@ -53,7 +61,7 @@ export default function InstitutionDashboard({
             Institution FDR Portfolio
           </h1>
           <p className="font-body-sm text-xs text-secondary mt-0.5">
-            PID: <strong>1-10928374</strong> • St. Xavier's Engineering College, Pune (WRO Region)
+            PID: <strong>{currentUser?.aictePid || currentUser?.pid || '1-10928374'}</strong> • {currentUser?.institutionName || "St. Xavier's Engineering College, Pune"} (WRO Region)
           </p>
         </div>
 

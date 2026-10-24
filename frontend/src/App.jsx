@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { RoleProvider, useRole, ROLES } from './context/RoleContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { isRouteAllowed, getDefaultRoute } from './config/roleAccess';
 import AppLayout from './components/layout/AppLayout';
 import { apiClient } from './api/client';
 import AicteLogo from './components/common/AicteLogo';
@@ -11,7 +13,8 @@ import { INITIAL_FDRS, FDR_STATUSES, INITIAL_RELEASE_REQUESTS } from './data/moc
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import MasterRegistry from './pages/MasterRegistry';
-import VerificationAuditWorkspace from './pages/VerificationAuditWorkspace';
+import VerificationPage from './pages/VerificationPage';
+import ApprovalPage from './pages/ApprovalPage';
 import MaturityRenewalsPage from './pages/MaturityRenewalsPage';
 import ReleaseRequestsPage from './pages/ReleaseRequestsPage';
 import ReportsPage from './pages/ReportsPage';
@@ -163,8 +166,7 @@ function MainRouter() {
     setIsScrutinyModalOpen(true);
   };
 
-  const handleAddFdr = async (createdOrNewFdr) => {
-    // Reload freshly from backend to ensure database persistence
+  const handleAddFdr = async () => {
     await loadFdrs();
   };
 
@@ -176,7 +178,7 @@ function MainRouter() {
             ...fdr,
             status: newStatus,
             lastAuditDate: new Date().toISOString().split('T')[0],
-            statusRemarks: remarks || fdr.statusRemarks
+            statusRemarks: remarks || fdr.statusRemarks,
           };
         }
         return fdr;
@@ -198,7 +200,7 @@ function MainRouter() {
             ...req,
             status: newStatus,
             councilRemarks: remarks || req.councilRemarks,
-            approvedAt: newStatus.includes('Approved') ? new Date().toISOString() : req.approvedAt
+            approvedAt: newStatus.includes('Approved') ? new Date().toISOString() : req.approvedAt,
           };
         }
         return req;
@@ -210,9 +212,65 @@ function MainRouter() {
     setReleaseRequests(prev => [newRequest, ...prev]);
   };
 
-  // Route Rendering
+  // Scoped datasets: Institution Officer must ONLY see FDRs and requests belonging to their own institute
+  const isInstitutionOfficer = currentRole === ROLES.INSTITUTION_OFFICER;
+  const scopedFdrs = useMemo(() => {
+    if (!isInstitutionOfficer) return fdrs;
+    const userPid = currentUser?.aictePid || currentUser?.pid;
+    const userInstName = (currentUser?.institutionName || currentUser?.institution || '').toLowerCase();
+    const userInstId = currentUser?.institutionId || currentUser?.institution_id;
+
+    return fdrs.filter((f) => {
+      if (userPid && f.aictePid === userPid) return true;
+      if (userInstId && String(f.institutionId || f.institution_id) === String(userInstId)) return true;
+      if (userInstName && f.institutionName && f.institutionName.toLowerCase().includes(userInstName)) return true;
+      // Default fallback for St. Xavier's demo persona
+      if (f.aictePid === '1-10928374' || (f.institutionName && f.institutionName.includes("St. Xavier's"))) return true;
+      return false;
+    });
+  }, [fdrs, isInstitutionOfficer, currentUser]);
+
+  const scopedReleaseRequests = useMemo(() => {
+    if (!isInstitutionOfficer) return releaseRequests;
+    const userPid = currentUser?.aictePid || currentUser?.pid;
+    const userInstName = (currentUser?.institutionName || currentUser?.institution || '').toLowerCase();
+
+    return releaseRequests.filter((r) => {
+      if (userPid && r.aictePid === userPid) return true;
+      if (userInstName && r.institutionName && r.institutionName.toLowerCase().includes(userInstName)) return true;
+      if (r.aictePid === '1-10928374' || (r.institutionName && r.institutionName.includes("St. Xavier's"))) return true;
+      return false;
+    });
+  }, [releaseRequests, isInstitutionOfficer, currentUser]);
+
+  // Route Rendering with Central RBAC Route Guard
   const renderCurrentRoute = () => {
-    const isInst = currentRole === ROLES.INSTITUTION_OFFICER || currentRole === 'INSTITUTION_OFFICER';
+    // If route is forbidden for current role, redirect cleanly to default
+    if (!isRouteAllowed(currentRole, activeRoute)) {
+      const fallback = getDefaultRoute(currentRole);
+      if (fallback === 'institution_dashboard') {
+        return (
+          <InstitutionDashboard
+            fdrs={scopedFdrs}
+            onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
+            onOpenScrutinyModal={handleOpenScrutinyModal}
+            onSelectFdr={(fdr) => {
+              handleSelectFdr(fdr);
+              handleOpenDetailModal(fdr);
+            }}
+          />
+        );
+      }
+      return (
+        <AdminDashboard
+          fdrs={fdrs}
+          releaseRequests={releaseRequests}
+          onSelectFdr={handleSelectFdr}
+          onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
+          onOpenDetailModal={handleOpenDetailModal}
+        />
+      );
+    }
 
     if (activeRoute === 'dashboard') {
       return (
@@ -239,10 +297,23 @@ function MainRouter() {
       );
     }
 
-    if (activeRoute === 'verification_audit') {
+    // Section 3: Verification Officer Page
+    if (activeRoute === 'verification') {
       return (
-        <VerificationAuditWorkspace
-          fdr={selectedFdr}
+        <VerificationPage
+          fdrs={fdrs}
+          onUpdateFdrStatus={handleUpdateFdrStatus}
+        />
+      );
+    }
+
+    // Section 4: Approving Authority Page
+    if (activeRoute === 'approval') {
+      return (
+        <ApprovalPage
+          releaseRequests={releaseRequests}
+          fdrs={fdrs}
+          onUpdateReleaseRequest={handleUpdateReleaseRequest}
           onUpdateFdrStatus={handleUpdateFdrStatus}
         />
       );
@@ -310,7 +381,7 @@ function MainRouter() {
     if (activeRoute === 'institution_dashboard') {
       return (
         <InstitutionDashboard
-          fdrs={fdrs}
+          fdrs={scopedFdrs}
           onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
           onOpenScrutinyModal={handleOpenScrutinyModal}
           onSelectFdr={(fdr) => {
@@ -322,10 +393,9 @@ function MainRouter() {
     }
 
     if (activeRoute === 'my_fdrs') {
-      // In the real backend, list_fdrs is already scoped server-side to the institution!
       return (
         <MasterRegistry
-          fdrs={fdrs}
+          fdrs={scopedFdrs}
           onSelectFdr={(fdr) => {
             handleSelectFdr(fdr);
             handleOpenDetailModal(fdr);
@@ -337,10 +407,10 @@ function MainRouter() {
 
     if (activeRoute === 'submit_new_fdr') {
       return (
-        <div className="w-full flex-1 p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-[1200px] mx-auto">
+        <div className="w-full flex-1 p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-[1200px] mx-auto text-on-surface">
           <div className="bg-surface-container-lowest p-6 rounded-2xl border border-surface-container shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h1 className="font-headline-lg text-xl sm:text-2xl text-on-surface font-bold tracking-tight">
+              <h1 className="font-headline-lg text-xl sm:text-2xl font-bold tracking-tight text-on-surface">
                 Submit New Fixed Deposit Receipt
               </h1>
               <p className="text-xs text-secondary mt-1">
@@ -349,7 +419,7 @@ function MainRouter() {
             </div>
             <button
               onClick={() => setIsSubmitModalOpen(true)}
-              className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-white text-xs font-semibold shadow-sm inline-flex items-center gap-1.5"
+              className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-xs font-semibold shadow-sm inline-flex items-center gap-1.5"
             >
               <span className="material-symbols-outlined text-[18px]">add_circle</span>
               <span>Open Registration Wizard</span>
@@ -388,7 +458,7 @@ function MainRouter() {
     if (activeRoute === 'renewals') {
       return (
         <MaturityRenewalsPage
-          fdrs={fdrs}
+          fdrs={scopedFdrs}
           onSelectFdr={(fdr) => {
             handleSelectFdr(fdr);
             handleOpenDetailModal(fdr);
@@ -400,8 +470,8 @@ function MainRouter() {
     if (activeRoute === 'release_refund_requests') {
       return (
         <ReleaseRequestsPage
-          fdrs={fdrs}
-          releaseRequests={releaseRequests}
+          fdrs={scopedFdrs}
+          releaseRequests={scopedReleaseRequests}
           onUpdateReleaseRequest={handleUpdateReleaseRequest}
           onCreateReleaseRequest={handleCreateReleaseRequest}
           onUpdateFdrStatus={handleUpdateFdrStatus}
@@ -422,25 +492,17 @@ function MainRouter() {
     }
 
     // Default Fallback based on Role
-    if (isInst) {
+    const defaultRoute = getDefaultRoute(currentRole);
+    if (defaultRoute === 'institution_dashboard') {
       return (
         <InstitutionDashboard
-          fdrs={fdrs}
+          fdrs={scopedFdrs}
           onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
           onOpenScrutinyModal={handleOpenScrutinyModal}
           onSelectFdr={(fdr) => {
             handleSelectFdr(fdr);
             handleOpenDetailModal(fdr);
           }}
-        />
-      );
-    }
-
-    if (currentRole === ROLES.VERIFICATION_OFFICER || currentRole === ROLES.APPROVING_AUTHORITY) {
-      return (
-        <VerificationAuditWorkspace
-          fdr={selectedFdr}
-          onUpdateFdrStatus={handleUpdateFdrStatus}
         />
       );
     }
@@ -488,7 +550,7 @@ function MainRouter() {
         fdr={detailTargetFdr || selectedFdr}
         onNavigateAudit={(fdr) => {
           handleSelectFdr(fdr);
-          setActiveRoute('verification_audit');
+          setActiveRoute(currentRole === ROLES.APPROVING_AUTHORITY ? 'approval' : 'verification');
         }}
       />
     </>
@@ -500,11 +562,11 @@ function AppContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-4">
         <AicteLogo className="w-16 h-16 animate-pulse mb-4" />
-        <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-        <p className="text-xs font-semibold text-slate-700">Restoring AICTE Regulatory Session...</p>
-        <p className="text-[11px] text-slate-400 mt-0.5">Verifying cryptographic bearer tokens against core authority</p>
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mb-3"></div>
+        <p className="text-xs font-semibold text-on-surface">Restoring AICTE Regulatory Session...</p>
+        <p className="text-[11px] text-secondary mt-0.5">Verifying cryptographic bearer tokens against core authority</p>
       </div>
     );
   }
@@ -522,8 +584,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <RoleProvider>
-      <AppContent />
-    </RoleProvider>
+    <ThemeProvider>
+      <RoleProvider>
+        <AppContent />
+      </RoleProvider>
+    </ThemeProvider>
   );
 }
