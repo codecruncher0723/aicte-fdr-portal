@@ -213,7 +213,7 @@ Execution notes (Phase 2 Tasks 1-3):
 **Dependencies:** Phase 2 users/roles/institutions schema.
 
 ### Tasks
-- [ ] **M** Implement the repository-compatible authentication mechanism and seeded demo accounts; store only password hashes, never plaintext passwords.
+- [x] **M** Implement the repository-compatible authentication mechanism and seeded demo accounts; store only password hashes, never plaintext passwords.
 - [ ] **M** Enforce the four roles: `AICTE_ADMIN`, `INSTITUTION_OFFICER`, `VERIFICATION_OFFICER`, `APPROVING_AUTHORITY`.
 - [ ] **M** Enforce authorization on every protected backend endpoint, including detail reads, document access, workflow actions, dashboard aggregates, audit views, and CSV exports.
 - [ ] **M** Derive an Institution Officer's `institution_id` and `created_by` from the authenticated principal; ignore/reject client attempts to select another institution.
@@ -222,7 +222,7 @@ Execution notes (Phase 2 Tasks 1-3):
 - [ ] **O** User administration beyond predefined demo accounts is optional and out of scope unless already present.
 
 ### Definition of Done
-- [ ] Demo login works for all four roles.
+- [x] Demo login works for all four roles.
 - [ ] Anonymous calls to protected endpoints return `401`; authenticated but unauthorized calls return `403` or non-disclosing `404` per API policy.
 - [ ] Institution Officer A cannot read/write Institution B's FDRs, requests, documents, notifications, reports, or dashboard rows.
 - [ ] AICTE Admin cross-institution access is explicit; other roles see only authorized scope.
@@ -234,6 +234,18 @@ Run the detected auth/API test command. Using two seeded institutions and one ac
 ### Dependencies and blockers
 - Depends on Phase 2 schema and Phase 1's environment/configuration.
 - Blocker: no secure secret/config setup or unclear role boundaries. Keep role scope limited to the four authoritative roles; do not invent new official roles.
+
+Execution notes (Phase 3 Task 1):
+- **Authentication & Seeded Demo Accounts**:
+  - Implemented pure Python RFC 7519 compliant HS256 JWT access token encoding, decoding, and revocation in `backend/app/security.py`. Tokens feature standard claims (`sub`, `username`, `role`, `institution_id`, `exp`, `iat`, `jti`).
+  - Implemented core authentication services in `backend/app/auth.py` with PBKDF2 password verification, user session generation, token revocation cache on logout, role authorization dependency factory (`require_roles`), institution isolation guard (`enforce_institution_isolation`), and server-side institution context derivation (`derive_institution_id`).
+  - Built FastAPI application in `backend/app/main.py` and authentication router in `backend/app/routers/auth.py` providing:
+    - `POST /api/v1/auth/login`: Secure login by username or email; returns Bearer JWT and sanitized profile without password hashes.
+    - `POST /api/v1/auth/logout`: Invalidate and revoke active session token.
+    - `GET /api/v1/auth/me`: Returns authenticated user context and role/institution scope.
+    - `GET /api/v1/auth/demo-accounts`: Returns safe development-only demo account metadata.
+  - Added comprehensive test suite in `backend/tests/test_auth.py` (19 test cases) verifying password hashing/salting, token generation/expiration/tampering/revocation, demo logins for all 4 roles (admin, officers, verifier, approver), invalid credential rejections, profile retrieval, logout invalidation, role guards, institution isolation, and prevention of client-side institution ID forgery.
+  - All 79 backend tests pass in 5.48s. Frontend production build verified clean (`vite build` in 2.60s, exit code 0).
 
 ---
 
