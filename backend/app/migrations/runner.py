@@ -9,9 +9,11 @@ from typing import List, Dict, Any
 from sqlalchemy import text, Engine, Connection
 
 from app.migrations.versions import v001_initial_schema as m001
+from app.migrations.versions import v002_workflow_document_evidence as m002
 
 MIGRATIONS = [
     m001,
+    m002,
 ]
 
 MIGRATION_TABLE_DDL = """
