@@ -456,10 +456,10 @@ Run API/integration tests through request creation, verification, approval, read
 - [ ] **M** Implement database-derived dashboard metrics: total FDRs, counts by canonical status, total/active deposit amount in INR, maturing/matured counts, pending FDR verification/approval, renewal/release queue counts, correction-required and rejected counts.
 - [ ] **M** Enforce role-scoped metrics; Institution Officers see their own institution only. AICTE Admin may see cross-institution aggregates; other role visibility stays limited to assigned responsibilities.
 - [ ] **M** Implement backend filters and pagination for institution (authorized roles only), FDR status, request type/status, bank, maturity range/category, amount range, created/submitted date range, and FDR/institution search.
-- [ ] **M** Implement authorized CSV exports for FDRs and requests using the same authorization and filters as list views.
+- [x] **M** Implement authorized CSV exports for FDRs and requests using the same authorization and filters as list views.
 - [x] **M** Audit status transitions, verification/approval decisions, document operations, release confirmation, and privileged export where feasible. Include critical field changes with actor, timestamp, old/new value, and reason where available.
 - [ ] **M** Add event-based operational KPIs only from real persisted events (for example, review/verification duration, discrepancy resolution duration, renewal timeliness, release decision duration, overdue queue). Display period/sample size or an insufficient-data state; do not hard-code results. Never export passwords, tokens, document contents, private storage paths, or unauthorized institution data.
-- [ ] **M** Provide in-app notifications for workflow decisions/reminders if not completed earlier; notification list/read-state is user-scoped.
+- [x] **M** Provide in-app notifications for workflow decisions/reminders if not completed earlier; notification list/read-state is user-scoped.
 - [ ] **O** PDF/XLSX export, advanced charts, and export audit details beyond the required CSV path.
 - [ ] **O** Simulated clock/date override for repeatable maturity demos, only after core tests pass; label clearly as demo behavior.
 - [ ] **O** Hash-chained audit log with a verification test, only after ordinary append-only transactional audit logging works.

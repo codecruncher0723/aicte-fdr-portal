@@ -289,4 +289,52 @@ export const apiClient = {
     }
     return await resp.blob();
   },
+
+  // Notifications API
+  async getNotifications() {
+    return await apiFetch('/api/v1/notifications');
+  },
+
+  async updateNotification(id, isRead) {
+    return await apiFetch(`/api/v1/notifications/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_read: isRead }),
+    });
+  },
+
+  // Reports CSV Downloads
+  async downloadFdrsCsv(params = {}) {
+    const q = new URLSearchParams();
+    if (params.status && params.status !== 'all') q.set('status', params.status);
+    if (params.institution_id) q.set('institution_id', params.institution_id);
+    const qs = q.toString() ? `?${q.toString()}` : '';
+
+    const token = getToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE_URL}/api/v1/reports/fdrs.csv${qs}`, { headers });
+    if (!res.ok) {
+      throw new Error(`FDR Report export failed: HTTP ${res.status}`);
+    }
+    return await res.blob();
+  },
+
+  async downloadRequestsCsv(params = {}) {
+    const q = new URLSearchParams();
+    if (params.request_type && params.request_type !== 'all') q.set('request_type', params.request_type);
+    if (params.status && params.status !== 'all') q.set('status', params.status);
+    if (params.institution_id) q.set('institution_id', params.institution_id);
+    const qs = q.toString() ? `?${q.toString()}` : '';
+
+    const token = getToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE_URL}/api/v1/reports/requests.csv${qs}`, { headers });
+    if (!res.ok) {
+      throw new Error(`Requests Report export failed: HTTP ${res.status}`);
+    }
+    return await res.blob();
+  },
 };
