@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -19,3 +20,21 @@ class Institution(Base):
 
     users = relationship("User", back_populates="institution", cascade="all, delete-orphan")
     fdrs = relationship("FDR", back_populates="institution", cascade="all, delete-orphan")
+
+    @property
+    def fdr_count(self) -> int:
+        return len(self.fdrs) if self.fdrs else 0
+
+    @property
+    def total_fdr_amount(self) -> float:
+        if not self.fdrs:
+            return 0.0
+        return sum(float(f.amount) for f in self.fdrs if f.amount is not None)
+
+    @property
+    def contact_email(self) -> Optional[str]:
+        if self.users:
+            for u in self.users:
+                if u.email:
+                    return u.email
+        return None

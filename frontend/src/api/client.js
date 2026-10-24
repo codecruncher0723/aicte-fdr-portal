@@ -212,6 +212,14 @@ export const apiClient = {
     return await apiFetch('/api/v1/dashboard/summary');
   },
 
+  async getDashboardActivities(limit = 10) {
+    return await apiFetch(`/api/v1/dashboard/activities?limit=${limit}`);
+  },
+
+  async getMaturityHorizon() {
+    return await apiFetch('/api/v1/dashboard/maturity');
+  },
+
   async getAuditLogs(fdrId) {
     if (fdrId) {
       return await apiFetch(`/api/v1/fdrs/${fdrId}/audit-logs`);

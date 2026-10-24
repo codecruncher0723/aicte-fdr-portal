@@ -1,13 +1,42 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRole } from '../context/RoleContext';
-import { FDR_STATUSES } from '../data/mockData';
+import { apiClient } from '../api/client';
+
+const FDR_STATUSES = {
+  DRAFT: 'DRAFT',
+  SUBMITTED: 'SUBMITTED',
+  UNDER_VERIFICATION: 'UNDER_VERIFICATION',
+  CORRECTION_REQUIRED: 'CORRECTION_REQUIRED',
+  PENDING_APPROVAL: 'PENDING_APPROVAL',
+  ACTIVE: 'ACTIVE',
+  MATURING_SOON: 'MATURING_SOON',
+  MATURED: 'MATURED',
+  RELEASED_REFUNDED: 'RELEASED_REFUNDED',
+  REJECTED: 'REJECTED',
+};
+
+const REGION_LABELS = {
+  wro: 'Western (WRO)',
+  sro: 'Southern (SRO)',
+  swro: 'South-Western (SWRO)',
+  nro: 'Northern (NRO)',
+  ero: 'Eastern (ERO)',
+  nwro: 'North-Western (NWRO)',
+  cro: 'Central (CRO)',
+};
+
+const getRegionLabel = (code) => {
+  if (!code) return 'General Jurisdiction';
+  const c = code.toLowerCase();
+  return REGION_LABELS[c] || code.toUpperCase();
+};
 
 // Helper: Format Currency (INR)
 const formatCurrency = (amt) => {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
-    maximumFractionDigits: 0
+    maximumFractionDigits: 0,
   }).format(amt || 0);
 };
 
@@ -34,76 +63,124 @@ export default function InstitutionDashboard({
   fdrs = [],
   onOpenSubmitModal,
   onOpenScrutinyModal,
-  onSelectFdr
+  onSelectFdr,
 }) {
   const { setActiveRoute, setSelectedFdrRef, currentUser, fiscalYear } = useRole();
 
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // College-specific FDRs for current institution
-  const collegeFdrs = useMemo(() => {
-    const userPid = currentUser?.aictePid || currentUser?.pid || '1-10928374';
-    const userInst = (currentUser?.institutionName || currentUser?.institution || '').toLowerCase();
+  // Dashboard API telemetry
+  const [summary, setSummary] = useState(null);
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    return fdrs.filter(f => {
-      if (f.aictePid === userPid) return true;
-      if (userInst && f.institutionName && f.institutionName.toLowerCase().includes(userInst)) return true;
-      if (f.aictePid === '1-10928374' || (f.institutionName && f.institutionName.includes("St. Xavier's"))) return true;
-      return false;
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [summaryRes, activitiesRes] = await Promise.all([
+        apiClient.getDashboardSummary(),
+        apiClient.getDashboardActivities(6),
+      ]);
+      setSummary(summaryRes);
+      setActivities(Array.isArray(activitiesRes) ? activitiesRes : []);
+    } catch (err) {
+      console.error('Failed to load institution dashboard telemetry:', err);
+      setError(err.message || 'Unable to synchronize dashboard telemetry.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  // College-specific FDRs scoped to this authenticated institution
+  const collegeFdrs = useMemo(() => {
+    const userInstId = currentUser?.institutionId || currentUser?.institution_id;
+    const userPid = currentUser?.aictePid || currentUser?.pid;
+    const userInstName = (currentUser?.institutionName || currentUser?.institution || '').toLowerCase();
+
+    return fdrs.filter((f) => {
+      const fInstId = f.institutionId || f.institution_id;
+      if (userInstId && fInstId) {
+        return String(fInstId) === String(userInstId);
+      }
+      if (userPid && f.aictePid) {
+        return f.aictePid === userPid;
+      }
+      if (userInstName && f.institutionName) {
+        return f.institutionName.toLowerCase().includes(userInstName);
+      }
+      // If user has no explicit ID, default to all passed fdrs (which are already scoped)
+      return true;
     });
   }, [fdrs, currentUser]);
 
   // Aggregate monetary value
-  const totalAmountFormatted = useMemo(() => {
-    const total = collegeFdrs.reduce((sum, f) => sum + (f.amount || 0), 0);
-    return formatCurrency(total);
-  }, [collegeFdrs]);
+  const totalAmount = useMemo(() => {
+    if (summary && summary.total_deposit_amount_inr != null) {
+      return summary.total_deposit_amount_inr;
+    }
+    return collegeFdrs.reduce((sum, f) => sum + (Number(f.amount || f.deposit_amount) || 0), 0);
+  }, [collegeFdrs, summary]);
 
   // Active counts for KPIs
   const activeCount = useMemo(() => {
-    return collegeFdrs.filter(f => f.status === FDR_STATUSES.ACTIVE).length;
-  }, [collegeFdrs]);
+    if (summary && summary.active_count != null) return summary.active_count;
+    return collegeFdrs.filter((f) => f.status === FDR_STATUSES.ACTIVE).length;
+  }, [collegeFdrs, summary]);
 
   const pendingReviewCount = useMemo(() => {
-    return collegeFdrs.filter(f =>
-      f.status === FDR_STATUSES.CORRECTION_REQUIRED ||
-      f.status === FDR_STATUSES.SUBMITTED ||
-      f.status === FDR_STATUSES.UNDER_VERIFICATION
+    if (summary && summary.pending_review_count != null) return summary.pending_review_count;
+    return collegeFdrs.filter(
+      (f) =>
+        f.status === FDR_STATUSES.CORRECTION_REQUIRED ||
+        f.status === FDR_STATUSES.SUBMITTED ||
+        f.status === FDR_STATUSES.UNDER_VERIFICATION ||
+        f.status === FDR_STATUSES.PENDING_APPROVAL
     ).length;
-  }, [collegeFdrs]);
+  }, [collegeFdrs, summary]);
 
   const maturingSoonCount = useMemo(() => {
-    return collegeFdrs.filter(f =>
-      f.status === FDR_STATUSES.MATURING_SOON ||
-      f.status === FDR_STATUSES.MATURED
+    if (summary && summary.maturing_or_matured_count != null) return summary.maturing_or_matured_count;
+    return collegeFdrs.filter(
+      (f) => f.status === FDR_STATUSES.MATURING_SOON || f.status === FDR_STATUSES.MATURED
     ).length;
-  }, [collegeFdrs]);
+  }, [collegeFdrs, summary]);
 
   // Action-required FDRs
   const correctionFdr = useMemo(() => {
-    return collegeFdrs.find(f => f.status === FDR_STATUSES.CORRECTION_REQUIRED);
+    return collegeFdrs.find((f) => f.status === FDR_STATUSES.CORRECTION_REQUIRED);
   }, [collegeFdrs]);
 
   const renewalFdr = useMemo(() => {
-    return collegeFdrs.find(f => f.status === FDR_STATUSES.MATURING_SOON || f.status === FDR_STATUSES.MATURED);
+    return collegeFdrs.find(
+      (f) => f.status === FDR_STATUSES.MATURING_SOON || f.status === FDR_STATUSES.MATURED
+    );
   }, [collegeFdrs]);
 
   // Filtered FDRs based on tab and search
   const filteredFdrs = useMemo(() => {
-    return collegeFdrs.filter(f => {
+    return collegeFdrs.filter((f) => {
+      const term = (searchTerm || '').toLowerCase().trim();
       const matchesSearch =
-        !searchTerm ||
-        f.fdrNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        f.programme.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        f.bank.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (f.certNumber && f.certNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+        !term ||
+        (f.fdrNumber && f.fdrNumber.toLowerCase().includes(term)) ||
+        (f.programme && f.programme.toLowerCase().includes(term)) ||
+        (f.bank && f.bank.toLowerCase().includes(term)) ||
+        (f.branch && f.branch.toLowerCase().includes(term)) ||
+        (f.certNumber && f.certNumber.toLowerCase().includes(term));
 
       if (!matchesSearch) return false;
 
       if (activeTab === 'active') return f.status === FDR_STATUSES.ACTIVE;
       if (activeTab === 'correction') return f.status === FDR_STATUSES.CORRECTION_REQUIRED;
-      if (activeTab === 'renewal') return f.status === FDR_STATUSES.MATURING_SOON || f.status === FDR_STATUSES.MATURED;
+      if (activeTab === 'renewal')
+        return f.status === FDR_STATUSES.MATURING_SOON || f.status === FDR_STATUSES.MATURED;
       return true;
     });
   }, [collegeFdrs, searchTerm, activeTab]);
@@ -113,49 +190,11 @@ export default function InstitutionDashboard({
     if (onSelectFdr) onSelectFdr(fdr);
   };
 
-  // Recent Institution Activities (Institutional Scope)
-  const recentActivities = [
-    {
-      id: 'act_1',
-      title: 'Form L-1 Amendment Prepared',
-      target: 'FDR-PNB-883921',
-      date: 'Today, 12:10 PM',
-      desc: 'Branch Manager signature stamp affixed. Awaiting digital re-upload for WRO Scrutiny Desk.',
-      type: 'warning',
-      badge: 'Clarification Pending',
-      icon: 'edit_document'
-    },
-    {
-      id: 'act_2',
-      title: '3-Year Rollover Extension Drafted',
-      target: 'FDR-SBI-440192',
-      date: '10 Nov 2024, 11:15 AM',
-      desc: 'Renewal application generated for March 2025 maturity rollover under Regulation 14(B).',
-      type: 'info',
-      badge: 'Renewal Draft',
-      icon: 'autorenew'
-    },
-    {
-      id: 'act_3',
-      title: 'Core Banking Lien Confirmed',
-      target: 'FDR-BOB-910283',
-      date: '03 Nov 2024, 02:40 PM',
-      desc: 'Bank of Baroda FC Road branch acknowledged tripartite irrevocable statutory lien in Finacle.',
-      type: 'success',
-      badge: 'Lien Active',
-      icon: 'verified'
-    },
-    {
-      id: 'act_4',
-      title: 'Annual Collateral Audit Cleared',
-      target: 'FDR-HDFC-992014',
-      date: '28 Oct 2024, 09:30 AM',
-      desc: 'Statutory minimum deposit of ₹1.25 Cr validated against AICTE approved MBA intake capacity.',
-      type: 'success',
-      badge: 'Compliant',
-      icon: 'check_circle'
-    }
-  ];
+  // Dynamic institution details
+  const instInfo = summary?.institution_info;
+  const instPid = instInfo?.aicte_pid || currentUser?.aictePid || currentUser?.pid || '1-10928374';
+  const instName = instInfo?.name || currentUser?.institutionName || currentUser?.institution || "St. Xavier's Engineering College, Pune";
+  const instRegion = getRegionLabel(instInfo?.region || currentUser?.region || 'wro');
 
   return (
     <div className="w-full flex-1 p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-[1600px] mx-auto animate-in fade-in duration-200">
@@ -173,7 +212,7 @@ export default function InstitutionDashboard({
 
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-secondary">
             <span>
-              PID: <strong className="text-on-surface font-semibold">{currentUser?.aictePid || currentUser?.pid || '1-10928374'}</strong> • {currentUser?.institutionName || "St. Xavier's Engineering College, Pune"} (WRO Region)
+              PID: <strong className="text-on-surface font-semibold">{instPid}</strong> • {instName} ({instRegion})
             </span>
             <span className="inline-flex items-center gap-1 font-semibold text-teal-800 bg-teal-50/80 px-2 py-0.5 rounded-md border border-teal-200/60 text-[11px]">
               <span className="material-symbols-outlined text-[13px] leading-none shrink-0">calendar_today</span>
@@ -191,6 +230,32 @@ export default function InstitutionDashboard({
           <span>Submit New FDR</span>
         </button>
       </div>
+
+      {/* Loading Banner */}
+      {loading && (
+        <div className="p-3 bg-surface-container-lowest rounded-xl border border-surface-container flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-2.5 text-xs text-secondary">
+            <div className="w-4 h-4 border-2 border-teal-800 border-t-transparent rounded-full animate-spin"></div>
+            <span>Synchronizing institutional portfolio metrics with AICTE database...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {error && !loading && (
+        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center justify-between shadow-2xs">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[18px]">error</span>
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={fetchDashboardData}
+            className="px-3 py-1 bg-white border border-rose-300 rounded-lg font-bold text-rose-700 hover:bg-rose-100 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* 2. Four Polished Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -213,10 +278,15 @@ export default function InstitutionDashboard({
           </div>
           <div className="mt-3">
             <div className="text-2xl sm:text-3xl font-bold font-data-mono text-on-surface tracking-tight">
-              {collegeFdrs.length}
+              {summary?.total_fdrs ?? collegeFdrs.length}
             </div>
             <p className="text-[11px] text-secondary mt-1 font-medium flex items-center justify-between">
-              <span>Total Value: <strong className="text-on-surface font-data-mono font-semibold">{totalAmountFormatted}</strong></span>
+              <span>
+                Total Value:{' '}
+                <strong className="text-on-surface font-data-mono font-semibold">
+                  {formatCurrency(totalAmount)}
+                </strong>
+              </span>
               <span className="text-[10px] text-teal-800 font-semibold hover:underline">View All →</span>
             </p>
           </div>
@@ -227,15 +297,15 @@ export default function InstitutionDashboard({
           onClick={() => setActiveTab('active')}
           className={`bg-surface-container-lowest p-5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-sm flex flex-col justify-between ${
             activeTab === 'active'
-              ? 'border-emerald-600/60 ring-2 ring-emerald-600/15 bg-emerald-50/10'
-              : 'border-surface-container hover:border-emerald-600/30'
+              ? 'border-emerald-700/60 ring-2 ring-emerald-700/15 bg-emerald-50/10'
+              : 'border-surface-container hover:border-emerald-700/30'
           }`}
         >
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs text-secondary font-semibold uppercase tracking-wider">
               Active Liens
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-200/80 leading-none">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/80 leading-none">
               <span className="material-symbols-outlined text-[18px] leading-none shrink-0">verified_user</span>
             </div>
           </div>
@@ -244,86 +314,83 @@ export default function InstitutionDashboard({
               {activeCount}
             </div>
             <p className="text-[11px] text-secondary mt-1 font-medium flex items-center justify-between">
-              <span className="inline-flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                Joint APH Lien Enforced
-              </span>
+              <span>Joint APH Lien Enforced</span>
               <span className="text-[10px] text-emerald-800 font-semibold hover:underline">Filter →</span>
             </p>
           </div>
         </div>
 
-        {/* Card 3: Pending Review */}
+        {/* Card 3: Pending Review / Clarification */}
         <div
           onClick={() => setActiveTab('correction')}
           className={`bg-surface-container-lowest p-5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-sm flex flex-col justify-between ${
             activeTab === 'correction'
-              ? 'border-amber-600/60 ring-2 ring-amber-600/15 bg-amber-50/15'
-              : 'border-surface-container hover:border-amber-600/30'
+              ? 'border-amber-700/60 ring-2 ring-amber-700/15 bg-amber-50/10'
+              : 'border-surface-container hover:border-amber-700/30'
           }`}
         >
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs text-secondary font-semibold uppercase tracking-wider">
-              Pending Review
+              Clarification / Review
             </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center shrink-0 border border-amber-200/80 leading-none">
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0 border border-amber-200/80 leading-none">
               <span className="material-symbols-outlined text-[18px] leading-none shrink-0">pending_actions</span>
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-bold font-data-mono text-amber-900 tracking-tight">
+            <div className="text-2xl sm:text-3xl font-bold font-data-mono text-amber-800 tracking-tight">
               {pendingReviewCount}
             </div>
             <p className="text-[11px] text-secondary mt-1 font-medium flex items-center justify-between">
-              <span className="text-amber-800 font-medium">Clarification Required</span>
-              <span className="text-[10px] text-amber-800 font-semibold hover:underline">Filter →</span>
+              <span>Awaiting Scrutiny / Resubmission</span>
+              <span className="text-[10px] text-amber-800 font-semibold hover:underline">Review →</span>
             </p>
           </div>
         </div>
 
-        {/* Card 4: Maturing Within 60 Days */}
+        {/* Card 4: Maturing Soon / Matured */}
         <div
           onClick={() => setActiveTab('renewal')}
           className={`bg-surface-container-lowest p-5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-sm flex flex-col justify-between ${
             activeTab === 'renewal'
-              ? 'border-rose-600/60 ring-2 ring-rose-600/15 bg-rose-50/15'
-              : 'border-surface-container hover:border-rose-600/30'
+              ? 'border-rose-700/60 ring-2 ring-rose-700/15 bg-rose-50/10'
+              : 'border-surface-container hover:border-rose-700/30'
           }`}
         >
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs text-secondary font-semibold uppercase tracking-wider">
-              Maturing Soon
+              Maturing / Rollover Due
             </span>
-            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-800 flex items-center justify-center shrink-0 border border-rose-200/80 leading-none">
+            <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center shrink-0 border border-rose-200/80 leading-none">
               <span className="material-symbols-outlined text-[18px] leading-none shrink-0">event_busy</span>
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-2xl sm:text-3xl font-bold font-data-mono text-rose-900 tracking-tight">
+            <div className="text-2xl sm:text-3xl font-bold font-data-mono text-rose-800 tracking-tight">
               {maturingSoonCount}
             </div>
             <p className="text-[11px] text-secondary mt-1 font-medium flex items-center justify-between">
-              <span className="text-rose-800 font-medium">Rollover Action Due</span>
-              <span className="text-[10px] text-rose-800 font-semibold hover:underline">Filter →</span>
+              <span>Rollover renewal schedule</span>
+              <span className="text-[10px] text-rose-800 font-semibold hover:underline">Renewals →</span>
             </p>
           </div>
         </div>
       </div>
 
-      {/* 3. Action Required Section (Highest Priority Tasks for Officer) */}
+      {/* 3. Action Required Section (Dynamic only when real tasks exist) */}
       {(correctionFdr || renewalFdr) && (
         <div className="bg-surface-container-lowest p-5 sm:p-6 rounded-2xl border border-surface-container shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-surface-container-low mb-4">
-            <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-between pb-3 border-b border-surface-container-low mb-4">
+            <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-800 flex items-center justify-center shrink-0 border border-teal-200/80 leading-none">
-                <span className="material-symbols-outlined text-[16px] leading-none shrink-0">task_alt</span>
+                <span className="material-symbols-outlined text-[18px] leading-none shrink-0">assignment_turned_in</span>
               </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="font-headline-md text-sm sm:text-base font-bold text-on-surface">
                     Action Required
                   </h2>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 uppercase tracking-wider">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
                     {Number(!!correctionFdr) + Number(!!renewalFdr)} Pending Tasks
                   </span>
                 </div>
@@ -359,7 +426,10 @@ export default function InstitutionDashboard({
                       Joint Mandate Wording Resubmission
                     </h3>
                     <p className="text-xs text-secondary mt-0.5">
-                      {correctionFdr.bank} • {correctionFdr.branch} • <strong className="font-data-mono text-on-surface">{correctionFdr.amountFormatted}</strong>
+                      {correctionFdr.bank || correctionFdr.bankName} • {correctionFdr.branch} •{' '}
+                      <strong className="font-data-mono text-on-surface">
+                        {correctionFdr.amountFormatted || formatCurrency(correctionFdr.amount)}
+                      </strong>
                     </p>
                   </div>
 
@@ -368,7 +438,9 @@ export default function InstitutionDashboard({
                       warning
                     </span>
                     <p className="text-[11px] font-medium text-amber-950">
-                      {correctionFdr.discrepancyNote || 'WRO Scrutiny Desk requested amended Form L-1 with explicit Western Regional Office descriptor.'}
+                      {correctionFdr.discrepancyNote ||
+                        correctionFdr.notes ||
+                        'Regional scrutiny desk requested amended Form L-1 with explicit Regional Office descriptor.'}
                     </p>
                   </div>
                 </div>
@@ -379,7 +451,7 @@ export default function InstitutionDashboard({
                     Resubmit before scrutiny cycle cut-off
                   </span>
                   <button
-                    onClick={onOpenScrutinyModal}
+                    onClick={() => onOpenScrutinyModal && onOpenScrutinyModal(correctionFdr)}
                     className="px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 active:bg-amber-900 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                     type="button"
                   >
@@ -409,7 +481,10 @@ export default function InstitutionDashboard({
                       Statutory Rollover Extension Due
                     </h3>
                     <p className="text-xs text-secondary mt-0.5">
-                      {renewalFdr.bank} • {renewalFdr.branch} • <strong className="font-data-mono text-on-surface">{renewalFdr.amountFormatted}</strong>
+                      {renewalFdr.bank || renewalFdr.bankName} • {renewalFdr.branch} •{' '}
+                      <strong className="font-data-mono text-on-surface">
+                        {renewalFdr.amountFormatted || formatCurrency(renewalFdr.amount)}
+                      </strong>
                     </p>
                   </div>
 
@@ -448,23 +523,22 @@ export default function InstitutionDashboard({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-surface-container-low">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="font-headline-md text-sm sm:text-base font-bold text-on-surface">
+              <h2 className="font-headline-md text-base sm:text-lg font-bold text-on-surface">
                 Pledged Fixed Deposit Receipts
               </h2>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-surface-container text-secondary">
-                {filteredFdrs.length} Instruments
+              <span className="font-label-sm text-xs text-secondary bg-surface-container px-2 py-0.5 rounded-md font-medium">
+                {collegeFdrs.length} Instruments
               </span>
             </div>
-            <p className="text-xs text-secondary mt-0.5">
+            <p className="font-body-sm text-xs text-secondary mt-0.5">
               Legally endorsed security deposits under joint mandate with AICTE Member Secretary
             </p>
           </div>
 
-          {/* Filter Tabs */}
-          <div className="flex items-center gap-1 bg-surface-container-low p-1 rounded-xl border border-surface-container">
+          <div className="flex items-center gap-1 bg-surface-container-low p-1 rounded-xl border border-surface-container shrink-0">
             <button
               onClick={() => setActiveTab('all')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'all'
                   ? 'bg-surface-container-lowest text-teal-800 shadow-xs'
                   : 'text-secondary hover:text-on-surface'
@@ -474,9 +548,9 @@ export default function InstitutionDashboard({
             </button>
             <button
               onClick={() => setActiveTab('active')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'active'
-                  ? 'bg-surface-container-lowest text-teal-800 shadow-xs'
+                  ? 'bg-surface-container-lowest text-emerald-800 shadow-xs'
                   : 'text-secondary hover:text-on-surface'
               }`}
             >
@@ -484,78 +558,63 @@ export default function InstitutionDashboard({
             </button>
             <button
               onClick={() => setActiveTab('correction')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'correction'
-                  ? 'bg-surface-container-lowest text-teal-800 shadow-xs'
+                  ? 'bg-surface-container-lowest text-amber-800 shadow-xs'
                   : 'text-secondary hover:text-on-surface'
               }`}
             >
-              Clarification Due ({collegeFdrs.filter(f => f.status === FDR_STATUSES.CORRECTION_REQUIRED).length})
-            </button>
-            <button
-              onClick={() => setActiveTab('renewal')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === 'renewal'
-                  ? 'bg-surface-container-lowest text-teal-800 shadow-xs'
-                  : 'text-secondary hover:text-on-surface'
-              }`}
-            >
-              Renewal Due ({maturingSoonCount})
+              Clarification Due ({collegeFdrs.filter((f) => f.status === FDR_STATUSES.CORRECTION_REQUIRED).length})
             </button>
           </div>
         </div>
 
-        {/* Filter sub-bar with Search & Count */}
-        <div className="flex items-center justify-between gap-3 my-3.5 flex-wrap">
-          <div className="relative flex-1 min-w-[240px] max-w-md">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-[16px] leading-none shrink-0 pointer-events-none">
+        {/* Filter Toolbar */}
+        <div className="flex items-center justify-between gap-3 my-3 flex-wrap">
+          <div className="relative flex-1 min-w-[240px] max-w-sm">
+            <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-secondary text-[16px]">
               search
             </span>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by receipt number, programme, or bank..."
-              className="w-full h-8.5 pl-9 pr-8 text-xs bg-surface-container-low border border-surface-container rounded-xl focus:outline-none focus:ring-1 focus:ring-teal-700 text-on-surface placeholder:text-outline"
+              placeholder="Filter by receipt number, bank, or branch..."
+              className="w-full h-8 pl-8 pr-3 text-xs bg-surface-container-low border border-surface-container rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-700 text-on-surface"
             />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-secondary hover:text-on-surface p-0.5 cursor-pointer"
-                title="Clear Search"
-              >
-                <span className="material-symbols-outlined text-[14px] leading-none shrink-0">close</span>
-              </button>
-            )}
           </div>
-          <div className="text-xs text-secondary font-medium">
-            Showing <strong className="text-on-surface font-semibold">{filteredFdrs.length}</strong> of {collegeFdrs.length} FDR records
+          <div className="text-xs text-secondary">
+            Showing <strong>{filteredFdrs.length}</strong> of {collegeFdrs.length} records
           </div>
         </div>
 
-        {/* Responsive Table */}
+        {/* Table */}
         <div className="overflow-x-auto rounded-xl border border-surface-container-low">
-          <table className="w-full text-left border-collapse text-xs min-w-[900px]">
+          <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-surface-container-low/70 text-secondary uppercase tracking-wider text-[11px] h-10 border-b border-surface-container-low">
-                <th className="px-4 py-2.5 font-semibold">Receipt Number</th>
-                <th className="px-4 py-2.5 font-semibold">Programme & Approval</th>
-                <th className="px-4 py-2.5 font-semibold">Bank & Branch</th>
-                <th className="px-4 py-2.5 text-right font-semibold">Amount (INR)</th>
-                <th className="px-4 py-2.5 font-semibold">Maturity Date</th>
-                <th className="px-4 py-2.5 font-semibold">Last Audited</th>
-                <th className="px-4 py-2.5 text-center font-semibold">Status</th>
-                <th className="px-4 py-2.5 text-right font-semibold">Actions</th>
+              <tr className="bg-surface-container-low text-secondary font-label-sm uppercase tracking-wider text-[11px] h-9 border-b border-surface-container-low">
+                <th className="px-4 py-2 font-semibold">Receipt Number</th>
+                <th className="px-4 py-2 font-semibold">Bank & Branch</th>
+                <th className="px-4 py-2 text-right font-semibold">Amount (INR)</th>
+                <th className="px-4 py-2 font-semibold">Maturity Date</th>
+                <th className="px-4 py-2 text-center font-semibold">Status</th>
+                <th className="px-4 py-2 text-right font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-container-low bg-surface-container-lowest">
               {filteredFdrs.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="px-4 py-12 text-center text-secondary">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <span className="material-symbols-outlined text-[32px] text-outline">search_off</span>
-                      <p className="font-semibold text-xs text-on-surface">No matching FDRs found</p>
-                      <p className="text-[11px]">Try adjusting your search query or switching active status filter tabs.</p>
+                  <td colSpan={6} className="py-8 text-center text-secondary">
+                    <div className="flex flex-col items-center justify-center">
+                      <span className="material-symbols-outlined text-3xl mb-1 text-surface-container-high">
+                        find_in_page
+                      </span>
+                      <p className="font-semibold text-xs text-on-surface">No FDR Records Found</p>
+                      <p className="text-[11px] text-secondary mt-0.5">
+                        {searchTerm
+                          ? 'No records match the active search filter.'
+                          : 'No FDR instruments are filed under this category yet.'}
+                      </p>
                       {searchTerm && (
                         <button
                           onClick={() => setSearchTerm('')}
@@ -575,31 +634,30 @@ export default function InstitutionDashboard({
                         {fdr.fdrNumber}
                       </span>
                       <span className="text-[10px] text-secondary font-data-mono block mt-0.5">
-                        {fdr.certNumber || fdr.tripartiteRef?.split('/')[0]?.trim()}
+                        {fdr.certNumber || fdr.tripartiteRef || 'Tripartite Custody'}
                       </span>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <span className="font-semibold text-on-surface block text-xs">{fdr.programme}</span>
-                      <span className="text-[11px] text-secondary block mt-0.5">{fdr.courseDetails}</span>
                     </td>
                     <td className="px-4 py-3.5 text-secondary">
-                      <span className="font-medium text-on-surface block text-xs">{fdr.bank}</span>
-                      <span className="text-[10px] text-secondary block mt-0.5">{fdr.branch}</span>
+                      <span className="font-medium text-on-surface block text-xs">
+                        {fdr.bank || fdr.bankName}
+                      </span>
+                      <span className="text-[10px] text-secondary block mt-0.5">
+                        {fdr.branch || 'Principal Branch'}
+                      </span>
                     </td>
                     <td className="px-4 py-3.5 text-right font-data-mono font-bold text-on-surface text-xs">
-                      <div>{fdr.amountFormatted}</div>
-                      <span className="text-[10px] text-secondary font-normal font-sans block mt-0.5">
-                        {fdr.interestRate}
-                      </span>
+                      <div>{fdr.amountFormatted || formatCurrency(fdr.amount)}</div>
+                      {fdr.interestRate && (
+                        <span className="text-[10px] text-secondary font-normal font-sans block mt-0.5">
+                          {fdr.interestRate} p.a.
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3.5 font-data-mono text-on-surface text-xs">
                       <div>{formatDate(fdr.maturityDate)}</div>
                       <span className="text-[10px] text-secondary font-sans block mt-0.5">
-                        {fdr.tenureYears} Years Tenure
+                        {fdr.autoRollover ? 'Auto-Rollover Active' : 'Manual Renewal'}
                       </span>
-                    </td>
-                    <td className="px-4 py-3.5 font-data-mono text-secondary text-xs">
-                      {formatDate(fdr.lastAuditDate || fdr.issueDate)}
                     </td>
                     <td className="px-4 py-3.5 text-center">
                       <span
@@ -621,7 +679,7 @@ export default function InstitutionDashboard({
                       <div className="flex items-center justify-end gap-1.5">
                         {fdr.status === FDR_STATUSES.CORRECTION_REQUIRED && (
                           <button
-                            onClick={onOpenScrutinyModal}
+                            onClick={() => onOpenScrutinyModal && onOpenScrutinyModal(fdr)}
                             className="px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white text-xs rounded-lg font-semibold transition-colors shadow-2xs cursor-pointer inline-flex items-center gap-1"
                             title="Resubmit amended document"
                           >
@@ -657,9 +715,9 @@ export default function InstitutionDashboard({
         </div>
       </div>
 
-      {/* 5. Lower Section: Recent Activity & Compliance Alerts */}
+      {/* 5. Lower Section: Real Regulatory Activities & Real Compliance Notices */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Recent Activity (7 Cols) */}
+        {/* Left: Recent Activity Feed (7 Cols) */}
         <div className="lg:col-span-7 bg-surface-container-lowest p-5 sm:p-6 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-surface-container-low mb-4">
@@ -676,57 +734,69 @@ export default function InstitutionDashboard({
               </span>
             </div>
 
-            <div className="divide-y divide-surface-container-low">
-              {recentActivities.map((act) => (
-                <div key={act.id} className="py-3 first:pt-0 last:pb-0 flex items-start gap-3">
-                  <div
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 leading-none ${
-                      act.type === 'warning'
-                        ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                        : act.type === 'success'
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'bg-teal-50 text-teal-800 border border-teal-200'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-[16px] leading-none shrink-0">
-                      {act.icon}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-xs text-on-surface truncate">
-                        {act.title}
-                      </span>
-                      <span className="text-[10px] text-secondary shrink-0 font-medium">
-                        {act.date}
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-secondary mt-0.5 line-clamp-1">
-                      {act.desc}
-                    </p>
-
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <span className="font-data-mono text-[10px] font-bold text-on-surface bg-surface-container-low px-1.5 py-0.2 rounded border border-surface-container">
-                        {act.target}
-                      </span>
-                      <span
-                        className={`text-[10px] font-semibold px-2 py-0.2 rounded-full ${
-                          act.type === 'warning'
-                            ? 'bg-amber-100 text-amber-900'
-                            : act.type === 'success'
-                            ? 'bg-emerald-100 text-emerald-900'
-                            : 'bg-teal-100 text-teal-900'
-                        }`}
-                      >
-                        {act.badge}
+            {activities.length === 0 ? (
+              <div className="py-8 flex flex-col items-center justify-center text-center text-secondary">
+                <span className="material-symbols-outlined text-3xl mb-1 text-surface-container-high">
+                  history_toggle_off
+                </span>
+                <p className="text-xs font-semibold text-on-surface">No Recent Activities</p>
+                <p className="text-[11px] text-secondary mt-0.5 max-w-sm">
+                  Workflow status changes and document submissions will appear here in the tamper-evident institutional audit trail.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-surface-container-low">
+                {activities.map((act) => (
+                  <div key={act.id} className="py-3 flex items-start gap-3 first:pt-0 last:pb-0">
+                    <div
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 leading-none ${
+                        act.type === 'warning'
+                          ? 'bg-amber-50 text-amber-800 border border-amber-200/80'
+                          : act.type === 'success'
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-200/80'
+                          : 'bg-teal-50 text-teal-800 border border-teal-200/80'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[17px] leading-none shrink-0">
+                        {act.icon || 'history'}
                       </span>
                     </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-on-surface truncate">
+                          {act.title}
+                        </span>
+                        <span className="text-[10px] text-secondary shrink-0 font-medium">
+                          {act.date}
+                        </span>
+                      </div>
+
+                      <p className="text-[11px] text-secondary mt-0.5 line-clamp-1">
+                        {act.desc}
+                      </p>
+
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="font-data-mono text-[10px] font-bold text-on-surface bg-surface-container-low px-1.5 py-0.5 rounded border border-surface-container">
+                          {act.target}
+                        </span>
+                        <span
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                            act.type === 'warning'
+                              ? 'bg-amber-100 text-amber-900'
+                              : act.type === 'success'
+                              ? 'bg-emerald-100 text-emerald-900'
+                              : 'bg-teal-100 text-teal-900'
+                          }`}
+                        >
+                          {act.badge}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="pt-3 mt-3 border-t border-surface-container-low flex items-center justify-between">
@@ -734,15 +804,15 @@ export default function InstitutionDashboard({
               Telemetry synchronized with AICTE Central Database
             </span>
             <button
-              onClick={() => setActiveRoute('my_fdrs')}
+              onClick={() => setActiveRoute('audit_logs')}
               className="text-xs font-semibold text-teal-800 hover:text-teal-900 hover:underline cursor-pointer"
             >
-              View Full Portfolio Archive →
+              View Full Audit Log Archive →
             </button>
           </div>
         </div>
 
-        {/* Right: Compliance Notices & Regulatory Guidelines (5 Cols) */}
+        {/* Right: Compliance Notices & Alerts (5 Cols) */}
         <div className="lg:col-span-5 bg-surface-container-lowest p-5 sm:p-6 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-surface-container-low mb-4">
@@ -754,82 +824,101 @@ export default function InstitutionDashboard({
                   Compliance Alerts & Notices
                 </h3>
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                2 Active
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-900 border border-teal-300">
+                {Number(!!correctionFdr) + Number(!!renewalFdr) + (activeCount > 0 ? 1 : 0)} Active
               </span>
             </div>
 
             <div className="flex flex-col gap-3">
-              {/* Alert 1 */}
-              <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 flex flex-col gap-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 bg-amber-100/90 px-1.5 py-0.5 rounded">
-                    Action Required
-                  </span>
-                  <span className="font-data-mono font-bold text-[11px] text-amber-950">
-                    FDR-PNB-883921
-                  </span>
+              {/* Alert 1: Clarification required */}
+              {correctionFdr && (
+                <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 bg-amber-100/90 px-1.5 py-0.5 rounded">
+                      Action Required
+                    </span>
+                    <span className="font-data-mono font-bold text-[11px] text-amber-950">
+                      {correctionFdr.fdrNumber}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-amber-900 leading-relaxed font-medium">
+                    {correctionFdr.discrepancyNote ||
+                      correctionFdr.notes ||
+                      'Regional scrutiny desk requested clarification or amended document resubmission.'}
+                  </p>
+                  <button
+                    onClick={() => onOpenScrutinyModal && onOpenScrutinyModal(correctionFdr)}
+                    className="self-start text-[11px] font-bold text-amber-900 hover:text-amber-950 hover:underline inline-flex items-center gap-1 mt-1 cursor-pointer"
+                  >
+                    <span>Open Resubmission Wizard</span>
+                    <span className="material-symbols-outlined text-[12px] leading-none">arrow_forward</span>
+                  </button>
                 </div>
-                <p className="text-[11px] text-amber-900 leading-relaxed font-medium">
-                  Regional scrutiny desk requested Form L-1 joint descriptor amendment. Please re-upload with official bank manager seal.
-                </p>
-                <button
-                  onClick={onOpenScrutinyModal}
-                  className="self-start text-[11px] font-bold text-amber-900 hover:text-amber-950 hover:underline inline-flex items-center gap-1 mt-1 cursor-pointer"
-                >
-                  <span>Open Resubmission Wizard</span>
-                  <span className="material-symbols-outlined text-[12px] leading-none">arrow_forward</span>
-                </button>
-              </div>
+              )}
 
-              {/* Alert 2 */}
-              <div className="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200/80 flex flex-col gap-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-900 bg-rose-100/90 px-1.5 py-0.5 rounded">
-                    Renewal Due
-                  </span>
-                  <span className="font-data-mono font-bold text-[11px] text-rose-950">
-                    FDR-SBI-440192
-                  </span>
+              {/* Alert 2: Renewal due */}
+              {renewalFdr && (
+                <div className="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200/80 flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-900 bg-rose-100/90 px-1.5 py-0.5 rounded">
+                      Renewal Due
+                    </span>
+                    <span className="font-data-mono font-bold text-[11px] text-rose-950">
+                      {renewalFdr.fdrNumber}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-rose-900 leading-relaxed font-medium">
+                    Deposit matures on {formatDate(renewalFdr.maturityDate)}. Rollover application must be submitted to prevent regulatory lapse.
+                  </p>
+                  <button
+                    onClick={() => setActiveRoute('renewals')}
+                    className="self-start text-[11px] font-bold text-rose-900 hover:text-rose-950 hover:underline inline-flex items-center gap-1 mt-1 cursor-pointer"
+                  >
+                    <span>Initiate Rollover Schedule</span>
+                    <span className="material-symbols-outlined text-[12px] leading-none">arrow_forward</span>
+                  </button>
                 </div>
-                <p className="text-[11px] text-rose-900 leading-relaxed font-medium">
-                  Deposit enters 120-day pre-maturity window on 14 Mar 2025. Mandatory rollover application ready for submission.
-                </p>
-                <button
-                  onClick={() => setActiveRoute('renewals')}
-                  className="self-start text-[11px] font-bold text-rose-900 hover:text-rose-950 hover:underline inline-flex items-center gap-1 mt-1 cursor-pointer"
-                >
-                  <span>Initiate Rollover Schedule</span>
-                  <span className="material-symbols-outlined text-[12px] leading-none">arrow_forward</span>
-                </button>
-              </div>
+              )}
 
-              {/* Alert 3 */}
-              <div className="p-3.5 rounded-xl bg-teal-50/60 border border-teal-200/80 flex flex-col gap-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-teal-900 bg-teal-100/90 px-1.5 py-0.5 rounded">
-                    Submission Accepted
-                  </span>
-                  <span className="font-data-mono font-bold text-[11px] text-teal-950">
-                    FDR-BOB-910283
-                  </span>
+              {/* Alert 3: Active Standing */}
+              {activeCount > 0 && (
+                <div className="p-3.5 rounded-xl bg-teal-50/60 border border-teal-200/80 flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-teal-900 bg-teal-100/90 px-1.5 py-0.5 rounded">
+                      Statutory Custody
+                    </span>
+                    <span className="font-data-mono font-bold text-[11px] text-teal-950">
+                      {activeCount} Active Liens
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-teal-900 leading-relaxed font-medium">
+                    Statutory tripartite lien registered in favor of AICTE Member Secretary. All instruments verified compliant.
+                  </p>
                 </div>
-                <p className="text-[11px] text-teal-900 leading-relaxed font-medium">
-                  Bank of Baroda statutory non-encashment lien successfully attested in Finacle core banking registry.
-                </p>
-              </div>
+              )}
+
+              {/* Clean state if 0 FDRs */}
+              {collegeFdrs.length === 0 && (
+                <div className="py-6 flex flex-col items-center justify-center text-center text-secondary">
+                  <span className="material-symbols-outlined text-3xl mb-1 text-teal-700">info</span>
+                  <p className="text-xs font-semibold text-on-surface">No Instruments Pledged</p>
+                  <p className="text-[11px] text-secondary mt-0.5">
+                    Click "Submit New FDR" above to register your institution's initial statutory deposit.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
           <div className="pt-3 mt-3 border-t border-surface-container-low flex items-center justify-between">
             <span className="text-[11px] text-secondary">
-              Statutory Form Templates Available
+              Statutory Guidelines & Templates
             </span>
             <button
-              onClick={() => setActiveRoute('aph_guidelines_templates')}
+              onClick={() => setActiveRoute('help')}
               className="text-xs font-semibold text-teal-800 hover:text-teal-900 hover:underline cursor-pointer"
             >
-              Download Form L-1 & BG Schedule →
+              Regulatory Manuals →
             </button>
           </div>
         </div>

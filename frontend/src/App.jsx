@@ -229,29 +229,48 @@ function MainRouter() {
   const isInstitutionOfficer = currentRole === ROLES.INSTITUTION_OFFICER;
   const scopedFdrs = useMemo(() => {
     if (!isInstitutionOfficer) return fdrs;
+    const userInstId = currentUser?.institutionId || currentUser?.institution_id;
     const userPid = currentUser?.aictePid || currentUser?.pid;
     const userInstName = (currentUser?.institutionName || currentUser?.institution || '').toLowerCase();
-    const userInstId = currentUser?.institutionId || currentUser?.institution_id;
 
     return fdrs.filter((f) => {
-      if (userPid && f.aictePid === userPid) return true;
-      if (userInstId && String(f.institutionId || f.institution_id) === String(userInstId)) return true;
-      if (userInstName && f.institutionName && f.institutionName.toLowerCase().includes(userInstName)) return true;
-      // Default fallback for St. Xavier's demo persona
-      if (f.aictePid === '1-10928374' || (f.institutionName && f.institutionName.includes("St. Xavier's"))) return true;
+      const fInstId = f.institutionId || f.institution_id;
+      if (userInstId && fInstId) {
+        return String(fInstId) === String(userInstId);
+      }
+      if (userPid && f.aictePid) {
+        return f.aictePid === userPid;
+      }
+      if (userInstName && f.institutionName) {
+        return f.institutionName.toLowerCase().includes(userInstName);
+      }
+      if (!userInstId && !userPid && !userInstName) {
+        return f.aictePid === '1-10928374' || (f.institutionName && f.institutionName.includes("St. Xavier's"));
+      }
       return false;
     });
   }, [fdrs, isInstitutionOfficer, currentUser]);
 
   const scopedReleaseRequests = useMemo(() => {
     if (!isInstitutionOfficer) return releaseRequests;
+    const userInstId = currentUser?.institutionId || currentUser?.institution_id;
     const userPid = currentUser?.aictePid || currentUser?.pid;
     const userInstName = (currentUser?.institutionName || currentUser?.institution || '').toLowerCase();
 
     return releaseRequests.filter((r) => {
-      if (userPid && r.aictePid === userPid) return true;
-      if (userInstName && r.institutionName && r.institutionName.toLowerCase().includes(userInstName)) return true;
-      if (r.aictePid === '1-10928374' || (r.institutionName && r.institutionName.includes("St. Xavier's"))) return true;
+      const rInstId = r.institutionId || r.institution_id;
+      if (userInstId && rInstId) {
+        return String(rInstId) === String(userInstId);
+      }
+      if (userPid && r.aictePid) {
+        return r.aictePid === userPid;
+      }
+      if (userInstName && r.institutionName) {
+        return r.institutionName.toLowerCase().includes(userInstName);
+      }
+      if (!userInstId && !userPid && !userInstName) {
+        return r.aictePid === '1-10928374' || (r.institutionName && r.institutionName.includes("St. Xavier's"));
+      }
       return false;
     });
   }, [releaseRequests, isInstitutionOfficer, currentUser]);
