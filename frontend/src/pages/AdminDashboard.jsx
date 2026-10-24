@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useRole } from '../context/RoleContext';
+import { useRole, ROLES } from '../context/RoleContext';
 import { FDR_STATUSES } from '../data/mockData';
 
 export default function AdminDashboard({
@@ -9,7 +9,9 @@ export default function AdminDashboard({
   onOpenSubmitModal,
   onOpenDetailModal
 }) {
-  const { setActiveRoute, setSelectedFdrRef } = useRole();
+  const { setActiveRoute, setSelectedFdrRef, currentRole } = useRole();
+  const isApprover = currentRole === ROLES.APPROVING_AUTHORITY;
+  const isVerifier = currentRole === ROLES.VERIFICATION_OFFICER;
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -40,12 +42,54 @@ export default function AdminDashboard({
 
   // 2. Action Required Counts
   const actionItems = useMemo(() => {
+    const pendingApprovals = fdrs.filter(f => f.status === FDR_STATUSES.PENDING_APPROVAL).length;
     const pendingReviews = fdrs.filter(f => f.status === FDR_STATUSES.SUBMITTED || f.status === FDR_STATUSES.UNDER_VERIFICATION).length;
     const correctionsRequired = fdrs.filter(f => f.status === FDR_STATUSES.CORRECTION_REQUIRED).length;
     const renewalsDue = fdrs.filter(f => f.status === FDR_STATUSES.MATURING_SOON || f.status === FDR_STATUSES.RENEWAL_REQUESTED).length;
     const releasePending = Array.isArray(releaseRequests)
       ? releaseRequests.filter(r => ['REQUESTED', 'UNDER_VERIFICATION', 'PENDING_APPROVAL', 'RELEASE_APPROVED', 'AWAITING_CONFIRMATION'].includes(r.status)).length
       : (fdrs || []).filter(f => f.status === FDR_STATUSES.RELEASE_REQUESTED || f.status === FDR_STATUSES.RELEASE_APPROVED).length;
+
+    if (isApprover) {
+      return [
+        {
+          id: 'approval',
+          title: 'Pending Council Approval',
+          count: pendingApprovals,
+          desc: 'Verified instruments awaiting statutory endorsement',
+          icon: 'gavel',
+          route: 'verification_audit',
+          badgeColor: 'bg-teal-700 text-white'
+        },
+        {
+          id: 'release',
+          title: 'Release / Refund Approvals',
+          count: releasePending,
+          desc: 'Refund requests pending council decision',
+          icon: 'currency_exchange',
+          route: 'release_requests',
+          badgeColor: 'bg-secondary-container text-on-secondary-container'
+        },
+        {
+          id: 'renew',
+          title: 'Renewals Due (< 60 Days)',
+          count: renewalsDue,
+          desc: 'Maturing deposits requiring rollover',
+          icon: 'event_repeat',
+          route: 'maturity_renewals',
+          badgeColor: 'bg-tertiary-fixed text-on-tertiary-fixed'
+        },
+        {
+          id: 'verif',
+          title: 'Submissions in Scrutiny',
+          count: pendingReviews,
+          desc: 'Instruments undergoing tripartite verification',
+          icon: 'verified',
+          route: 'verification_audit',
+          badgeColor: 'bg-primary-fixed text-on-primary-fixed'
+        }
+      ];
+    }
 
     return [
       {
@@ -58,6 +102,15 @@ export default function AdminDashboard({
         badgeColor: 'bg-primary-fixed text-on-primary-fixed'
       },
       {
+        id: 'approval',
+        title: 'Pending Council Approval',
+        count: pendingApprovals,
+        desc: 'Verified instruments awaiting endorsement',
+        icon: 'gavel',
+        route: 'verification_audit',
+        badgeColor: 'bg-teal-700 text-white'
+      },
+      {
         id: 'corr',
         title: 'Deficiency Corrections',
         count: correctionsRequired,
@@ -65,15 +118,6 @@ export default function AdminDashboard({
         icon: 'warning',
         route: 'verification_audit',
         badgeColor: 'bg-error-container text-on-error-container'
-      },
-      {
-        id: 'renew',
-        title: 'Renewals Due (< 60 Days)',
-        count: renewalsDue,
-        desc: 'Maturing deposits requiring rollover',
-        icon: 'event_repeat',
-        route: 'maturity_renewals',
-        badgeColor: 'bg-tertiary-fixed text-on-tertiary-fixed'
       },
       {
         id: 'release',
@@ -85,7 +129,7 @@ export default function AdminDashboard({
         badgeColor: 'bg-secondary-container text-on-secondary-container'
       }
     ];
-  }, [fdrs, releaseRequests]);
+  }, [fdrs, releaseRequests, isApprover]);
 
   // 3. Filtered Recent FDR Activity Table
   const filteredFdrs = useMemo(() => {

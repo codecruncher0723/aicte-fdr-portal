@@ -338,23 +338,23 @@ Run backend tests and any file-security tests. Upload one valid file of each sup
 **Dependencies:** Phases 2–4.
 
 ### Tasks
-- [ ] **M** Implement `POST /api/v1/fdrs/{fdr_id}/start-verification`: Verification Officer only, `SUBMITTED` → `UNDER_VERIFICATION`.
-- [ ] **M** Implement verification for FDR and shared request verification. Record actor, timestamp, checks, remarks, decision, and append-only history.
-- [ ] **M** Implement discrepancy codes: `MISSING_REQUIRED_FIELD`, `INVALID_AMOUNT_OR_DATE`, `DUPLICATE_FDR_CANDIDATE`, `DOCUMENT_MISSING_OR_INVALID`, `DOCUMENT_METADATA_MISMATCH`, `RENEWAL_DETAILS_DIFFER_FROM_CURRENT_RECORD`, `RELEASE_REQUEST_MISSING_SUPPORT`, `MANUAL_REVIEW_REQUIRED`.
-- [ ] **M** Return a human-readable explanation and source/check for each discrepancy. Add `BLOCKING`, `REVIEW_REQUIRED`, or `INFORMATIONAL` severity where feasible without changing canonical status transitions or introducing automatic rejection.
-- [ ] **M** A discrepancy is a review signal, not automatic fraud/rejection. Verification Officer explicitly chooses `VERIFIED` or `CORRECTION_REQUIRED` and records remarks.
-- [ ] **M** Successful initial FDR verification performs `UNDER_VERIFICATION → VERIFIED → PENDING_APPROVAL` transactionally; correction decision leaves it `CORRECTION_REQUIRED`.
-- [ ] **M** Implement `POST /api/v1/fdrs/{fdr_id}/approval`: Approving Authority only, `PENDING_APPROVAL` → `ACTIVE` or `REJECTED`; rejection requires a reason.
-- [ ] **M** Store initial approval against the FDR; store renewal/release decisions against `request_id`. Status + decision + audit event must commit/rollback together.
-- [ ] **M** Reject invalid transitions with `409 INVALID_STATUS_TRANSITION` and preserve the underlying FDR when a renewal/release request is rejected.
-- [ ] **O** Add richer verification UI explanations or assignment queues if core flows are stable.
+- [x] **M** Implement `POST /api/v1/fdrs/{fdr_id}/start-verification`: Verification Officer only, `SUBMITTED` → `UNDER_VERIFICATION`.
+- [x] **M** Implement verification for FDR and shared request verification. Record actor, timestamp, checks, remarks, decision, and append-only history.
+- [x] **M** Implement discrepancy codes: `MISSING_REQUIRED_FIELD`, `INVALID_AMOUNT_OR_DATE`, `DUPLICATE_FDR_CANDIDATE`, `DOCUMENT_MISSING_OR_INVALID`, `DOCUMENT_METADATA_MISMATCH`, `RENEWAL_DETAILS_DIFFER_FROM_CURRENT_RECORD`, `RELEASE_REQUEST_MISSING_SUPPORT`, `MANUAL_REVIEW_REQUIRED`.
+- [x] **M** Return a human-readable explanation and source/check for each discrepancy. Add `BLOCKING`, `REVIEW_REQUIRED`, or `INFORMATIONAL` severity where feasible without changing canonical status transitions or introducing automatic rejection.
+- [x] **M** A discrepancy is a review signal, not automatic fraud/rejection. Verification Officer explicitly chooses `VERIFIED` or `CORRECTION_REQUIRED` and records remarks.
+- [x] **M** Successful initial FDR verification performs `UNDER_VERIFICATION → VERIFIED → PENDING_APPROVAL` transactionally; correction decision leaves it `CORRECTION_REQUIRED`.
+- [x] **M** Implement `POST /api/v1/fdrs/{fdr_id}/approval`: Approving Authority only, `PENDING_APPROVAL` → `ACTIVE` or `REJECTED`; rejection requires a reason.
+- [x] **M** Store initial approval against the FDR; store renewal/release decisions against `request_id`. Status + decision + audit event must commit/rollback together.
+- [x] **M** Reject invalid transitions with `409 INVALID_STATUS_TRANSITION` and preserve the underlying FDR when a renewal/release request is rejected.
+- [x] **O** Add richer verification UI explanations or assignment queues if core flows are stable.
 
 ### Definition of Done
-- [ ] FDR workflow completes draft → submitted → under verification → verified/pending approval → active, with history for each transition.
-- [ ] Correction and rejection branches work and preserve remarks/history.
-- [ ] Every discrepancy code can be returned by the appropriate deterministic check or a clearly documented manual-review rule.
-- [ ] No approval can bypass verification or be performed by an unauthorized/self-approving user.
-- [ ] Tests prove status/decision/audit transaction atomicity.
+- [x] FDR workflow completes draft → submitted → under verification → verified/pending approval → active, with history for each transition.
+- [x] Correction and rejection branches work and preserve remarks/history.
+- [x] Every discrepancy code can be returned by the appropriate deterministic check or a clearly documented manual-review rule.
+- [x] No approval can bypass verification or be performed by an unauthorized/self-approving user.
+- [x] Tests prove status/decision/audit transaction atomicity.
 
 ### Verification commands / procedures
 Run the full backend test suite. Test the successful path and each correction/rejection branch using API calls or integration tests. Confirm `SUBMITTED` does not become `UNDER_VERIFICATION` until the start-verification action. Assert successful verification moves to `PENDING_APPROVAL` in the same transaction; inject/force an audit-write failure in a test and assert the status/decision also rolls back. Test wrong-role and invalid-state actions, and assert `409` for invalid transitions. Verify the UI/API never describes a hash, OCR, upload, or deterministic check as proof of bank authenticity.
@@ -398,18 +398,18 @@ Set test-only thresholds in the test environment and use fixed dates/frozen cloc
 **Dependencies:** Phases 2–6, shared request verification/approval infrastructure.
 
 ### Tasks
-- [ ] **M** Implement renewal creation `POST /api/v1/fdrs/{fdr_id}/renewals` → request `REQUESTED`; enforce owning institution and configured eligible FDR states.
-- [ ] **M** Implement request start-verification, shared verification, correction resubmission, cancellation (only while `REQUESTED`), and approval/rejection endpoints.
-- [ ] **M** Compare proposed renewal fields with the current FDR and emit `RENEWAL_DETAILS_DIFFER_FROM_CURRENT_RECORD` when applicable; keep exact policy-dependent rules configurable/TBD.
-- [ ] **M** Implement `POST /api/v1/requests/{request_id}/complete` only for an `APPROVED` renewal. Validate renewed details and accessible renewal document; update FDR fields, preserve old values/documents in history, and set request `COMPLETED` in one transaction.
-- [ ] **M** Keep renewal status independent of FDR status. Approval alone must not update the FDR; rejected renewal must not mark the FDR `REJECTED`.
-- [ ] **O** Add richer renewal comparison UI if time permits.
+- [x] **M** Implement renewal creation `POST /api/v1/fdrs/{fdr_id}/renewals` → request `REQUESTED`; enforce owning institution and configured eligible FDR states.
+- [x] **M** Implement request start-verification, shared verification, correction resubmission, cancellation (only while `REQUESTED`), and approval/rejection endpoints.
+- [x] **M** Compare proposed renewal fields with the current FDR and emit `RENEWAL_DETAILS_DIFFER_FROM_CURRENT_RECORD` when applicable; keep exact policy-dependent rules configurable/TBD.
+- [x] **M** Implement `POST /api/v1/requests/{request_id}/complete` only for an `APPROVED` renewal. Validate renewed details and accessible renewal document; update FDR fields, preserve old values/documents in history, and set request `COMPLETED` in one transaction.
+- [x] **M** Keep renewal status independent of FDR status. Approval alone must not update the FDR; rejected renewal must not mark the FDR `REJECTED`.
+- [x] **O** Add richer renewal comparison UI if time permits.
 
 ### Definition of Done
-- [ ] Renewal request can complete `REQUESTED → UNDER_VERIFICATION → PENDING_APPROVAL → APPROVED → COMPLETED`.
-- [ ] Correction branch returns to `REQUESTED` only via the documented resubmit endpoint; cancel is accepted only from `REQUESTED`.
-- [ ] FDR update and request completion are atomic; old details/documents remain retrievable.
-- [ ] Invalid completion states and missing/wrong documents are rejected without partial updates.
+- [x] Renewal request can complete `REQUESTED → UNDER_VERIFICATION → PENDING_APPROVAL → APPROVED → COMPLETED`.
+- [x] Correction branch returns to `REQUESTED` only via the documented resubmit endpoint; cancel is accepted only from `REQUESTED`.
+- [x] FDR update and request completion are atomic; old details/documents remain retrievable.
+- [x] Invalid completion states and missing/wrong documents are rejected without partial updates.
 
 ### Verification commands / procedures
 Run integration tests for create, start verification, correction/resubmit, approve/reject, cancel, and completion. Assert the request begins `REQUESTED`; approval leaves it `APPROVED` and FDR fields unchanged; completion atomically updates FDR and request to `COMPLETED`. Attempt completion before approval, wrong document type/access, and repeated completion; assert errors and no partial mutation. Reject a renewal and confirm underlying FDR status remains unchanged.
@@ -425,19 +425,19 @@ Run integration tests for create, start verification, correction/resubmit, appro
 **Dependencies:** Phases 2–7, shared request verification/approval and secure document handling.
 
 ### Tasks
-- [ ] **M** Implement release request creation `POST /api/v1/fdrs/{fdr_id}/release-requests` → `REQUESTED`, requiring reason and configured supporting document(s).
-- [ ] **M** Reuse shared start-verification, verification/correction/resubmit/cancel and approval actions; enforce request-type-specific validation.
-- [ ] **M** Approval moves request to `RELEASE_APPROVED`, never directly to `RELEASED_REFUNDED`.
-- [ ] **M** Implement `POST /api/v1/requests/{request_id}/release-confirmation/ready`: `RELEASE_APPROVED → AWAITING_CONFIRMATION`.
-- [ ] **M** Implement `POST /api/v1/requests/{request_id}/release-confirmation`: only from `AWAITING_CONFIRMATION`; record reference, actor, timestamp, remarks, audit event, and `RELEASED_REFUNDED` atomically.
-- [ ] **M** Do not transfer funds or imply bank confirmation. Label demo confirmation as `DEMO`/`SIMULATED`; only close underlying FDR if an explicitly configured closure policy permits it, otherwise leave as not closed and document the TBD rule.
-- [ ] **O** Add an optional evidence attachment to the confirmation record if existing document architecture supports it safely.
+- [x] **M** Implement release request creation `POST /api/v1/fdrs/{fdr_id}/release-requests` → `REQUESTED`, requiring reason and configured supporting document(s).
+- [x] **M** Reuse shared start-verification, verification/correction/resubmit/cancel and approval actions; enforce request-type-specific validation.
+- [x] **M** Approval moves request to `RELEASE_APPROVED`, never directly to `RELEASED_REFUNDED`.
+- [x] **M** Implement `POST /api/v1/requests/{request_id}/release-confirmation/ready`: `RELEASE_APPROVED → AWAITING_CONFIRMATION`.
+- [x] **M** Implement `POST /api/v1/requests/{request_id}/release-confirmation`: only from `AWAITING_CONFIRMATION`; record reference, actor, timestamp, remarks, audit event, and `RELEASED_REFUNDED` atomically.
+- [x] **M** Do not transfer funds or imply bank confirmation. Label demo confirmation as `DEMO`/`SIMULATED`; only close underlying FDR if an explicitly configured closure policy permits it, otherwise leave as not closed and document the TBD rule.
+- [x] **O** Add an optional evidence attachment to the confirmation record if existing document architecture supports it safely.
 
 ### Definition of Done
-- [ ] Release workflow reaches `RELEASED_REFUNDED` only after readiness and explicit confirmation actions.
-- [ ] Confirmation cannot be recorded from `RELEASE_APPROVED` or any other invalid state.
-- [ ] Approval alone does not imply funds moved; request rejection leaves underlying FDR status unchanged.
-- [ ] Confirmation and audit history are atomic and confirmation is visibly simulated unless a real integration is proven.
+- [x] Release workflow reaches `RELEASED_REFUNDED` only after readiness and explicit confirmation actions.
+- [x] Confirmation cannot be recorded from `RELEASE_APPROVED` or any other invalid state.
+- [x] Approval alone does not imply funds moved; request rejection leaves underlying FDR status unchanged.
+- [x] Confirmation and audit history are atomic and confirmation is visibly simulated unless a real integration is proven.
 
 ### Verification commands / procedures
 Run API/integration tests through request creation, verification, approval, readiness, and confirmation. Assert status sequence `REQUESTED → UNDER_VERIFICATION → PENDING_APPROVAL → RELEASE_APPROVED → AWAITING_CONFIRMATION → RELEASED_REFUNDED`. Attempt confirmation before readiness and repeat confirmation; assert `409` and no duplicate/partial audit state. Verify reference, actor and timestamp are saved. Confirm no payment/bank API call is made by the demo path.
@@ -456,10 +456,10 @@ Run API/integration tests through request creation, verification, approval, read
 - [ ] **M** Implement database-derived dashboard metrics: total FDRs, counts by canonical status, total/active deposit amount in INR, maturing/matured counts, pending FDR verification/approval, renewal/release queue counts, correction-required and rejected counts.
 - [ ] **M** Enforce role-scoped metrics; Institution Officers see their own institution only. AICTE Admin may see cross-institution aggregates; other role visibility stays limited to assigned responsibilities.
 - [ ] **M** Implement backend filters and pagination for institution (authorized roles only), FDR status, request type/status, bank, maturity range/category, amount range, created/submitted date range, and FDR/institution search.
-- [ ] **M** Implement authorized CSV exports for FDRs and requests using the same authorization and filters as list views.
-- [ ] **M** Audit status transitions, verification/approval decisions, document operations, release confirmation, and privileged export where feasible. Include critical field changes with actor, timestamp, old/new value, and reason where available.
+- [x] **M** Implement authorized CSV exports for FDRs and requests using the same authorization and filters as list views.
+- [x] **M** Audit status transitions, verification/approval decisions, document operations, release confirmation, and privileged export where feasible. Include critical field changes with actor, timestamp, old/new value, and reason where available.
 - [ ] **M** Add event-based operational KPIs only from real persisted events (for example, review/verification duration, discrepancy resolution duration, renewal timeliness, release decision duration, overdue queue). Display period/sample size or an insufficient-data state; do not hard-code results. Never export passwords, tokens, document contents, private storage paths, or unauthorized institution data.
-- [ ] **M** Provide in-app notifications for workflow decisions/reminders if not completed earlier; notification list/read-state is user-scoped.
+- [x] **M** Provide in-app notifications for workflow decisions/reminders if not completed earlier; notification list/read-state is user-scoped.
 - [ ] **O** PDF/XLSX export, advanced charts, and export audit details beyond the required CSV path.
 - [ ] **O** Simulated clock/date override for repeatable maturity demos, only after core tests pass; label clearly as demo behavior.
 - [ ] **O** Hash-chained audit log with a verification test, only after ordinary append-only transactional audit logging works.

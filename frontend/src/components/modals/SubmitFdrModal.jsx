@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiClient } from '../../api/client';
 import { FDR_STATUSES } from '../../data/mockData';
 import { fdrsApi, documentsApi } from '../../api/client';
 
@@ -25,7 +26,12 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
     fileName: null
   });
 
+<<<<<<< HEAD
   const [uploadedFile, setUploadedFile] = useState(null);
+=======
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [submitError, setSubmitError] = useState(null);
+>>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,10 +76,12 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitError(null);
     setIsSubmitting(true);
     setApiError(null);
 
     try {
+<<<<<<< HEAD
       // 1. Create FDR record in backend
       const created = await fdrsApi.create({
         fdr_number: formData.fdrNumber.trim().toUpperCase(),
@@ -107,20 +115,60 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
 
       // 3. Transition from DRAFT to SUBMITTED
       const submitted = await fdrsApi.submit(created.id);
+=======
+      const payload = {
+        fdr_number: formData.fdrNumber.trim().toUpperCase(),
+        cert_number: formData.certNumber.trim().toUpperCase(),
+        bank_name: formData.bank.trim(),
+        branch: formData.branch.trim(),
+        ifsc: formData.ifsc.trim() || 'N/A',
+        amount: Number(formData.amount),
+        interest_rate: formData.interestRate || '7.25% p.a.',
+        issue_date: formData.issueDate,
+        maturity_date: formData.maturityDate,
+        tenure_years: Number(formData.tenureYears) || 5,
+        auto_rollover: true,
+        lien_status: formData.mandateClause || 'Statutory Lien Registered',
+        notes: formData.jointAccountHolder || null,
+      };
+>>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
 
-      setIsSubmitting(false);
+      // 1. Create FDR in real database
+      const createdFdr = await apiClient.createFdr(payload);
+      const createdId = createdFdr.id || createdFdr.fdr_id;
+
+      // 2. Upload document if attached
+      if (selectedFile && createdId) {
+        try {
+          await apiClient.uploadDocument(createdId, selectedFile);
+        } catch (docErr) {
+          throw new Error(`FDR record created, but document upload failed: ${docErr.message}`);
+        }
+      }
+
       setIsSuccess(true);
-
       setTimeout(() => {
+<<<<<<< HEAD
         if (onSubmitSuccess) onSubmitSuccess(submitted || created);
+=======
+        if (onSubmitSuccess) onSubmitSuccess(createdFdr);
+>>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
         setIsSuccess(false);
         setStep(1);
+        setSelectedFile(null);
         onClose();
       }, 1200);
     } catch (err) {
+<<<<<<< HEAD
       console.error('Error submitting FDR to backend:', err);
       setIsSubmitting(false);
       setApiError(err.message || 'Submission failed. Please check field validation.');
+=======
+      console.error('Error creating FDR:', err);
+      setSubmitError(err.message || 'Failed to submit FDR record to regulatory database.');
+    } finally {
+      setIsSubmitting(false);
+>>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
     }
   };
 
@@ -409,11 +457,25 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
                         Browse Certificate File
                         <input
                           type="file"
+                          accept=".pdf,.jpg,.jpeg,.png,.webp"
                           className="hidden"
                           onChange={(e) => {
                             if (e.target.files && e.target.files[0]) {
+<<<<<<< HEAD
                               setUploadedFile(e.target.files[0]);
                               handleChange('fileName', e.target.files[0].name);
+=======
+                              const file = e.target.files[0];
+                              if (file.size > 10 * 1024 * 1024) {
+                                setSubmitError(`Selected file exceeds regulatory 10 MB limit (${(file.size / (1024 * 1024)).toFixed(2)} MB).`);
+                                setSelectedFile(null);
+                                handleChange('fileName', '');
+                                return;
+                              }
+                              setSubmitError(null);
+                              setSelectedFile(file);
+                              handleChange('fileName', `${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+>>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
                             }
                           }}
                         />

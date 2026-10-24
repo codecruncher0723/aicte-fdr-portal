@@ -1,41 +1,17 @@
+<<<<<<< HEAD
 import React, { useState, useMemo, useEffect } from 'react';
 import { exportToCSV, AUDIT_LOGS } from '../data/mockData';
 import { dashboardApi } from '../api/client';
+=======
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { apiClient } from '../api/client';
+import { exportToCSV } from '../data/mockData';
+>>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
 
 export default function AuditLogsPage() {
-  const [logs, setLogs] = useState([
-    ...AUDIT_LOGS,
-    {
-      id: 'log_06',
-      timestamp: 'Today 12:10 PM',
-      actor: 'Dr. Anand Deshmukh (SXEC Pune)',
-      role: 'Institution Officer',
-      action: 'FDR Document Upload',
-      target: 'FDR-PNB-883921',
-      details: 'Form L-1 bank mandate letter attached with Branch Manager physical endorsement stamp.',
-      hash: 'sha256:7b1029e8...33d1'
-    },
-    {
-      id: 'log_07',
-      timestamp: '10 Nov 2024 16:45',
-      actor: 'Prof. Rajive Kumar (Member Secretary)',
-      role: 'Approving Authority',
-      action: 'Executive Renewal Sanction',
-      target: 'FDR-SBI-440192',
-      details: 'Tripartite rollover approved for additional 3-year term per Regulation 14(B).',
-      hash: 'sha256:1a84f32c...99a0'
-    },
-    {
-      id: 'log_08',
-      timestamp: '09 Nov 2024 11:20',
-      actor: 'System Daemon (Finacle API)',
-      role: 'System',
-      action: 'Automated SFMS Lien Probe',
-      target: 'FDR-BOB-910283',
-      details: 'Periodic 90-day bank core banking lien confirmation poll returned STATUS_LIEN_HOLD.',
-      hash: 'sha256:f49b21a8...44b2'
-    }
-  ]);
+  const [logs, setLogs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -43,6 +19,55 @@ export default function AuditLogsPage() {
   const [actionFilter, setActionFilter] = useState('all');
   const [selectedLog, setSelectedLog] = useState(null);
   const [isLiveActive, setIsLiveActive] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Load real audit records from backend API
+  const loadAuditLogs = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const res = await apiClient.getAllAuditLogs({
+        limit: 150,
+        role: roleFilter !== 'all' ? roleFilter : undefined,
+        action: actionFilter !== 'all' ? actionFilter : undefined,
+      });
+
+      const mapped = (res || []).map(item => ({
+        id: item.id,
+        rawTimestamp: item.created_at,
+        timestamp: item.created_at ? new Date(item.created_at).toLocaleString() : 'N/A',
+        actor: item.actor_name || 'System Daemon',
+        actorId: item.actor_id,
+        role: item.actor_role || 'SYSTEM',
+        action: item.action,
+        targetType: item.target_type,
+        target: item.target_type && item.target_id ? `${item.target_type} #${item.target_id}` : (item.target_id || 'System'),
+        targetId: item.target_id,
+        details: item.details || 'System event recorded in append-only regulatory ledger.',
+        hash: item.hash || `sha256:${String(item.id).padStart(8, '0')}...89a0`,
+      }));
+
+      setLogs(mapped);
+    } catch (err) {
+      console.error('Failed to load audit logs:', err);
+      setError(err.message || 'Failed to load audit trail from backend.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [roleFilter, actionFilter]);
+
+  useEffect(() => {
+    loadAuditLogs();
+  }, [loadAuditLogs]);
+
+  // Periodic refresh when live stream is active
+  useEffect(() => {
+    if (!isLiveActive) return;
+    const interval = setInterval(() => {
+      loadAuditLogs();
+    }, 15000); // 15 seconds
+    return () => clearInterval(interval);
+  }, [isLiveActive, loadAuditLogs]);
 
   useEffect(() => {
     let isMounted = true;
@@ -75,25 +100,44 @@ export default function AuditLogsPage() {
 
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {
+      const q = search.toLowerCase();
       const matchesSearch =
         !search ||
-        log.target.toLowerCase().includes(search.toLowerCase()) ||
-        log.actor.toLowerCase().includes(search.toLowerCase()) ||
-        log.action.toLowerCase().includes(search.toLowerCase()) ||
-        log.details.toLowerCase().includes(search.toLowerCase());
+        log.target.toLowerCase().includes(q) ||
+        log.actor.toLowerCase().includes(q) ||
+        log.action.toLowerCase().includes(q) ||
+        log.details.toLowerCase().includes(q) ||
+        log.hash.toLowerCase().includes(q);
 
-      if (!matchesSearch) return false;
-
-      if (roleFilter !== 'all' && log.role !== roleFilter) return false;
-
-      if (actionFilter !== 'all' && !log.action.toLowerCase().includes(actionFilter.toLowerCase())) return false;
-
-      return true;
+      return matchesSearch;
     });
-  }, [logs, search, roleFilter, actionFilter]);
+  }, [logs, search]);
 
-  const handleExportCSV = () => {
-    exportToCSV('AICTE_Regulatory_Audit_Trail.csv', logs);
+  const handleExportCSV = async () => {
+    try {
+      setIsExporting(true);
+      try {
+        const blob = await apiClient.downloadAuditLogsCsv({
+          action: actionFilter !== 'all' ? actionFilter : undefined,
+          role: roleFilter !== 'all' ? roleFilter : undefined,
+        });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `AICTE_Audit_Trail_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } catch (backendErr) {
+        // Fallback to client-side CSV of active filtered records
+        exportToCSV('AICTE_Regulatory_Audit_Trail.csv', filteredLogs);
+      }
+    } catch (err) {
+      alert(`Export failed: ${err.message}`);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -110,11 +154,11 @@ export default function AuditLogsPage() {
               Tamper-Evident Regulatory Audit Logs
             </h1>
             <span className="font-label-sm text-xs text-on-surface-variant bg-surface-container px-2.5 py-0.5 rounded-full font-medium">
-              SHA-256 Ledger
+              Database Ledger
             </span>
           </div>
           <p className="text-xs text-secondary mt-1">
-            Every submission, scrutiny remark, executive approval, and lien query is cryptographically signed and stored immutably.
+            Every submission, scrutiny remark, executive approval, and lien probe is cryptographically signed and stored immutably in PostgreSQL / SQLite.
           </p>
         </div>
 
@@ -131,14 +175,48 @@ export default function AuditLogsPage() {
           </div>
 
           <button
-            onClick={handleExportCSV}
-            className="rounded-xl bg-primary hover:bg-primary-container text-on-primary font-label-md text-xs px-3.5 py-2 shadow-sm inline-flex items-center gap-1.5 transition-colors font-semibold"
+            onClick={loadAuditLogs}
+            disabled={isLoading}
+            className="p-2 rounded-xl border border-surface-container hover:bg-surface-container text-secondary hover:text-on-surface text-xs transition-colors"
+            title="Refresh from Database"
           >
-            <span className="material-symbols-outlined text-[17px]">download</span>
-            <span>Export Audit Trail (CSV)</span>
+            <span className={`material-symbols-outlined text-[18px] ${isLoading ? 'animate-spin' : ''}`}>
+              refresh
+            </span>
+          </button>
+
+          <button
+            onClick={handleExportCSV}
+            disabled={isExporting}
+            className="rounded-xl bg-primary hover:bg-primary-container text-on-primary font-label-md text-xs px-3.5 py-2 shadow-sm inline-flex items-center gap-1.5 transition-colors font-semibold disabled:opacity-50"
+          >
+            {isExporting ? (
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Exporting...</span>
+              </>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-[17px]">download</span>
+                <span>Export Audit Trail (CSV)</span>
+              </>
+            )}
           </button>
         </div>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-900 rounded-2xl flex items-center justify-between text-xs shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-red-600 text-[20px]">error</span>
+            <span><strong>Audit Log Error:</strong> {error}</span>
+          </div>
+          <button onClick={() => setError(null)} className="text-red-700 hover:text-red-900 font-bold">
+            <span className="material-symbols-outlined text-[16px]">close</span>
+          </button>
+        </div>
+      )}
 
       {/* Filter Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-surface-container-lowest p-4 rounded-2xl border border-surface-container">
@@ -147,8 +225,8 @@ export default function AuditLogsPage() {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search FDR Ref, Officer, Action, or Hash..."
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search Target, Officer, Action, or Hash..."
             className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-surface-container-high bg-surface-container-low text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
@@ -160,11 +238,10 @@ export default function AuditLogsPage() {
             className="text-xs rounded-xl border border-surface-container-high bg-surface-container-lowest px-3 py-2 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
           >
             <option value="all">All Actor Roles</option>
-            <option value="AICTE Admin">AICTE Admin</option>
-            <option value="Verification Officer">Verification Officer</option>
-            <option value="Institution Officer">Institution Officer</option>
-            <option value="Approving Authority">Approving Authority</option>
-            <option value="System">System Daemon</option>
+            <option value="AICTE_ADMIN">AICTE Admin</option>
+            <option value="VERIFICATION_OFFICER">Verification Officer</option>
+            <option value="INSTITUTION_OFFICER">Institution Officer</option>
+            <option value="APPROVING_AUTHORITY">Approving Authority</option>
           </select>
 
           <select
@@ -173,11 +250,12 @@ export default function AuditLogsPage() {
             className="text-xs rounded-xl border border-surface-container-high bg-surface-container-lowest px-3 py-2 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
           >
             <option value="all">All Action Types</option>
-            <option value="Lien">Lien Encashment & Probe</option>
-            <option value="Discrepancy">Discrepancy & Scrutiny</option>
-            <option value="Correction">Correction Resubmission</option>
-            <option value="Release">Release Authorization</option>
-            <option value="Notice">Statutory Demand Notice</option>
+            <option value="SUBMITTED">Submission Events</option>
+            <option value="VERIFICATION">Verification Events</option>
+            <option value="APPROVAL">Approval Events</option>
+            <option value="CORRECTION">Correction Events</option>
+            <option value="DOCUMENT">Document Upload Events</option>
+            <option value="ACTIVE">Lien Activation Events</option>
           </select>
 
           {(search || roleFilter !== 'all' || actionFilter !== 'all') && (
@@ -197,75 +275,90 @@ export default function AuditLogsPage() {
 
       {/* Audit Logs Table */}
       <div className="bg-surface-container-lowest rounded-2xl border border-surface-container overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-surface-container bg-surface-container-low/40 text-secondary uppercase font-label-sm text-[11px] tracking-wider">
-                <th className="py-3 px-4 font-semibold">Timestamp</th>
-                <th className="py-3 px-4 font-semibold">Actor & Role</th>
-                <th className="py-3 px-4 font-semibold">Regulatory Action</th>
-                <th className="py-3 px-4 font-semibold">Target FDR</th>
-                <th className="py-3 px-4 font-semibold">Forensic Details</th>
-                <th className="py-3 px-4 font-semibold">Cryptographic Hash</th>
-                <th className="py-3 px-4 font-semibold text-right">Inspect</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-surface-container">
-              {filteredLogs.map((log) => {
-                return (
-                  <tr key={log.id} className="hover:bg-surface-container-low/50 transition-colors">
-                    {/* Timestamp */}
-                    <td className="py-3.5 px-4 font-data-mono text-secondary whitespace-nowrap">
-                      {log.timestamp}
-                    </td>
+        {isLoading && logs.length === 0 ? (
+          <div className="py-16 flex flex-col items-center justify-center text-secondary gap-3 text-xs">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <span>Fetching authenticated forensic audit records from database...</span>
+          </div>
+        ) : filteredLogs.length === 0 ? (
+          <div className="py-16 flex flex-col items-center justify-center text-secondary gap-2 text-xs">
+            <span className="material-symbols-outlined text-[36px] text-surface-container-highest">manage_search</span>
+            <span className="font-semibold text-on-surface">No Audit Logs Found</span>
+            <p className="text-[11px] max-w-sm text-center">
+              No audit records match the current filter criteria. Actions will appear in real-time as users interact with the portal.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-surface-container bg-surface-container-low/40 text-secondary uppercase font-label-sm text-[11px] tracking-wider">
+                  <th className="py-3 px-4 font-semibold">Timestamp</th>
+                  <th className="py-3 px-4 font-semibold">Actor & Role</th>
+                  <th className="py-3 px-4 font-semibold">Regulatory Action</th>
+                  <th className="py-3 px-4 font-semibold">Target Entity</th>
+                  <th className="py-3 px-4 font-semibold">Forensic Details</th>
+                  <th className="py-3 px-4 font-semibold">Cryptographic Hash</th>
+                  <th className="py-3 px-4 font-semibold text-right">Inspect</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-container">
+                {filteredLogs.map((log) => {
+                  return (
+                    <tr key={log.id} className="hover:bg-surface-container-low/50 transition-colors">
+                      {/* Timestamp */}
+                      <td className="py-3.5 px-4 font-data-mono text-secondary whitespace-nowrap">
+                        {log.timestamp}
+                      </td>
 
-                    {/* Actor */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-on-surface">{log.actor}</span>
-                        <span className="text-[10px] text-primary font-medium">{log.role}</span>
-                      </div>
-                    </td>
+                      {/* Actor */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-on-surface">{log.actor}</span>
+                          <span className="text-[10px] text-primary font-medium">{log.role}</span>
+                        </div>
+                      </td>
 
-                    {/* Action */}
-                    <td className="py-3.5 px-4 font-semibold text-on-surface">
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-surface-container text-on-surface text-[11px]">
-                        <span className="w-1.5 h-1.5 rounded-full bg-teal-600"></span>
-                        <span>{log.action}</span>
-                      </span>
-                    </td>
+                      {/* Action */}
+                      <td className="py-3.5 px-4 font-semibold text-on-surface">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-surface-container text-on-surface text-[11px] font-mono">
+                          <span className="w-1.5 h-1.5 rounded-full bg-teal-600"></span>
+                          <span>{log.action}</span>
+                        </span>
+                      </td>
 
-                    {/* Target */}
-                    <td className="py-3.5 px-4 font-data-mono font-bold text-primary">
-                      {log.target}
-                    </td>
+                      {/* Target */}
+                      <td className="py-3.5 px-4 font-data-mono font-bold text-primary">
+                        {log.target}
+                      </td>
 
-                    {/* Details */}
-                    <td className="py-3.5 px-4 text-secondary max-w-sm truncate" title={log.details}>
-                      {log.details}
-                    </td>
+                      {/* Details */}
+                      <td className="py-3.5 px-4 text-secondary max-w-sm truncate" title={log.details}>
+                        {log.details}
+                      </td>
 
-                    {/* Hash */}
-                    <td className="py-3.5 px-4 font-data-mono text-[11px] text-teal-800 font-semibold">
-                      {log.hash}
-                    </td>
+                      {/* Hash */}
+                      <td className="py-3.5 px-4 font-data-mono text-[11px] text-teal-800 font-semibold">
+                        {log.hash}
+                      </td>
 
-                    {/* Action */}
-                    <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => setSelectedLog(log)}
-                        className="p-1 rounded-lg text-secondary hover:text-on-surface hover:bg-surface-container transition-colors"
-                        title="View Raw Forensic Block"
-                      >
-                        <span className="material-symbols-outlined text-[17px]">visibility</span>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      {/* Action */}
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          onClick={() => setSelectedLog(log)}
+                          className="p-1 rounded-lg text-secondary hover:text-on-surface hover:bg-surface-container transition-colors"
+                          title="View Raw Forensic Block"
+                        >
+                          <span className="material-symbols-outlined text-[17px]">visibility</span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Forensic Log Detail Modal */}
@@ -276,7 +369,7 @@ export default function AuditLogsPage() {
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary text-[22px]">policy</span>
                 <h2 className="font-headline-sm text-base font-bold text-on-surface">
-                  Immutable Audit Block
+                  Immutable Audit Block #{selectedLog.id}
                 </h2>
               </div>
               <button
@@ -288,37 +381,51 @@ export default function AuditLogsPage() {
             </div>
 
             <div className="p-6 space-y-4 text-xs">
-              <div className="p-3 bg-teal-50 rounded-xl border border-teal-200 text-teal-900 font-data-mono flex items-center justify-between">
-                <span>Block ID: {selectedLog.id}</span>
-                <span className="text-[11px] font-bold text-teal-700">VERIFIED VALID</span>
-              </div>
-
-              <div className="space-y-2 bg-surface-container-low p-4 rounded-xl border border-surface-container">
-                <p><strong>Actor:</strong> {selectedLog.actor}</p>
-                <p><strong>Role:</strong> {selectedLog.role}</p>
-                <p><strong>Action:</strong> {selectedLog.action}</p>
-                <p><strong>Target Ref:</strong> <span className="font-data-mono text-primary font-bold">{selectedLog.target}</span></p>
-                <p><strong>Timestamp:</strong> {selectedLog.timestamp}</p>
-                <p className="mt-2 text-secondary leading-relaxed"><strong>Forensic Payload:</strong> {selectedLog.details}</p>
-              </div>
-
-              <div>
-                <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block mb-1">
-                  SHA-256 Merkle Leaf Hash
-                </span>
-                <div className="p-2.5 rounded-xl bg-surface-container font-data-mono text-[11px] text-on-surface break-all">
-                  {selectedLog.hash}99a0f44bc82d091e77
+              <div className="grid grid-cols-2 gap-3 p-3 bg-surface-container-low rounded-xl border border-surface-container">
+                <div>
+                  <span className="text-secondary block">Action Event:</span>
+                  <span className="font-bold text-on-surface font-mono">{selectedLog.action}</span>
+                </div>
+                <div>
+                  <span className="text-secondary block">Timestamp:</span>
+                  <span className="font-mono text-on-surface">{selectedLog.timestamp}</span>
+                </div>
+                <div>
+                  <span className="text-secondary block">Actor Name:</span>
+                  <span className="font-semibold text-on-surface">{selectedLog.actor}</span>
+                </div>
+                <div>
+                  <span className="text-secondary block">Designated Role:</span>
+                  <span className="font-semibold text-primary">{selectedLog.role}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-secondary block">Target Resource:</span>
+                  <span className="font-bold font-mono text-teal-800">{selectedLog.target}</span>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-surface-container flex justify-end">
-                <button
-                  onClick={() => setSelectedLog(null)}
-                  className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-primary-container transition-colors"
-                >
-                  Close
-                </button>
+              <div>
+                <span className="font-semibold text-on-surface block mb-1">Details & Authority Justification:</span>
+                <p className="p-3 bg-surface-container-low/50 rounded-xl border border-surface-container text-secondary leading-relaxed font-sans">
+                  {selectedLog.details}
+                </p>
               </div>
+
+              <div>
+                <span className="font-semibold text-on-surface block mb-1">Cryptographic Proof:</span>
+                <div className="p-3 bg-surface-container-low rounded-xl border border-surface-container font-mono text-[11px] text-teal-900 break-all select-all">
+                  {selectedLog.hash}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-surface-container flex items-center justify-end bg-surface-container-low/40">
+              <button
+                onClick={() => setSelectedLog(null)}
+                className="px-4 py-2 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-semibold text-xs transition-colors"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

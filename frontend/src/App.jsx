@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RoleProvider, useRole, ROLES } from './context/RoleContext';
 import AppLayout from './components/layout/AppLayout';
+<<<<<<< HEAD
 import { fdrsApi, workflowApi, documentsApi } from './api/client';
 
 // Mock Data (used as seamless initial seed / offline fallback)
+=======
+import { apiClient } from './api/client';
+import AicteLogo from './components/common/AicteLogo';
+
+// Mock Data (Initial fallbacks)
+>>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
 import { INITIAL_FDRS, FDR_STATUSES, INITIAL_RELEASE_REQUESTS } from './data/mockData';
 
 // Normalizers for full resilience and backwards compatibility
@@ -71,6 +78,7 @@ function normalizeReleaseRequest(raw) {
 }
 
 // Pages
+import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import MasterRegistry from './pages/MasterRegistry';
 import VerificationAuditWorkspace from './pages/VerificationAuditWorkspace';
@@ -90,11 +98,78 @@ import SubmitFdrModal from './components/modals/SubmitFdrModal';
 import ScrutinyRemarksModal from './components/modals/ScrutinyRemarksModal';
 import FdrDetailModal from './components/modals/FdrDetailModal';
 
+function formatInr(val) {
+  if (val === null || val === undefined) return '₹0';
+  const num = Number(val);
+  if (isNaN(num)) return '₹0';
+  return '₹' + num.toLocaleString('en-IN');
+}
+
+export function mapFdrFromBackend(f) {
+  const fdrId = f.id || f.fdr_id;
+  const fdrNumber = f.fdr_number || f.fdrNumber;
+  const amount = Number(f.amount !== undefined ? f.amount : (f.deposit_amount || 0));
+
+  let displayStatus = f.status;
+  if (f.status === 'DRAFT') displayStatus = FDR_STATUSES.DRAFT;
+  else if (f.status === 'SUBMITTED') displayStatus = FDR_STATUSES.SUBMITTED;
+  else if (f.status === 'UNDER_VERIFICATION') displayStatus = FDR_STATUSES.UNDER_VERIFICATION;
+  else if (f.status === 'CORRECTION_REQUIRED') displayStatus = FDR_STATUSES.CORRECTION_REQUIRED;
+  else if (f.status === 'VERIFIED') displayStatus = FDR_STATUSES.VERIFIED;
+  else if (f.status === 'PENDING_APPROVAL') displayStatus = FDR_STATUSES.PENDING_APPROVAL;
+  else if (f.status === 'ACTIVE') displayStatus = FDR_STATUSES.ACTIVE;
+  else if (f.status === 'REJECTED') displayStatus = FDR_STATUSES.REJECTED;
+
+  let pid = '1-10928374';
+  if (f.institution_id === 2) {
+    pid = '1-28374619';
+  } else if (f.institution_id) {
+    pid = `1-${String(f.institution_id).padStart(8, '0')}`;
+  }
+
+  return {
+    ...f,
+    id: fdrId,
+    fdrId: fdrId,
+    fdrNumber: fdrNumber,
+    certNumber: f.cert_number || f.certNumber || `CERT-${fdrId}`,
+    tripartiteRef: f.tripartite_ref || f.tripartiteRef || `TPR-2024-${String(fdrId).padStart(4, '0')} / AICTE-WRO`,
+    institutionId: f.institution_id ? `inst_${f.institution_id}` : (f.institutionId || 'inst_01'),
+    institution_id: f.institution_id,
+    institutionName: f.institution_name || f.institutionName || (f.institution_id === 2 ? 'Bharati Vidyapeeth College of Engineering' : "St. Xavier's Engineering College"),
+    aictePid: pid,
+    region: f.region || 'wro',
+    regionLabel: f.regionLabel || 'Western (WRO)',
+    city: f.city || (f.institution_id === 2 ? 'Navi Mumbai' : 'Pune'),
+    state: f.state || 'Maharashtra',
+    sponsoringTrust: f.sponsoringTrust || (f.institution_id === 2 ? 'Bharati Vidyapeeth Educational Trust' : "St. Xavier's Technical Education Society"),
+    programme: f.programme || 'UG Engineering',
+    courseDetails: f.courseDetails || 'Approved Technical Programme',
+    bank: f.bank_name || f.issuing_bank || f.bank || 'Nationalized Bank',
+    bankCode: (f.bank_name || f.bank || '').toLowerCase().includes('pnb') ? 'pnb' : 'sbi',
+    branch: f.branch || f.branch_name || 'Main Branch',
+    ifsc: f.ifsc || 'N/A',
+    solId: f.solId || '1290',
+    amount: amount,
+    amountFormatted: formatInr(amount),
+    interestRate: f.interest_rate || f.interestRate || '7.25% p.a.',
+    issueDate: f.issue_date || f.issueDate,
+    maturityDate: f.maturity_date || f.maturityDate,
+    tenureYears: f.tenure_years || f.tenureYears || 5,
+    status: displayStatus,
+    rawStatus: f.status,
+    lien_status: f.lien_status || 'Statutory Lien Registered',
+    mandateClause: f.mandate_clause || f.mandateClause || 'Exclusive Statutory Lien under Reg 14(B)',
+    jointAccountHolder: f.jointAccountHolder || 'AICTE Member Secretary & Sponsoring Trust',
+  };
+}
+
 function MainRouter() {
   const { currentRole, currentUser, activeRoute, setActiveRoute, selectedFdrRef, setSelectedFdrRef } = useRole();
 
-  // Master State for FDR records across the application
+  // Master State for FDR records loaded from backend
   const [fdrs, setFdrs] = useState(INITIAL_FDRS);
+  const [isLoadingFdrs, setIsLoadingFdrs] = useState(true);
 
   // Master State for Release / Refund requests across the application
   const [releaseRequests, setReleaseRequests] = useState(INITIAL_RELEASE_REQUESTS);
@@ -108,9 +183,12 @@ function MainRouter() {
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
   const [isScrutinyModalOpen, setIsScrutinyModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Active targets for modals
   const [scrutinyTargetFdr, setScrutinyTargetFdr] = useState(null);
   const [detailTargetFdr, setDetailTargetFdr] = useState(null);
 
+<<<<<<< HEAD
   // Data synchronization with backend API
   const fetchAllData = useCallback(async () => {
     try {
@@ -146,35 +224,91 @@ function MainRouter() {
   }, [fetchAllData, currentUser]);
 
   // Select FDR and sync ref
+=======
+  // Load FDRs from backend API
+  const loadFdrs = useCallback(async () => {
+    try {
+      setIsLoadingFdrs(true);
+      const data = await apiClient.getFdrs({ limit: 100 });
+      if (data && data.items && data.items.length > 0) {
+        const mapped = data.items.map(mapFdrFromBackend);
+        setFdrs(mapped);
+      }
+    } catch (err) {
+      console.warn('Could not load backend FDRs, using local state:', err.message);
+    } finally {
+      setIsLoadingFdrs(false);
+    }
+  }, []);
+
+  // Load Release Requests from backend API
+  const loadReleaseRequests = useCallback(async () => {
+    try {
+      const data = await apiClient.getRequests({ request_type: 'RELEASE_REFUND' });
+      if (Array.isArray(data)) {
+        setReleaseRequests(data);
+      }
+    } catch (err) {
+      console.warn('Could not load backend release requests:', err.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadFdrs();
+    loadReleaseRequests();
+  }, [loadFdrs, loadReleaseRequests, currentUser?.userId]);
+
+  // Sync selected FDR when ref changes
+  useEffect(() => {
+    if (selectedFdrRef && fdrs.length > 0) {
+      const found = fdrs.find(f => f.fdrNumber === selectedFdrRef || String(f.id) === String(selectedFdrRef));
+      if (found) {
+        setSelectedFdr(found);
+      }
+    }
+  }, [selectedFdrRef, fdrs]);
+
+>>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
   const handleSelectFdr = (fdr) => {
     setSelectedFdr(fdr);
     setSelectedFdrRef(fdr.fdrNumber);
   };
 
-  // Inspect FDR in Detail Modal
   const handleOpenDetailModal = (fdr) => {
     setDetailTargetFdr(fdr);
     setIsDetailModalOpen(true);
   };
 
-  // Open Scrutiny Modal for correction
   const handleOpenScrutinyModal = (fdr) => {
     setScrutinyTargetFdr(fdr);
     setIsScrutinyModalOpen(true);
   };
 
+<<<<<<< HEAD
   // Status transitions
   const handleUpdateFdrStatus = async (fdrId, newStatus, remarks) => {
     setFdrs(prev =>
       prev.map(item => {
         if (item.id === fdrId) {
+=======
+  const handleAddFdr = async (createdOrNewFdr) => {
+    // Reload freshly from backend to ensure database persistence
+    await loadFdrs();
+  };
+
+  const handleUpdateFdrStatus = (fdrId, newStatus, remarks = '') => {
+    setFdrs(prevFdrs =>
+      prevFdrs.map(fdr => {
+        if (fdr.id === fdrId) {
+>>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
           return {
-            ...item,
+            ...fdr,
             status: newStatus,
-            notes: remarks ? remarks : item.notes,
-            lastAuditDate: new Date().toISOString().split('T')[0]
+            lastAuditDate: new Date().toISOString().split('T')[0],
+            statusRemarks: remarks || fdr.statusRemarks
           };
         }
+<<<<<<< HEAD
         return item;
       })
     );
@@ -230,6 +364,9 @@ function MainRouter() {
           };
         }
         return item;
+=======
+        return fdr;
+>>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
       })
     );
     try {
@@ -241,6 +378,7 @@ function MainRouter() {
     }
   };
 
+<<<<<<< HEAD
   // Release request status transition handler
   const handleUpdateReleaseRequest = async (requestId, transitionType, payload = {}) => {
     const today = new Date().toISOString().split('T')[0];
@@ -273,9 +411,29 @@ function MainRouter() {
             return { ...req, status: 'CANCELLED', notes: payload.reason || req.notes };
           default:
             return req;
+=======
+  const handleResubmitCorrection = (fdrId, remarks) => {
+    handleUpdateFdrStatus(fdrId, FDR_STATUSES.SUBMITTED, remarks);
+    setIsScrutinyModalOpen(false);
+    setScrutinyTargetFdr(null);
+  };
+
+  const handleUpdateReleaseRequest = (requestId, newStatus, remarks) => {
+    setReleaseRequests(prev =>
+      prev.map(req => {
+        if (req.id === requestId) {
+          return {
+            ...req,
+            status: newStatus,
+            councilRemarks: remarks || req.councilRemarks,
+            approvedAt: newStatus.includes('Approved') ? new Date().toISOString() : req.approvedAt
+          };
+>>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
         }
+        return req;
       })
     );
+<<<<<<< HEAD
 
     try {
       await workflowApi.transitionRequest(requestId, {
@@ -310,11 +468,18 @@ function MainRouter() {
     } catch (err) {
       console.warn('Backend create release failed, kept optimistic state:', err);
     }
+=======
+  };
+
+  const handleCreateReleaseRequest = (newRequest) => {
+    setReleaseRequests(prev => [newRequest, ...prev]);
+>>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
   };
 
   // Route Rendering
   const renderCurrentRoute = () => {
-    // AICTE Admin & Officer routes
+    const isInst = currentRole === ROLES.INSTITUTION_OFFICER || currentRole === 'INSTITUTION_OFFICER';
+
     if (activeRoute === 'dashboard') {
       return (
         <AdminDashboard
@@ -423,11 +588,10 @@ function MainRouter() {
     }
 
     if (activeRoute === 'my_fdrs') {
-      // Filter FDRs for St. Xavier's Engineering College (PID: 1-10928374)
-      const collegeFdrs = fdrs.filter(f => f.aictePid === '1-10928374');
+      // In the real backend, list_fdrs is already scoped server-side to the institution!
       return (
         <MasterRegistry
-          fdrs={collegeFdrs}
+          fdrs={fdrs}
           onSelectFdr={(fdr) => {
             handleSelectFdr(fdr);
             handleOpenDetailModal(fdr);
@@ -488,10 +652,9 @@ function MainRouter() {
     }
 
     if (activeRoute === 'renewals') {
-      const collegeFdrs = fdrs.filter(f => f.aictePid === '1-10928374');
       return (
         <MaturityRenewalsPage
-          fdrs={collegeFdrs}
+          fdrs={fdrs}
           onSelectFdr={(fdr) => {
             handleSelectFdr(fdr);
             handleOpenDetailModal(fdr);
@@ -524,8 +687,8 @@ function MainRouter() {
       );
     }
 
-    // Default Fallback
-    if (currentRole === ROLES.INSTITUTION_OFFICER) {
+    // Default Fallback based on Role
+    if (isInst) {
       return (
         <InstitutionDashboard
           fdrs={fdrs}
@@ -535,6 +698,15 @@ function MainRouter() {
             handleSelectFdr(fdr);
             handleOpenDetailModal(fdr);
           }}
+        />
+      );
+    }
+
+    if (currentRole === ROLES.VERIFICATION_OFFICER || currentRole === ROLES.APPROVING_AUTHORITY) {
+      return (
+        <VerificationAuditWorkspace
+          fdr={selectedFdr}
+          onUpdateFdrStatus={handleUpdateFdrStatus}
         />
       );
     }
@@ -589,12 +761,35 @@ function MainRouter() {
   );
 }
 
+function AppContent() {
+  const { isAuthenticated, isLoading, login } = useRole();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <AicteLogo className="w-16 h-16 animate-pulse mb-4" />
+        <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+        <p className="text-xs font-semibold text-slate-700">Restoring AICTE Regulatory Session...</p>
+        <p className="text-[11px] text-slate-400 mt-0.5">Verifying cryptographic bearer tokens against core authority</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={login} />;
+  }
+
+  return (
+    <AppLayout>
+      <MainRouter />
+    </AppLayout>
+  );
+}
+
 export default function App() {
   return (
     <RoleProvider>
-      <AppLayout>
-        <MainRouter />
-      </AppLayout>
+      <AppContent />
     </RoleProvider>
   );
 }
