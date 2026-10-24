@@ -15,11 +15,19 @@ export default function Sidebar() {
 
   const isInstitution = currentRole === ROLES.INSTITUTION_OFFICER;
 
+  const isApprover = currentRole === ROLES.APPROVING_AUTHORITY;
+  const isVerifier = currentRole === ROLES.VERIFICATION_OFFICER;
+
   // AICTE Admin / Officer Nav Items
   const adminNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', badge: null },
     { id: 'registry', label: 'FDR Registry', icon: 'account_balance', badge: null },
-    { id: 'verification_audit', label: 'Verification Queue', icon: 'verified', badge: '14', badgeType: 'tertiary' },
+    { 
+      id: 'verification_audit', 
+      label: isApprover ? 'Approval Queue' : (isVerifier ? 'Verification Queue' : 'Verification Queue'), 
+      icon: isApprover ? 'gavel' : 'verified', 
+      badge: null 
+    },
     { id: 'maturity_renewals', label: 'Maturity & Renewals', icon: 'event_repeat', badge: null },
     { id: 'release_requests', label: 'Release Requests', icon: 'lock_open', badge: null },
     { id: 'reports', label: 'Reports', icon: 'analytics', badge: null },
@@ -239,14 +247,14 @@ export default function Sidebar() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-xs shrink-0 shadow-xs ring-1 ring-surface-container-highest">
-                  {currentUser.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).slice(0, 2).join('') || 'AI'}
+                  {currentUser?.name ? currentUser.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).slice(0, 2).join('') : 'AI'}
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="text-xs font-semibold text-on-surface truncate leading-tight">
-                    {currentUser.name}
+                    {currentUser?.name || 'Authorized User'}
                   </span>
                   <span className="text-[11px] text-on-surface-variant truncate leading-tight">
-                    {currentUser.title}
+                    {currentUser?.title || 'Official'}
                   </span>
                 </div>
               </div>

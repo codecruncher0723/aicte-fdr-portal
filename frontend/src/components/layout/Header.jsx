@@ -13,7 +13,8 @@ export default function Header() {
     setIsRoleModalOpen,
     setIsMobileSidebarOpen,
     isNotificationOpen,
-    setIsNotificationOpen
+    setIsNotificationOpen,
+    logout
   } = useRole();
 
   const searchInputRef = useRef(null);
@@ -93,7 +94,7 @@ export default function Header() {
           title="Click to Switch Role"
         >
           <span className="material-symbols-outlined text-[16px] text-teal-700">switch_account</span>
-          <span className="truncate max-w-[120px]">{currentUser.roleLabel}</span>
+          <span className="truncate max-w-[120px]">{currentUser?.roleLabel || 'Official'}</span>
           <span className="material-symbols-outlined text-[14px]">arrow_drop_down</span>
         </button>
 
@@ -149,16 +150,26 @@ export default function Header() {
         >
           <div className="flex flex-col text-right hidden sm:flex">
             <span className="text-xs font-semibold text-on-surface leading-tight truncate max-w-[130px]">
-              {currentUser.name}
+              {currentUser?.name || 'Authorized User'}
             </span>
             <span className="text-[10px] text-on-surface-variant leading-tight truncate max-w-[130px]">
-              {isInstitution ? currentUser.institution : currentUser.location}
+              {isInstitution ? (currentUser?.institution || 'Institution') : (currentUser?.location || 'New Delhi')}
             </span>
           </div>
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-xs shrink-0 shadow-xs ring-1 ring-surface-container-highest">
-            {currentUser.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).slice(0, 2).join('') || 'AI'}
+            {currentUser?.name ? currentUser.name.split(' ').filter(n => !n.includes('.')).map(n => n[0]).slice(0, 2).join('') : 'AI'}
           </div>
         </div>
+
+        {/* Quick Logout Button */}
+        <button
+          onClick={logout}
+          className="p-2 text-on-surface-variant hover:text-red-700 hover:bg-red-50 rounded-xl border border-surface-container-high transition-colors"
+          title="Sign Out of Session"
+          type="button"
+        >
+          <span className="material-symbols-outlined text-[18px]">logout</span>
+        </button>
       </div>
     </header>
   );

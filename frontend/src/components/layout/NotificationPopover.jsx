@@ -13,7 +13,7 @@ export default function NotificationPopover({ isOpen, onClose }) {
       description: 'Regional scrutiny officer requested updated joint custody mandate descriptor. Deadline: 15 Nov 2024.',
       time: '12m ago',
       type: 'urgent',
-      targetRoute: currentRole === 'institution_officer' ? 'institution_dashboard' : 'verification_audit',
+      targetRoute: (currentRole === 'INSTITUTION_OFFICER' || currentRole === 'institution_officer') ? 'institution_dashboard' : 'verification_audit',
       targetRef: 'FDR-PNB-883921'
     },
     {
@@ -114,7 +114,7 @@ export default function NotificationPopover({ isOpen, onClose }) {
         <div className="p-2.5 bg-surface-container-low border-t border-surface-container flex items-center justify-between text-xs">
           <button
             onClick={() => {
-              setActiveRoute(currentRole === 'institution_officer' ? 'institution_dashboard' : 'dashboard');
+              setActiveRoute((currentRole === 'INSTITUTION_OFFICER' || currentRole === 'institution_officer') ? 'institution_dashboard' : 'dashboard');
               onClose();
             }}
             className="font-label-sm text-primary hover:underline font-semibold"

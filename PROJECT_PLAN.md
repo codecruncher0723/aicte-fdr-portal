@@ -338,23 +338,23 @@ Run backend tests and any file-security tests. Upload one valid file of each sup
 **Dependencies:** Phases 2–4.
 
 ### Tasks
-- [ ] **M** Implement `POST /api/v1/fdrs/{fdr_id}/start-verification`: Verification Officer only, `SUBMITTED` → `UNDER_VERIFICATION`.
-- [ ] **M** Implement verification for FDR and shared request verification. Record actor, timestamp, checks, remarks, decision, and append-only history.
-- [ ] **M** Implement discrepancy codes: `MISSING_REQUIRED_FIELD`, `INVALID_AMOUNT_OR_DATE`, `DUPLICATE_FDR_CANDIDATE`, `DOCUMENT_MISSING_OR_INVALID`, `DOCUMENT_METADATA_MISMATCH`, `RENEWAL_DETAILS_DIFFER_FROM_CURRENT_RECORD`, `RELEASE_REQUEST_MISSING_SUPPORT`, `MANUAL_REVIEW_REQUIRED`.
-- [ ] **M** Return a human-readable explanation and source/check for each discrepancy. Add `BLOCKING`, `REVIEW_REQUIRED`, or `INFORMATIONAL` severity where feasible without changing canonical status transitions or introducing automatic rejection.
-- [ ] **M** A discrepancy is a review signal, not automatic fraud/rejection. Verification Officer explicitly chooses `VERIFIED` or `CORRECTION_REQUIRED` and records remarks.
-- [ ] **M** Successful initial FDR verification performs `UNDER_VERIFICATION → VERIFIED → PENDING_APPROVAL` transactionally; correction decision leaves it `CORRECTION_REQUIRED`.
-- [ ] **M** Implement `POST /api/v1/fdrs/{fdr_id}/approval`: Approving Authority only, `PENDING_APPROVAL` → `ACTIVE` or `REJECTED`; rejection requires a reason.
-- [ ] **M** Store initial approval against the FDR; store renewal/release decisions against `request_id`. Status + decision + audit event must commit/rollback together.
-- [ ] **M** Reject invalid transitions with `409 INVALID_STATUS_TRANSITION` and preserve the underlying FDR when a renewal/release request is rejected.
-- [ ] **O** Add richer verification UI explanations or assignment queues if core flows are stable.
+- [x] **M** Implement `POST /api/v1/fdrs/{fdr_id}/start-verification`: Verification Officer only, `SUBMITTED` → `UNDER_VERIFICATION`.
+- [x] **M** Implement verification for FDR and shared request verification. Record actor, timestamp, checks, remarks, decision, and append-only history.
+- [x] **M** Implement discrepancy codes: `MISSING_REQUIRED_FIELD`, `INVALID_AMOUNT_OR_DATE`, `DUPLICATE_FDR_CANDIDATE`, `DOCUMENT_MISSING_OR_INVALID`, `DOCUMENT_METADATA_MISMATCH`, `RENEWAL_DETAILS_DIFFER_FROM_CURRENT_RECORD`, `RELEASE_REQUEST_MISSING_SUPPORT`, `MANUAL_REVIEW_REQUIRED`.
+- [x] **M** Return a human-readable explanation and source/check for each discrepancy. Add `BLOCKING`, `REVIEW_REQUIRED`, or `INFORMATIONAL` severity where feasible without changing canonical status transitions or introducing automatic rejection.
+- [x] **M** A discrepancy is a review signal, not automatic fraud/rejection. Verification Officer explicitly chooses `VERIFIED` or `CORRECTION_REQUIRED` and records remarks.
+- [x] **M** Successful initial FDR verification performs `UNDER_VERIFICATION → VERIFIED → PENDING_APPROVAL` transactionally; correction decision leaves it `CORRECTION_REQUIRED`.
+- [x] **M** Implement `POST /api/v1/fdrs/{fdr_id}/approval`: Approving Authority only, `PENDING_APPROVAL` → `ACTIVE` or `REJECTED`; rejection requires a reason.
+- [x] **M** Store initial approval against the FDR; store renewal/release decisions against `request_id`. Status + decision + audit event must commit/rollback together.
+- [x] **M** Reject invalid transitions with `409 INVALID_STATUS_TRANSITION` and preserve the underlying FDR when a renewal/release request is rejected.
+- [x] **O** Add richer verification UI explanations or assignment queues if core flows are stable.
 
 ### Definition of Done
-- [ ] FDR workflow completes draft → submitted → under verification → verified/pending approval → active, with history for each transition.
-- [ ] Correction and rejection branches work and preserve remarks/history.
-- [ ] Every discrepancy code can be returned by the appropriate deterministic check or a clearly documented manual-review rule.
-- [ ] No approval can bypass verification or be performed by an unauthorized/self-approving user.
-- [ ] Tests prove status/decision/audit transaction atomicity.
+- [x] FDR workflow completes draft → submitted → under verification → verified/pending approval → active, with history for each transition.
+- [x] Correction and rejection branches work and preserve remarks/history.
+- [x] Every discrepancy code can be returned by the appropriate deterministic check or a clearly documented manual-review rule.
+- [x] No approval can bypass verification or be performed by an unauthorized/self-approving user.
+- [x] Tests prove status/decision/audit transaction atomicity.
 
 ### Verification commands / procedures
 Run the full backend test suite. Test the successful path and each correction/rejection branch using API calls or integration tests. Confirm `SUBMITTED` does not become `UNDER_VERIFICATION` until the start-verification action. Assert successful verification moves to `PENDING_APPROVAL` in the same transaction; inject/force an audit-write failure in a test and assert the status/decision also rolls back. Test wrong-role and invalid-state actions, and assert `409` for invalid transitions. Verify the UI/API never describes a hash, OCR, upload, or deterministic check as proof of bank authenticity.

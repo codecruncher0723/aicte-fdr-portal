@@ -24,7 +24,7 @@ export default function AppLayout({ children }) {
             className="flex items-center gap-2 bg-on-surface text-surface px-3.5 py-2 rounded-full shadow-lg border border-surface-container hover:bg-slate-800 transition-all text-xs font-semibold group"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Role: <strong className="text-teal-300">{currentUser.roleLabel}</strong></span>
+            <span>Role: <strong className="text-teal-300">{currentUser?.roleLabel || 'Official'}</strong></span>
             <span className="text-[10px] bg-slate-700 text-slate-200 px-1.5 py-0.5 rounded font-mono">
               Switch
             </span>

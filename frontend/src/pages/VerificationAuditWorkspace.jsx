@@ -1,32 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRole, ROLES } from '../context/RoleContext';
 import { FDR_STATUSES } from '../data/mockData';
+import { apiClient } from '../api/client';
+import { mapFdrFromBackend } from '../App';
 
 export default function VerificationAuditWorkspace({ fdr, onUpdateFdrStatus }) {
   const { currentRole, currentUser, setActiveRoute } = useRole();
 
-  // Selected or default FDR
-  const activeFdr = fdr || {
-    id: 'fdr_01',
-    fdrNumber: 'FDR-PNB-883921',
-    tripartiteRef: 'TPR-2021-098 / AICTE-WRO-1092',
-    institutionName: "St. Xavier's Engineering College",
-    aictePid: '1-10928374',
-    bank: 'Punjab National Bank',
-    branch: 'FC Road Branch, Pune',
-    ifsc: 'PUNB0012900',
-    amount: 10000000,
-    amountFormatted: '₹1,00,00,000',
-    interestRate: '7.40% p.a. Cum.',
-    tenureYears: 5,
-    issueDate: '18 Nov 2021',
-    maturityDate: '18 Nov 2026',
-    status: FDR_STATUSES.CORRECTION_REQUIRED,
-  };
+  const isApprover = currentRole === ROLES.APPROVING_AUTHORITY;
+  const isVerifier = currentRole === ROLES.VERIFICATION_OFFICER;
+  const isAdmin = currentRole === ROLES.AICTE_ADMIN;
 
+  // Queue State
+  const [queueMode, setQueueMode] = useState(isApprover ? 'approval' : 'verification');
+  const [pendingQueue, setPendingQueue] = useState([]);
+  const [isLoadingQueue, setIsLoadingQueue] = useState(true);
+  const [selectedQueueId, setSelectedQueueId] = useState(null);
+
+  // Active FDR Detail State
+  const [activeFdr, setActiveFdr] = useState(null);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [selectedDocIndex, setSelectedDocIndex] = useState(0);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [duplicateData, setDuplicateData] = useState(null);
+
+  // Action Inputs & Feedback
   const [remarks, setRemarks] = useState(
-    'Verified against PNB Finacle lien registry. Auto-rollover Clause 14B verified. Regional office descriptor discrepancy noted as acceptable per Circular AICTE/FIN/2023/88. Recommended for official endorsement.'
+    'Verified physical core banking lien registry and tripartite escrow mandate. Recommended for statutory endorsement.'
   );
+  const [councilOrderRef, setCouncilOrderRef] = useState('');
+  const [isActionSubmitting, setIsActionSubmitting] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState(null);
+  const [actionError, setActionError] = useState(null);
+
+  // UI Display Controls
   const [zoomLevel, setZoomLevel] = useState(100);
   const [showOcrBoxes, setShowOcrBoxes] = useState(true);
   const [rotation, setRotation] = useState(0);
@@ -34,47 +42,273 @@ export default function VerificationAuditWorkspace({ fdr, onUpdateFdrStatus }) {
   const [chkTripartite, setChkTripartite] = useState(true);
   const [chkAutoDispatch, setChkAutoDispatch] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [actionFeedback, setActionFeedback] = useState(null);
 
   const snippets = [
     { label: '+ APH Comp. Note', text: ' [Compliance confirmed per APH Appendix 11.4]' },
     { label: '+ Rollover Warranty', text: ' [Statutory auto-rollover clause 14(B) active]' },
-    { label: '+ Flag to RO Pune', text: ' [Referred to Regional Officer Pune for physical check]' },
-    { label: '+ Request Form D-2', text: ' [Additional indemnity undertaking Form D-2 requested]' }
+    { label: '+ Core Banking Match', text: ' [Finacle core banking receipt verified against statutory lien]' },
+    { label: '+ Flag Discrepancy', text: ' [Discrepancy noted in tripartite endorsement name]' }
   ];
 
-  const handleAddSnippet = (snippetText) => {
-    setRemarks(prev => prev + snippetText);
+  // 1. Fetch Queue based on Mode and Role
+  const loadQueue = useCallback(async () => {
+    try {
+      setIsLoadingQueue(true);
+      setActionError(null);
+
+      if (queueMode === 'approval' || (isApprover && !isAdmin)) {
+        // Approving Authority Queue: PENDING_APPROVAL
+        const res = await apiClient.getFdrs({ status: 'PENDING_APPROVAL', limit: 50 });
+        const items = res?.items || [];
+        setPendingQueue(items.map(mapFdrFromBackend));
+      } else {
+        // Verification Officer Queue: SUBMITTED or UNDER_VERIFICATION
+        const items = await apiClient.getPendingVerifications();
+        setPendingQueue((items || []).map(item => ({
+          ...item,
+          id: item.fdr_id || item.id,
+          fdrNumber: item.fdr_number,
+          institutionName: item.institution_name,
+          amountFormatted: '₹' + Number(item.amount || 0).toLocaleString('en-IN'),
+          status: item.status,
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to load queue:', err);
+      setActionError(err.message || 'Failed to load work queue from backend');
+    } finally {
+      setIsLoadingQueue(false);
+    }
+  }, [queueMode, isApprover, isAdmin]);
+
+  useEffect(() => {
+    loadQueue();
+  }, [loadQueue]);
+
+  // 2. Select initial or passed FDR
+  useEffect(() => {
+    if (fdr && (fdr.id || fdr.fdr_id)) {
+      setSelectedQueueId(fdr.id || fdr.fdr_id);
+    } else if (pendingQueue.length > 0 && !selectedQueueId) {
+      setSelectedQueueId(pendingQueue[0].id || pendingQueue[0].fdr_id);
+    }
+  }, [fdr, pendingQueue, selectedQueueId]);
+
+  // 3. Load Active FDR Details, Documents, Logs, and Duplicate Checks
+  const loadFdrDetails = useCallback(async (fdrId) => {
+    if (!fdrId) return;
+    try {
+      setIsLoadingDetail(true);
+      setActionError(null);
+
+      // A. FDR Detail
+      const fdrRaw = await apiClient.getFdr(fdrId);
+      const mapped = mapFdrFromBackend(fdrRaw);
+      setActiveFdr(mapped);
+      setCouncilOrderRef(`AICTE/EC/2026/04/FDR-${mapped.id}`);
+
+      // B. Documents
+      try {
+        const docs = await apiClient.getFdrDocuments(fdrId);
+        setDocuments(docs || []);
+        setSelectedDocIndex(docs && docs.length > 0 ? docs.length - 1 : 0);
+      } catch (docErr) {
+        setDocuments([]);
+      }
+
+      // C. Audit Logs
+      try {
+        const logs = await apiClient.getAuditLogs(fdrId);
+        setAuditLogs(logs || []);
+      } catch (logErr) {
+        setAuditLogs([]);
+      }
+
+      // D. Duplicate Candidates Check
+      try {
+        const dupes = await apiClient.getDuplicateCandidates(fdrId);
+        setDuplicateData(dupes);
+      } catch (dupErr) {
+        setDuplicateData(null);
+      }
+    } catch (err) {
+      console.error('Error loading FDR detail:', err);
+      setActionError(err.message || `Failed to load FDR ${fdrId} details`);
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedQueueId) {
+      loadFdrDetails(selectedQueueId);
+    }
+  }, [selectedQueueId, loadFdrDetails]);
+
+  // Active selected document
+  const selectedDoc = documents[selectedDocIndex] || null;
+
+  // Separation of Duties Check
+  const isSubmitter = useMemo(() => {
+    if (!activeFdr || !currentUser) return false;
+    const actorId = currentUser.userId || currentUser.id;
+    return actorId === activeFdr.created_by_id;
+  }, [activeFdr, currentUser]);
+
+  // Document Download Handler
+  const handleDownloadDoc = async (docId, fileName) => {
+    if (!docId) return;
+    try {
+      const blob = await apiClient.downloadDocumentBlob(docId);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName || `fdr_document_${docId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      alert(`Download failed: ${err.message}`);
+    }
   };
 
   const handleCopyRef = () => {
-    navigator.clipboard?.writeText(activeFdr.fdrNumber);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (activeFdr?.fdrNumber) {
+      navigator.clipboard.writeText(activeFdr.fdrNumber);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
-  const handleAction = (newStatus, feedbackMsg) => {
-    if (onUpdateFdrStatus) {
-      onUpdateFdrStatus(activeFdr.id, newStatus, remarks);
+  const handleAddSnippet = (snippetText) => {
+    setRemarks(prev => `${prev.trim()} ${snippetText}`);
+  };
+
+  // 4. Action Handlers (Verify, Return, Reject, Start, Approve)
+  const handleStartVerification = async () => {
+    if (!activeFdr) return;
+    setIsActionSubmitting(true);
+    setActionError(null);
+    try {
+      await apiClient.startVerification(activeFdr.id, remarks);
+      setActionFeedback(`FDR ${activeFdr.fdrNumber} claimed into scrutiny review (UNDER_VERIFICATION).`);
+      await loadFdrDetails(activeFdr.id);
+      await loadQueue();
+      if (onUpdateFdrStatus) onUpdateFdrStatus(activeFdr.id, 'Under Verification', remarks);
+    } catch (err) {
+      setActionError(err.message || 'Failed to claim scrutiny review.');
+    } finally {
+      setIsActionSubmitting(false);
     }
-    setActionFeedback(feedbackMsg);
-    setTimeout(() => setActionFeedback(null), 5000);
+  };
+
+  const handleVerificationDecision = async (decision) => {
+    if (!activeFdr) return;
+    setIsActionSubmitting(true);
+    setActionError(null);
+
+    const payload = {
+      decision: decision,
+      remarks: remarks || `Verification decision: ${decision}`,
+      discrepancy_code: decision === 'CORRECTION_REQUIRED' ? 'DOCUMENT_METADATA_MISMATCH' : null,
+      discrepancy_severity: decision === 'CORRECTION_REQUIRED' ? 'REVIEW_REQUIRED' : null,
+      discrepancy_note: decision === 'CORRECTION_REQUIRED' ? remarks : null,
+      document_version_id: selectedDoc ? selectedDoc.id : null,
+    };
+
+    try {
+      const res = await apiClient.verifyFdr(activeFdr.id, payload);
+      const newStatus = res.new_status;
+      setActionFeedback(`Decision recorded: ${decision}. FDR status is now ${newStatus}.`);
+
+      if (onUpdateFdrStatus) {
+        onUpdateFdrStatus(activeFdr.id, newStatus, remarks);
+      }
+
+      await loadQueue();
+      // Pick next available item if available
+      const remaining = pendingQueue.filter(item => (item.id || item.fdr_id) !== activeFdr.id);
+      if (remaining.length > 0) {
+        setSelectedQueueId(remaining[0].id || remaining[0].fdr_id);
+      } else {
+        setActiveFdr(null);
+      }
+    } catch (err) {
+      setActionError(err.message || `Failed to record verification decision ${decision}`);
+    } finally {
+      setIsActionSubmitting(false);
+    }
+  };
+
+  const handleApprovalDecision = async (decision) => {
+    if (!activeFdr) return;
+    setIsActionSubmitting(true);
+    setActionError(null);
+
+    const payload = {
+      decision: decision,
+      remarks: remarks || (decision === 'APPROVED' ? 'Approved by AICTE Executive Council' : 'Rejected by Council'),
+      council_order_ref: councilOrderRef || `AICTE/EC/2026/04/FDR-${activeFdr.id}`,
+      document_version_id: selectedDoc ? selectedDoc.id : null,
+    };
+
+    try {
+      const res = await apiClient.approveFdr(activeFdr.id, payload);
+      const newStatus = res.new_status;
+      setActionFeedback(`Council Decision: ${decision}. Statutory lien endorsed. FDR status is now ${newStatus}.`);
+
+      if (onUpdateFdrStatus) {
+        onUpdateFdrStatus(activeFdr.id, newStatus, remarks);
+      }
+
+      await loadQueue();
+      const remaining = pendingQueue.filter(item => (item.id || item.fdr_id) !== activeFdr.id);
+      if (remaining.length > 0) {
+        setSelectedQueueId(remaining[0].id || remaining[0].fdr_id);
+      } else {
+        setActiveFdr(null);
+      }
+    } catch (err) {
+      setActionError(err.message || `Failed to record approval decision ${decision}`);
+    } finally {
+      setIsActionSubmitting(false);
+    }
   };
 
   return (
     <div className="w-full flex-1 p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-[1600px] mx-auto">
+      
       {/* Action Toast Feedback */}
       {actionFeedback && (
-        <div className="p-4 bg-teal-50 border border-teal-300 text-teal-900 rounded-2xl flex items-center justify-between text-xs shadow-sm animate-in fade-in duration-200">
+        <div className="p-4 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-2xl flex items-center justify-between text-xs shadow-sm animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-teal-700 text-[20px]">verified</span>
-            <span><strong>Workflow Updated:</strong> {actionFeedback}</span>
+            <span className="material-symbols-outlined text-emerald-700 text-[20px]">verified</span>
+            <span><strong>Regulatory Workflow Updated:</strong> {actionFeedback}</span>
           </div>
-          <span className="font-mono text-teal-800 font-bold bg-teal-100 px-2 py-0.5 rounded">SIMULATED OK</span>
+          <button onClick={() => setActionFeedback(null)} className="text-emerald-700 hover:text-emerald-900">
+            <span className="material-symbols-outlined text-[16px]">close</span>
+          </button>
         </div>
       )}
 
-      {/* Breadcrumb Path & Title */}
+      {/* Action Error Alert */}
+      {actionError && (
+        <div className="p-4 bg-red-50 border border-red-300 text-red-900 rounded-2xl flex items-start justify-between text-xs shadow-sm animate-in fade-in duration-200">
+          <div className="flex items-start gap-2.5">
+            <span className="material-symbols-outlined text-red-600 text-[20px] shrink-0">error</span>
+            <div>
+              <span className="font-bold block">Operation Restricted</span>
+              <span className="mt-0.5 block text-red-800">{actionError}</span>
+            </div>
+          </div>
+          <button onClick={() => setActionError(null)} className="text-red-700 hover:text-red-900">
+            <span className="material-symbols-outlined text-[16px]">close</span>
+          </button>
+        </div>
+      )}
+
+      {/* Breadcrumb Path & Screen Header */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-1.5 text-xs text-secondary flex-wrap">
           <span
@@ -85,659 +319,633 @@ export default function VerificationAuditWorkspace({ fdr, onUpdateFdrStatus }) {
             Central Regulatory Financial Custody Division
           </span>
           <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-          <span
-            onClick={() => setActiveRoute('registry')}
-            className="hover:text-primary transition-colors cursor-pointer font-medium"
-          >
-            Verification Queue
+          <span className="font-medium text-on-surface">
+            {isApprover ? 'Statutory Council Approval' : 'Verification Scrutiny Desk'}
           </span>
-          <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-          <span className="font-data-mono font-semibold text-teal-900 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md">
-            {activeFdr.fdrNumber}
-          </span>
-          <span className="text-outline-variant">•</span>
-          <span className="text-on-surface font-medium truncate max-w-xs">{activeFdr.institutionName}</span>
         </div>
 
-        {/* Screen Title & Action Group */}
+        {/* Screen Title & Top Action Bar */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-1">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-on-surface tracking-tight flex items-center gap-2.5">
-              <span>Fixed Deposit Receipt Verification & Tripartite Audit</span>
-              <span className="material-symbols-outlined text-teal-700 text-[24px]" title="Statutory Audit Verified Mode">
-                verified_user
+              <span>
+                {isApprover
+                  ? 'AICTE Executive Council Approval & DSC Endorsement'
+                  : 'Fixed Deposit Receipt Verification & Tripartite Audit'}
+              </span>
+              <span className="material-symbols-outlined text-teal-700 text-[24px]">
+                {isApprover ? 'gavel' : 'verified_user'}
               </span>
             </h1>
             <p className="text-xs text-secondary mt-1">
-              Mandatory compliance review under AICTE Approval Process Handbook (APH) Reg. 14(B) • Joint Escrow Custody
+              Mandatory statutory compliance under AICTE Approval Process Handbook (APH) Reg. 14(B)
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
-            <button
-              onClick={() => handleAction(FDR_STATUSES.REJECTED, `${activeFdr.fdrNumber} marked as REJECTED with officer remarks.`)}
-              className="inline-flex items-center gap-1.5 border border-rose-300 bg-rose-50/70 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-semibold px-3 py-2 transition-colors shadow-xs"
-              type="button"
-            >
-              <span className="material-symbols-outlined text-[16px]">cancel</span>
-              <span>Reject Instrument</span>
-            </button>
-            <button
-              onClick={() => handleAction(FDR_STATUSES.CORRECTION_REQUIRED, `${activeFdr.fdrNumber} returned to Trust for CORRECTION_REQUIRED.`)}
-              className="inline-flex items-center gap-1.5 border border-amber-300 bg-amber-50/70 hover:bg-amber-100 text-amber-800 rounded-xl text-xs font-semibold px-3 py-2 transition-colors shadow-xs"
-              type="button"
-            >
-              <span className="material-symbols-outlined text-[16px]">rate_review</span>
-              <span>Request Clarification</span>
-            </button>
-            <button
-              onClick={() => handleAction(FDR_STATUSES.VERIFIED, `${activeFdr.fdrNumber} marked as VERIFIED and forwarded to Council for approval.`)}
-              className="inline-flex items-center gap-1.5 bg-primary hover:bg-primary-container text-on-primary rounded-xl font-semibold text-xs px-4 py-2 transition-colors shadow-xs"
-              type="button"
-            >
-              <span className="material-symbols-outlined text-[16px]">task_alt</span>
-              <span>Verify & Endorse Lien</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Instrument Metadata Ribbon */}
-        <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold text-secondary uppercase tracking-wider">Ref No:</span>
-              <span className="font-data-mono text-on-surface font-semibold bg-surface-container-low px-2 py-0.5 rounded-md text-xs">
-                {activeFdr.fdrNumber}
-              </span>
+          {/* Admin Queue Switcher Tabs */}
+          {isAdmin && (
+            <div className="flex items-center bg-surface-container-low p-1 rounded-xl border border-surface-container shrink-0 text-xs">
               <button
-                onClick={handleCopyRef}
-                className="text-secondary hover:text-primary transition-colors p-0.5"
-                title="Copy FDR Reference"
+                type="button"
+                onClick={() => setQueueMode('verification')}
+                className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
+                  queueMode === 'verification' ? 'bg-primary text-white shadow-xs' : 'text-secondary hover:text-on-surface'
+                }`}
               >
-                <span className="material-symbols-outlined text-[15px]">
-                  {copied ? 'check' : 'content_copy'}
-                </span>
+                Verification Queue
+              </button>
+              <button
+                type="button"
+                onClick={() => setQueueMode('approval')}
+                className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
+                  queueMode === 'approval' ? 'bg-primary text-white shadow-xs' : 'text-secondary hover:text-on-surface'
+                }`}
+              >
+                Council Approval Queue
               </button>
             </div>
-            <div className="h-4 w-px bg-surface-container hidden sm:block"></div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold text-secondary uppercase tracking-wider">Lien Mandate:</span>
-              <span className="font-data-mono text-on-surface-variant text-xs font-medium">
-                {activeFdr.tripartiteRef || 'TPR-2021-098 / AICTE-WRO-1092'}
-              </span>
-            </div>
-            <div className="h-4 w-px bg-surface-container hidden md:block"></div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] font-semibold text-secondary uppercase tracking-wider">PID:</span>
-              <span className="text-xs text-on-surface font-medium">{activeFdr.institutionName} ({activeFdr.aictePid})</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-amber-50 text-amber-800 border border-amber-200 font-semibold">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse"></span>
-              High Priority - Tripartite Endorsement Due
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs bg-sky-50 text-sky-800 border border-sky-200 font-medium">
-              <span className="material-symbols-outlined text-[14px]">history_edu</span>
-              Pending Joint Director Sign-off
-            </span>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* 12-Column Responsive Layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        {/* LEFT COLUMN: Regulatory Comparison Workspace (7 cols) */}
-        <div className="xl:col-span-7 flex flex-col gap-6">
-          {/* 4 Summary Micro-Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Card 1: Amount */}
-            <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-5 shadow-xs flex flex-col justify-between">
-              <div className="flex items-center justify-between text-secondary mb-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider">Pledged Security Amount</span>
-                <span className="material-symbols-outlined text-teal-700 text-[20px]">currency_rupee</span>
-              </div>
-              <div className="flex flex-col">
-                <div className="text-2xl font-bold text-on-surface tracking-tight font-data-mono">
-                  {activeFdr.amountFormatted}
-                </div>
-                <div className="flex items-center justify-between mt-1 text-secondary text-xs">
-                  <span>{activeFdr.amountWords || 'INR One Crore Only'}</span>
-                  <span className="text-[11px] text-teal-800 font-semibold bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md">
-                    {activeFdr.interestRate}
-                  </span>
-                </div>
-              </div>
-              <div className="mt-3 pt-2 border-t border-surface-container-low flex items-center justify-between text-xs">
-                <span className="text-[11px] text-secondary">Statutory Minimum: {activeFdr.amountFormatted}</span>
-                <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]">check_circle</span> 100% Satisfied
-                </span>
-              </div>
-            </div>
-
-            {/* Card 2: Pledged Bank */}
-            <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-5 shadow-xs flex flex-col justify-between">
-              <div className="flex items-center justify-between text-secondary mb-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider">Pledged Scheduled Bank</span>
-                <span className="material-symbols-outlined text-teal-700 text-[20px]">account_balance</span>
-              </div>
-              <div className="flex flex-col">
-                <div className="text-lg font-bold text-on-surface truncate">{activeFdr.bank}</div>
-                <div className="text-xs text-secondary mt-0.5 truncate">{activeFdr.branch}</div>
-              </div>
-              <div className="mt-3 pt-2 border-t border-surface-container-low flex items-center justify-between text-xs">
-                <span className="font-data-mono text-[11px] text-on-surface font-medium">IFSC: {activeFdr.ifsc}</span>
-                <span className="text-[11px] text-teal-800 font-semibold bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md">
-                  PFMS Integrated
-                </span>
-              </div>
-            </div>
-
-            {/* Card 3: Lien Category */}
-            <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-5 shadow-xs flex flex-col justify-between">
-              <div className="flex items-center justify-between text-secondary mb-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider">Lien Category & Mandate</span>
-                <span className="material-symbols-outlined text-teal-700 text-[20px]">lock</span>
-              </div>
-              <div className="flex flex-col">
-                <div className="text-base text-on-surface font-semibold leading-snug">Exclusive Statutory Lien</div>
-                <div className="text-xs text-secondary mt-1 truncate">Favoring Member Secretary, AICTE New Delhi</div>
-              </div>
-              <div className="mt-3 pt-2 border-t border-surface-container-low flex items-center justify-between text-xs">
-                <span className="text-[11px] text-secondary">Lien Registration Status</span>
-                <span className="text-[11px] font-semibold text-emerald-700 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Confirmed in Finacle
-                </span>
-              </div>
-            </div>
-
-            {/* Card 4: Tenor Horizon */}
-            <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-5 shadow-xs flex flex-col justify-between">
-              <div className="flex items-center justify-between text-secondary mb-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider">Tenor Horizon</span>
-                <span className="material-symbols-outlined text-teal-700 text-[20px]">calendar_clock</span>
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-on-surface">{activeFdr.tenureYears} Years</span>
-                  <span className="text-xs text-secondary">Auto-Rollover</span>
-                </div>
-                <div className="text-xs text-secondary mt-0.5">
-                  Maturity: <span className="text-on-surface font-semibold font-data-mono">{activeFdr.maturityDate}</span>
-                </div>
-              </div>
-              <div className="mt-3 pt-2 border-t border-surface-container-low">
-                <div className="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
-                  <div className="h-full bg-teal-700 rounded-full" style={{ width: '66%' }}></div>
-                </div>
-                <div className="flex justify-between items-center text-[10px] text-secondary font-data-mono mt-1">
-                  <span>{activeFdr.issueDate}</span>
-                  <span className="font-semibold text-teal-700">Active Period</span>
-                  <span>{activeFdr.maturityDate}</span>
-                </div>
-              </div>
-            </div>
+      {/* PENDING WORK QUEUE SELECTOR RIBBON */}
+      <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-4 shadow-xs">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-teal-700 text-[18px]">view_list</span>
+            <span className="text-xs font-bold text-on-surface">
+              {queueMode === 'approval' ? 'Pending Council Approvals' : 'Pending Verification Scrutiny Queue'}
+            </span>
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800">
+              {pendingQueue.length} {pendingQueue.length === 1 ? 'Instrument' : 'Instruments'}
+            </span>
           </div>
 
-          {/* Discrepancy Callout Banner */}
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 shadow-xs flex items-start gap-3.5">
-            <span className="material-symbols-outlined text-amber-700 text-[24px] shrink-0 mt-0.5">warning</span>
-            <div className="flex flex-col flex-1">
-              <div className="flex items-center justify-between flex-wrap gap-1.5">
-                <span className="text-sm text-amber-900 font-bold">1 Statutory Discrepancy Flagged by Rules Engine</span>
-                <span className="text-[11px] text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full font-semibold">
-                  Regulatory Review Required
-                </span>
-              </div>
-              <p className="text-xs text-amber-900/90 mt-1 leading-relaxed">
-                Branch IFSC code on scanned receipt (<span className="font-data-mono font-semibold text-on-surface">PUNB0012900</span>) matches RBI master list. However, Joint Account Mandate text is formatted as <em>“AICTE New Delhi”</em> omitting explicit Regional Office descriptor (<em>AICTE Western Regional Office, Pune/Mumbai</em>). Officer endorsement requires confirmation under APH Appendix 11.4.
-              </p>
-            </div>
-          </div>
+          <button
+            onClick={loadQueue}
+            disabled={isLoadingQueue}
+            className="text-xs text-primary hover:text-primary-container font-medium flex items-center gap-1 p-1"
+            title="Refresh Queue from Backend"
+          >
+            <span className={`material-symbols-outlined text-[16px] ${isLoadingQueue ? 'animate-spin' : ''}`}>
+              refresh
+            </span>
+            <span>Refresh Queue</span>
+          </button>
+        </div>
 
-          {/* Tripartite Comparison Ledger Table Card */}
-          <div className="bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs overflow-hidden flex flex-col">
-            <div className="p-4 bg-surface-container-low border-b border-surface-container flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Queue Items Horizontal Scroll / Chips */}
+        {isLoadingQueue ? (
+          <div className="py-4 flex items-center justify-center gap-2 text-xs text-secondary">
+            <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <span>Synchronizing live queue with backend database...</span>
+          </div>
+        ) : pendingQueue.length === 0 ? (
+          <div className="py-6 text-center text-xs text-secondary bg-surface-container-low/30 rounded-xl border border-dashed border-surface-container">
+            <span className="material-symbols-outlined text-[28px] text-teal-600 mb-1">task_alt</span>
+            <p className="font-semibold text-on-surface">Work Queue is Clear</p>
+            <p className="text-[11px] mt-0.5">There are no fixed deposit instruments currently awaiting scrutiny or approval.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
+            {pendingQueue.map((item) => {
+              const isSelected = selectedQueueId === (item.id || item.fdr_id);
+              return (
+                <div
+                  key={item.id || item.fdr_id}
+                  onClick={() => setSelectedQueueId(item.id || item.fdr_id)}
+                  className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between gap-1 text-xs ${
+                    isSelected
+                      ? 'border-primary bg-primary/5 ring-1 ring-primary shadow-xs'
+                      : 'border-surface-container hover:bg-surface-container-low hover:border-surface-container-highest'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-mono font-bold text-on-surface truncate">{item.fdrNumber}</span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 uppercase">
+                      {item.status}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-secondary truncate">{item.institutionName}</div>
+                  <div className="flex items-center justify-between pt-1 border-t border-surface-container-low text-[11px]">
+                    <span className="font-mono font-semibold text-teal-800">{item.amountFormatted}</span>
+                    {isSelected && <span className="text-primary font-bold text-[10px]">Inspecting &rarr;</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ACTIVE FDR INSPECTION WORKSPACE */}
+      {isLoadingDetail ? (
+        <div className="py-20 flex flex-col items-center justify-center gap-3 text-secondary">
+          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-xs font-semibold">Retrieving instrument telemetry, documents & audit trail...</span>
+        </div>
+      ) : !activeFdr ? (
+        <div className="py-12 bg-surface-container-lowest rounded-2xl border border-surface-container text-center text-secondary">
+          <p className="text-sm font-semibold text-on-surface">No Instrument Selected</p>
+          <p className="text-xs mt-1">Select an FDR from the queue above to inspect instrument details and make decisions.</p>
+        </div>
+      ) : (
+        <>
+          {/* Separation of Duties Warning Banner */}
+          {isSubmitter && (
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-start gap-3">
+              <span className="material-symbols-outlined text-amber-700 text-[22px] shrink-0">gavel</span>
               <div>
-                <h2 className="text-sm text-on-surface font-bold flex items-center gap-2">
-                  <span className="material-symbols-outlined text-teal-700 text-[18px]">difference</span>
-                  Multi-Source Telemetry Cross-Audit
-                </h2>
-                <p className="text-xs text-secondary">
-                  Discrepancy validation between Institution Portal Entry, OCR Parse, and Bank Gateway API
+                <span className="font-bold block text-sm">Separation of Duties Restriction</span>
+                <p className="mt-0.5 leading-relaxed">
+                  You created this FDR record as <strong>{currentUser?.name}</strong> (User ID: {activeFdr.created_by_id}). 
+                  Under Section 8.3 of AICTE Regulatory Requirements, <em>submitters are strictly barred from verifying or approving their own submissions</em>. 
+                  Adjudication must be conducted independently by another authorized officer.
                 </p>
               </div>
-              <div className="flex items-center gap-1 bg-surface-container p-1 rounded-xl">
-                <span className="px-2.5 py-1 text-xs rounded-lg bg-surface-container-lowest text-on-surface font-semibold shadow-xs">
-                  Consolidated
+            </div>
+          )}
+
+          {/* Instrument Metadata Ribbon */}
+          <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-4 shadow-xs flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-semibold text-secondary uppercase tracking-wider">Ref No:</span>
+                <span className="font-mono text-on-surface font-semibold bg-surface-container-low px-2 py-0.5 rounded-md text-xs">
+                  {activeFdr.fdrNumber}
                 </span>
-                <span className="px-2.5 py-1 text-xs rounded-lg text-secondary font-medium">
-                  Audit Diffs (1)
+                <button
+                  onClick={handleCopyRef}
+                  className="text-secondary hover:text-primary transition-colors p-0.5"
+                  title="Copy FDR Reference"
+                >
+                  <span className="material-symbols-outlined text-[15px]">
+                    {copied ? 'check' : 'content_copy'}
+                  </span>
+                </button>
+              </div>
+              <div className="h-4 w-px bg-surface-container hidden sm:block"></div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-semibold text-secondary uppercase tracking-wider">Lien Status:</span>
+                <span className="font-mono text-on-surface-variant text-xs font-medium">
+                  {activeFdr.lien_status || 'Statutory Lien Registered'}
                 </span>
+              </div>
+              <div className="h-4 w-px bg-surface-container hidden md:block"></div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-semibold text-secondary uppercase tracking-wider">Institution:</span>
+                <span className="text-xs text-on-surface font-medium">{activeFdr.institutionName} ({activeFdr.aictePid})</span>
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-surface-container-low text-secondary text-[11px] uppercase font-bold tracking-wider border-b border-surface-container">
-                    <th className="py-2.5 px-3">Instrument Parameter</th>
-                    <th className="py-2.5 px-3">Institute Submission</th>
-                    <th className="py-2.5 px-3">OCR Document Extraction</th>
-                    <th className="py-2.5 px-3">Bank Core / PFMS API</th>
-                    <th className="py-2.5 px-3 text-right">Audit Match</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-surface-container-low font-body-sm">
-                  <tr className="hover:bg-surface-container-low/60 transition-colors">
-                    <td className="py-2.5 px-3 font-semibold text-on-surface">Fixed Deposit No.</td>
-                    <td className="py-2.5 px-3 font-data-mono font-medium text-on-surface">883921004921</td>
-                    <td className="py-2.5 px-3 font-data-mono font-medium text-on-surface">
-                      883921004921
-                      <span className="text-[10px] text-teal-700 block font-sans font-semibold">100% Confidence</span>
-                    </td>
-                    <td className="py-2.5 px-3 font-data-mono text-teal-800 font-semibold">883921004921 (PNB Nodal)</td>
-                    <td className="py-2.5 px-3 text-right">
-                      <span className="inline-flex items-center gap-1 text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2 py-0.5 rounded-full">
-                        <span className="material-symbols-outlined text-[13px]">check</span> MATCH
-                      </span>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-surface-container-low/60 transition-colors">
-                    <td className="py-2.5 px-3 font-semibold text-on-surface">Deposit Principal</td>
-                    <td className="py-2.5 px-3 font-data-mono font-medium text-on-surface">{activeFdr.amountFormatted}</td>
-                    <td className="py-2.5 px-3 font-data-mono font-medium text-on-surface">
-                      {activeFdr.amountFormatted}
-                      <span className="text-[10px] text-secondary block font-sans">INR ONE CRORE</span>
-                    </td>
-                    <td className="py-2.5 px-3 font-data-mono text-teal-800 font-semibold">{activeFdr.amountFormatted}.00</td>
-                    <td className="py-2.5 px-3 text-right">
-                      <span className="inline-flex items-center gap-1 text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2 py-0.5 rounded-full">
-                        <span className="material-symbols-outlined text-[13px]">check</span> MATCH
-                      </span>
-                    </td>
-                  </tr>
-                  <tr className="bg-amber-50/50 hover:bg-amber-50/70 transition-colors">
-                    <td className="py-2.5 px-3 font-semibold text-on-surface">Mandate & Lien Clause</td>
-                    <td className="py-2.5 px-3 text-on-surface">Principal, SXEC & Member Sec AICTE</td>
-                    <td className="py-2.5 px-3 text-on-surface font-medium">Principal SXEC A/C AICTE ND</td>
-                    <td className="py-2.5 px-3 text-teal-800 font-semibold">JOINT: AICTE MEM SEC & SXEC</td>
-                    <td className="py-2.5 px-3 text-right">
-                      <span className="inline-flex items-center gap-1 text-[11px] bg-amber-50 text-amber-800 border border-amber-200 font-bold px-2 py-0.5 rounded-full">
-                        <span className="material-symbols-outlined text-[13px]">warning</span> ADVISORY
-                      </span>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-surface-container-low/60 transition-colors">
-                    <td className="py-2.5 px-3 font-semibold text-on-surface">Auto-Renewal Mandate</td>
-                    <td className="py-2.5 px-3 text-secondary">Statutory Auto-Rollover</td>
-                    <td className="py-2.5 px-3 text-secondary">Clause 14B: Auto-Renewed</td>
-                    <td className="py-2.5 px-3 font-data-mono text-teal-800 font-semibold">FLAG_ROLLOVER_TRUE</td>
-                    <td className="py-2.5 px-3 text-right">
-                      <span className="inline-flex items-center gap-1 text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2 py-0.5 rounded-full">
-                        <span className="material-symbols-outlined text-[13px]">check</span> MATCH
-                      </span>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-surface-container-low/60 transition-colors">
-                    <td className="py-2.5 px-3 font-semibold text-on-surface">Branch IFSC & Sol</td>
-                    <td className="py-2.5 px-3 font-data-mono text-on-surface">PUNB0012900 (1290)</td>
-                    <td className="py-2.5 px-3 font-data-mono text-on-surface">PUNB0012900</td>
-                    <td className="py-2.5 px-3 font-data-mono text-teal-800 font-semibold">RBI: PUNB0012900 (Active)</td>
-                    <td className="py-2.5 px-3 text-right">
-                      <span className="inline-flex items-center gap-1 text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2 py-0.5 rounded-full">
-                        <span className="material-symbols-outlined text-[13px]">check</span> MATCH
-                      </span>
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-surface-container-low/60 transition-colors">
-                    <td className="py-2.5 px-3 font-semibold text-on-surface">Non-Encashment Undertaking</td>
-                    <td className="py-2.5 px-3 text-secondary">Form L-2 Attached</td>
-                    <td className="py-2.5 px-3 text-secondary">Sol Manager Seal Verified</td>
-                    <td className="py-2.5 px-3 font-data-mono text-teal-800 font-semibold">ENCASHMENT_BLOCKED</td>
-                    <td className="py-2.5 px-3 text-right">
-                      <span className="inline-flex items-center gap-1 text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2 py-0.5 rounded-full">
-                        <span className="material-symbols-outlined text-[13px]">check</span> MATCH
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                activeFdr.status === 'ACTIVE'
+                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                  : activeFdr.status === 'PENDING_APPROVAL'
+                  ? 'bg-purple-50 text-purple-800 border border-purple-200'
+                  : activeFdr.status === 'UNDER_VERIFICATION'
+                  ? 'bg-blue-50 text-blue-800 border border-blue-200'
+                  : 'bg-amber-50 text-amber-800 border border-amber-200'
+              }`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+                <span>Status: {activeFdr.status}</span>
+              </span>
+
+              {/* Start Scrutiny Button for Submitted FDR */}
+              {isVerifier && activeFdr.status === 'SUBMITTED' && !isSubmitter && (
+                <button
+                  type="button"
+                  disabled={isActionSubmitting}
+                  onClick={handleStartVerification}
+                  className="px-3 py-1.5 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold shadow-xs flex items-center gap-1 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[16px]">play_arrow</span>
+                  <span>Claim Scrutiny Review</span>
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Scanned Digital Instrument Viewer Card */}
-          <div className="bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs flex flex-col overflow-hidden">
-            <div className="p-4 bg-surface-container-low border-b border-surface-container flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5">
-                <span className="material-symbols-outlined text-teal-700 text-[22px]">document_scanner</span>
-                <div>
-                  <div className="text-sm text-on-surface font-bold">Statutory Instrument & Bank Lien Certificate Scan</div>
-                  <div className="text-xs text-secondary">Page 1 of 2 • High Resolution 300 DPI Legal Document Archive</div>
+          {/* 12-Column Responsive Layout */}
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+            
+            {/* LEFT COLUMN: Regulatory Comparison & Documents (7 cols) */}
+            <div className="xl:col-span-7 flex flex-col gap-6">
+              
+              {/* 4 Summary Micro-Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Card 1: Amount */}
+                <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-5 shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center justify-between text-secondary mb-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider">Deposit Principal</span>
+                    <span className="material-symbols-outlined text-teal-700 text-[20px]">currency_rupee</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="text-2xl font-bold text-on-surface tracking-tight font-mono">
+                      {activeFdr.amountFormatted}
+                    </div>
+                    <div className="flex items-center justify-between mt-1 text-secondary text-xs">
+                      <span>Rate: {activeFdr.interestRate}</span>
+                      <span className="text-[11px] text-teal-800 font-semibold bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md">
+                        {activeFdr.auto_rollover ? 'Auto-Rollover' : 'Single Term'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 2: Pledged Bank */}
+                <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-5 shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center justify-between text-secondary mb-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider">Issuing Bank</span>
+                    <span className="material-symbols-outlined text-teal-700 text-[20px]">account_balance</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="text-lg font-bold text-on-surface truncate">{activeFdr.bank}</div>
+                    <div className="text-xs text-secondary mt-0.5 truncate">{activeFdr.branch}</div>
+                  </div>
+                  <div className="mt-3 pt-2 border-t border-surface-container-low flex items-center justify-between text-xs">
+                    <span className="font-mono text-[11px] text-on-surface font-medium">IFSC: {activeFdr.ifsc}</span>
+                    <span className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                      Verified IFSC
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card 3: Lien Category */}
+                <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-5 shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center justify-between text-secondary mb-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider">Lien Category & Mandate</span>
+                    <span className="material-symbols-outlined text-teal-700 text-[20px]">lock</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="text-sm text-on-surface font-semibold leading-snug">
+                      {activeFdr.mandateClause || 'Exclusive Statutory Lien under Reg 14(B)'}
+                    </div>
+                    <div className="text-xs text-secondary mt-1">Joint AICTE & Sponsoring Trust</div>
+                  </div>
+                </div>
+
+                {/* Card 4: Tenor Horizon */}
+                <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-5 shadow-xs flex flex-col justify-between">
+                  <div className="flex items-center justify-between text-secondary mb-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider">Tenor Horizon</span>
+                    <span className="material-symbols-outlined text-teal-700 text-[20px]">calendar_clock</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-on-surface">{activeFdr.tenureYears} Years</span>
+                      <span className="text-xs text-secondary font-mono">Issued: {activeFdr.issueDate}</span>
+                    </div>
+                    <div className="text-xs text-secondary mt-0.5 font-mono">
+                      Maturity: <span className="text-on-surface font-semibold">{activeFdr.maturityDate}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Document Toolbar */}
-              <div className="flex items-center gap-1.5 text-xs">
-                <button
-                  onClick={() => setZoomLevel(z => Math.max(75, z - 10))}
-                  className="rounded-lg border border-surface-container bg-surface-container-lowest p-1.5 text-secondary hover:bg-surface-container shadow-xs transition-colors"
-                  title="Zoom Out"
-                >
-                  <span className="material-symbols-outlined text-[17px]">zoom_out</span>
-                </button>
-                <span className="font-data-mono text-xs text-secondary px-2 font-medium">{zoomLevel}%</span>
-                <button
-                  onClick={() => setZoomLevel(z => Math.min(150, z + 10))}
-                  className="rounded-lg border border-surface-container bg-surface-container-lowest p-1.5 text-secondary hover:bg-surface-container shadow-xs transition-colors"
-                  title="Zoom In"
-                >
-                  <span className="material-symbols-outlined text-[17px]">zoom_in</span>
-                </button>
-                <div className="h-4 w-px bg-surface-container mx-0.5"></div>
-                <button
-                  onClick={() => setRotation(r => (r + 90) % 360)}
-                  className="rounded-lg border border-surface-container bg-surface-container-lowest p-1.5 text-secondary hover:bg-surface-container shadow-xs transition-colors"
-                  title="Rotate"
-                >
-                  <span className="material-symbols-outlined text-[17px]">rotate_right</span>
-                </button>
-                <button
-                  onClick={() => setShowOcrBoxes(!showOcrBoxes)}
-                  className={`rounded-lg border p-1.5 shadow-xs transition-colors ${
-                    showOcrBoxes
-                      ? 'border-teal-300 bg-teal-50 text-teal-800'
-                      : 'border-surface-container bg-surface-container-lowest text-secondary'
-                  }`}
-                  title="Toggle OCR Detection Boxes"
-                >
-                  <span className="material-symbols-outlined text-[17px]">crop_free</span>
-                </button>
+              {/* Real Duplicate Discrepancy Callout Banner */}
+              {duplicateData && duplicateData.has_candidates ? (
+                <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 shadow-xs flex items-start gap-3.5">
+                  <span className="material-symbols-outlined text-amber-700 text-[24px] shrink-0 mt-0.5">warning</span>
+                  <div className="flex flex-col flex-1 text-xs">
+                    <div className="flex items-center justify-between flex-wrap gap-1.5">
+                      <span className="text-sm text-amber-900 font-bold">
+                        {duplicateData.discrepancy?.code || 'DUPLICATE_FDR_CANDIDATE'}: Review Signal Flagged
+                      </span>
+                      <span className="text-[10px] text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full font-bold">
+                        {duplicateData.discrepancy?.severity || 'REVIEW_REQUIRED'}
+                      </span>
+                    </div>
+                    <p className="text-amber-900 mt-1 leading-relaxed">
+                      {duplicateData.discrepancy?.message || 'Configurable heuristic check detected prospective matching records.'}
+                    </p>
+                    <p className="text-[11px] text-amber-800 mt-1 italic">
+                      Notice: FDR number uniqueness scope is TBD. This signal advises review of core banking certificates and does not enforce automatic rejection.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-3.5 flex items-center gap-2.5 text-xs text-emerald-900">
+                  <span className="material-symbols-outlined text-emerald-700 text-[20px]">verified</span>
+                  <span><strong>Zero Discrepancies Detected:</strong> No matching duplicate candidates found under configured uniqueness scope.</span>
+                </div>
+              )}
+
+              {/* Scanned Digital Instrument Viewer Card */}
+              <div className="bg-surface-container-lowest rounded-2xl border border-surface-container shadow-xs overflow-hidden flex flex-col">
+                <div className="px-5 py-4 border-b border-surface-container flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-teal-700 text-[22px]">description</span>
+                    <h3 className="text-sm font-bold text-on-surface">Supporting Instrument & Document Versions</h3>
+                  </div>
+
+                  {/* Document Version Selector Pills */}
+                  {documents.length > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {documents.map((doc, idx) => (
+                        <button
+                          key={doc.id}
+                          type="button"
+                          onClick={() => setSelectedDocIndex(idx)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                            selectedDocIndex === idx
+                              ? 'bg-primary text-white shadow-xs'
+                              : 'bg-surface-container-low text-secondary hover:bg-surface-container'
+                          }`}
+                        >
+                          Version {doc.version}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {documents.length === 0 ? (
+                  <div className="p-8 text-center text-xs text-secondary">
+                    <span className="material-symbols-outlined text-[32px] text-slate-400 mb-1">find_in_page</span>
+                    <p className="font-semibold text-slate-700">No Document Uploaded</p>
+                    <p className="text-[11px] mt-0.5">This FDR does not currently have an attached scanned certificate file.</p>
+                  </div>
+                ) : selectedDoc ? (
+                  <div className="p-5 flex flex-col gap-4">
+                    {/* Document Metadata Bar */}
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-slate-900 truncate">{selectedDoc.original_filename || selectedDoc.file_name}</span>
+                        <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
+                          <span>Version {selectedDoc.version}</span>
+                          <span>•</span>
+                          <span>{selectedDoc.mime_type}</span>
+                          <span>•</span>
+                          <span>{(Number(selectedDoc.file_size || 0) / 1024).toFixed(1)} KB</span>
+                        </div>
+                        {selectedDoc.sha256_hash && (
+                          <span className="text-[10px] font-mono text-slate-600 mt-1 truncate">
+                            SHA-256: {selectedDoc.sha256_hash}
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadDoc(selectedDoc.id, selectedDoc.original_filename || selectedDoc.file_name)}
+                        className="px-3.5 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-semibold text-xs inline-flex items-center gap-1.5 shrink-0 shadow-xs transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">download</span>
+                        <span>Download & Inspect</span>
+                      </button>
+                    </div>
+
+                    {/* Security Watermark Preview Box */}
+                    <div className="p-6 bg-slate-100 rounded-xl border border-slate-200 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none opacity-5 rotate-[-25deg]">
+                        <span className="text-5xl font-bold tracking-widest text-[#00685f]">AICTE REGULATORY PLEDGE</span>
+                      </div>
+                      <span className="material-symbols-outlined text-teal-700 text-[40px] mb-2">verified_user</span>
+                      <h4 className="text-xs font-bold text-slate-900">Encapsulated Document Revision {selectedDoc.version}</h4>
+                      <p className="text-[11px] text-slate-600 mt-1 max-w-md">
+                        Encapsulated in private storage under AICTE custody guidelines. Hash integrity verified on upload. Click 'Download & Inspect' above to view the full resolution scan.
+                      </p>
+                    </div>
+                  </div>
+                ) : null}
               </div>
+
             </div>
 
-            {/* Simulated Security Document Sheet Container */}
-            <div className="p-6 bg-slate-100 flex items-center justify-center overflow-auto">
-              <div
-                style={{
-                  transform: `scale(${zoomLevel / 100}) rotate(${rotation}deg)`,
-                  transformOrigin: 'top center',
-                  transition: 'transform 0.2s ease'
-                }}
-                className="w-full max-w-2xl bg-[#fffefc] text-[#131b2e] rounded-xl border border-slate-300 shadow-md p-6 relative overflow-hidden select-none"
-              >
-                {/* Watermark */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none opacity-5 rotate-[-25deg]">
-                  <span className="text-6xl font-bold tracking-widest text-[#00685f]">AICTE REGULATORY PLEDGE</span>
-                </div>
-
-                <div className="flex items-start justify-between pb-4 border-b border-slate-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-red-700 text-white flex items-center justify-center font-bold text-lg tracking-tighter shadow-xs">
-                      pnb
-                    </div>
-                    <div>
-                      <div className="text-sm tracking-tight font-bold text-[#800000]">PUNJAB NATIONAL BANK</div>
-                      <div className="text-[11px] text-slate-500">FC Road Branch, Pune 411005 (MH) • IFSC: PUNB0012900</div>
-                    </div>
+            {/* RIGHT COLUMN: Adjudication Console & Institutional Standing (5 cols) */}
+            <div className="xl:col-span-5 flex flex-col gap-6">
+              
+              {/* Reviewer Assessment & Statutory Remarks Card */}
+              <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-5 shadow-xs flex flex-col">
+                <div className="flex items-center justify-between pb-3 border-b border-surface-container-low">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-teal-700 text-[22px]">assignment_turned_in</span>
+                    <h3 className="text-base text-on-surface font-bold">
+                      {isApprover ? 'Statutory Council Adjudication' : 'Scrutiny Officer Remarks'}
+                    </h3>
                   </div>
-                  <div className="text-right">
-                    <span className="font-data-mono text-[11px] font-semibold text-slate-600 block">ORIGINAL FOR LIEN HOLDER</span>
-                    <span className="text-[10px] text-slate-400">Date of Issue: 18/11/2021</span>
-                  </div>
-                </div>
-
-                <div className="my-3 text-center py-1 bg-amber-50 border border-amber-200 rounded-lg">
-                  <span className="text-xs uppercase tracking-wider font-bold text-slate-800">
-                    Special Term Deposit Receipt (Cumulative)
+                  <span className="text-xs text-secondary font-medium font-mono">
+                    Actor: {currentUser?.name || 'Authorized'}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 text-xs my-4">
-                  <div className={showOcrBoxes ? 'p-1 rounded ring-1 ring-teal-500 bg-teal-50/20' : ''}>
-                    <span className="text-slate-500 block text-[10px] uppercase font-semibold">Receipt / Account Number</span>
-                    <span className="font-data-mono font-bold text-sm text-slate-900 bg-teal-50 px-1.5 py-0.2 rounded border border-teal-200">
-                      883921004921
+                {/* Council Order Ref input for Approver */}
+                {isApprover && (
+                  <div className="mt-4">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Council Order Reference Ref <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={councilOrderRef}
+                      onChange={(e) => setCouncilOrderRef(e.target.value)}
+                      placeholder="e.g., AICTE/EC/2026/04/FDR-992"
+                      className="w-full text-xs font-mono rounded-xl border border-surface-container bg-surface-container-low px-3 py-2 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                )}
+
+                {/* Remarks Textarea */}
+                <div className="mt-4">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Statutory Audit & Endorsement Remarks
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={remarks}
+                    onChange={(e) => setRemarks(e.target.value)}
+                    placeholder="Enter compliance findings, core banking verification check details, or correction request notes..."
+                    className="w-full text-xs rounded-xl border border-surface-container bg-surface-container-low p-3 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+                  />
+                </div>
+
+                {/* Pre-approved Snippets */}
+                <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
+                  {snippets.map((snip, sIdx) => (
+                    <button
+                      key={sIdx}
+                      type="button"
+                      onClick={() => handleAddSnippet(snip.text)}
+                      className="text-[10px] font-semibold bg-surface-container-low hover:bg-surface-container text-secondary hover:text-on-surface border border-surface-container px-2 py-1 rounded-lg transition-colors"
+                    >
+                      {snip.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Statutory Compliance Checkboxes */}
+                <div className="mt-4 pt-3 border-t border-surface-container-low space-y-2.5 text-xs text-secondary">
+                  <label className="flex items-start gap-2.5 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={chkPhysical}
+                      onChange={(e) => setChkPhysical(e.target.checked)}
+                      className="mt-0.5 rounded text-primary focus:ring-primary h-4 w-4 border-slate-300"
+                    />
+                    <span className="group-hover:text-primary transition-colors leading-relaxed">
+                      Lien verified against core banking records; auto-rollover clause 14(B) confirmed
                     </span>
-                  </div>
-                  <div className={showOcrBoxes ? 'p-1 rounded ring-1 ring-teal-500 bg-teal-50/20' : ''}>
-                    <span className="text-slate-500 block text-[10px] uppercase font-semibold">Deposit Amount</span>
-                    <span className="font-data-mono font-bold text-sm text-slate-900">₹1,00,00,000/-</span>
-                    <span className="text-[10px] text-slate-500 block">(Rupees One Crore Only)</span>
-                  </div>
-                  <div className={showOcrBoxes ? 'p-1 rounded ring-1 ring-amber-500 bg-amber-50/30' : ''}>
-                    <span className="text-slate-500 block text-[10px] uppercase font-semibold">Depositor / Trust Mandate</span>
-                    <span className="font-medium text-slate-800 block">St. Xavier's Technical Education Society</span>
-                    <span className="text-[10px] text-amber-800 font-semibold">Joint: A/C AICTE New Delhi [Advisory]</span>
-                  </div>
-                  <div className={showOcrBoxes ? 'p-1 rounded ring-1 ring-teal-500 bg-teal-50/20' : ''}>
-                    <span className="text-slate-500 block text-[10px] uppercase font-semibold">Tenor & Interest Rate</span>
-                    <span className="font-medium text-slate-800 block">60 Months @ 7.40% p.a.</span>
-                    <span className="text-[10px] text-slate-500">Maturity Date: 18/11/2026</span>
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between">
-                  <div className="p-2.5 rounded-lg bg-teal-50 border border-teal-200 text-teal-900 flex flex-col items-center text-center max-w-[240px]">
-                    <span className="material-symbols-outlined text-teal-800 text-[20px]">gavel</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider mt-0.5">STATUTORY LIEN ENDORSED</span>
-                    <span className="text-[9px] leading-tight text-teal-800/80 mt-0.5">
-                      In favor of Member Secretary AICTE under Reg 14(B).
+                  </label>
+                  <label className="flex items-start gap-2.5 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={chkTripartite}
+                      onChange={(e) => setChkTripartite(e.target.checked)}
+                      className="mt-0.5 rounded text-primary focus:ring-primary h-4 w-4 border-slate-300"
+                    />
+                    <span className="group-hover:text-primary transition-colors leading-relaxed">
+                      Confirm tripartite escrow mandate is executed jointly with AICTE Member Secretary
                     </span>
+                  </label>
+                </div>
+
+                {/* ACTION BUTTONS GROUP */}
+                <div className="mt-5 pt-4 border-t border-surface-container flex flex-col gap-2.5">
+                  
+                  {/* Approver Action Buttons */}
+                  {(isApprover || isAdmin) && activeFdr.status === 'PENDING_APPROVAL' && (
+                    <>
+                      <button
+                        type="button"
+                        disabled={isActionSubmitting || isSubmitter}
+                        onClick={() => handleApprovalDecision('APPROVED')}
+                        className="w-full h-11 px-4 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 text-white transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">verified</span>
+                        <span>Approve & Endorse Statutory Lien (Apply DSC)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isActionSubmitting || isSubmitter}
+                        onClick={() => handleApprovalDecision('REJECTED')}
+                        className="w-full h-9 px-4 rounded-xl text-xs font-medium border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">cancel</span>
+                        <span>Reject Submission</span>
+                      </button>
+                    </>
+                  )}
+
+                  {/* Verifier Action Buttons */}
+                  {(isVerifier || isAdmin) && activeFdr.status !== 'ACTIVE' && activeFdr.status !== 'PENDING_APPROVAL' && (
+                    <>
+                      <button
+                        type="button"
+                        disabled={isActionSubmitting || isSubmitter}
+                        onClick={() => handleVerificationDecision('VERIFIED')}
+                        className="w-full h-11 px-4 rounded-xl text-xs font-bold bg-blue-700 hover:bg-blue-800 active:bg-blue-900 text-white transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">task_alt</span>
+                        <span>Verify & Forward for Council Approval</span>
+                      </button>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          disabled={isActionSubmitting || isSubmitter}
+                          onClick={() => handleVerificationDecision('CORRECTION_REQUIRED')}
+                          className="h-9 px-3 rounded-xl text-xs font-medium border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 transition-colors flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">rate_review</span>
+                          <span>Return for Correction</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={isActionSubmitting || isSubmitter}
+                          onClick={() => handleVerificationDecision('REJECTED')}
+                          className="h-9 px-3 rounded-xl text-xs font-medium border border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-800 transition-colors flex items-center justify-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">cancel</span>
+                          <span>Reject</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                </div>
+              </div>
+
+              {/* Institution Profile Card */}
+              <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-5 shadow-xs flex flex-col">
+                <div className="flex items-center justify-between pb-3 border-b border-surface-container-low">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-teal-700 text-[22px]">domain</span>
+                    <h3 className="text-sm text-on-surface font-bold">Institutional Profile</h3>
                   </div>
-                  <div className="flex flex-col items-end text-xs">
-                    <div className="flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full text-[11px] font-semibold mb-1">
-                      <span className="material-symbols-outlined text-[13px]">verified</span>
-                      <span>Digitally Co-Signed (PFMS)</span>
-                    </div>
-                    <span className="font-medium text-slate-700">Sr. Branch Manager (Sol ID 1290)</span>
-                    <span className="text-[9px] text-slate-400 font-data-mono">DSC-PNB-BRANCH-PN-7721A</span>
+                  <span className="text-[10px] text-teal-800 font-bold bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
+                    AICTE Affiliated
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-xs pt-3">
+                  <div>
+                    <span className="text-[11px] font-semibold text-secondary block uppercase">Institution</span>
+                    <span className="font-semibold text-on-surface">{activeFdr.institutionName}</span>
+                  </div>
+                  <div>
+                    <span className="text-[11px] font-semibold text-secondary block uppercase">PID</span>
+                    <span className="font-mono font-semibold text-on-surface">{activeFdr.aictePid}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[11px] font-semibold text-secondary block uppercase">Sponsoring Trust</span>
+                    <span className="text-on-surface font-medium block">{activeFdr.sponsoringTrust}</span>
                   </div>
                 </div>
               </div>
+
+              {/* Real Instrument Custody Trail from Database */}
+              <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-5 shadow-xs flex flex-col">
+                <div className="flex items-center justify-between pb-3 border-b border-surface-container-low">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-teal-700 text-[22px]">history</span>
+                    <h3 className="text-sm text-on-surface font-bold">Audit History Timeline</h3>
+                  </div>
+                  <span className="text-[11px] font-mono text-secondary">
+                    {auditLogs.length} {auditLogs.length === 1 ? 'Event' : 'Events'}
+                  </span>
+                </div>
+
+                {auditLogs.length === 0 ? (
+                  <div className="py-4 text-center text-xs text-secondary">
+                    No historical events logged yet.
+                  </div>
+                ) : (
+                  <div className="relative pl-5 mt-4 space-y-4 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-surface-container text-xs">
+                    {auditLogs.map((log, lIdx) => (
+                      <div key={log.id || lIdx} className="relative">
+                        <span className="absolute -left-5 top-1 w-3.5 h-3.5 rounded-full bg-teal-600 ring-4 ring-white shadow-xs"></span>
+                        <div className="flex flex-col">
+                          <div className="flex items-center justify-between gap-1 flex-wrap">
+                            <span className="font-bold text-slate-900 font-mono text-[11px]">{log.action}</span>
+                            <span className="font-mono text-[10px] text-secondary">
+                              {log.created_at ? new Date(log.created_at).toLocaleString() : ''}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-600 mt-0.5">
+                            Actor: <strong>{log.actor_name || log.actor_role}</strong> ({log.actor_role})
+                          </div>
+                          {log.details && (
+                            <p className="text-[11px] text-slate-500 mt-0.5 italic">
+                              "{log.details}"
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
             </div>
 
-            <div className="p-3 px-4 bg-surface-container-low border-t border-surface-container flex items-center justify-between text-xs text-secondary">
-              <span>SHA-256 Checksum: <code className="font-data-mono font-semibold text-on-surface">c8f2a930b...89e1</code></span>
-              <span className="text-teal-700 font-semibold cursor-pointer hover:underline">Historical Renewals (2)</span>
-            </div>
           </div>
-        </div>
+        </>
+      )}
 
-        {/* RIGHT COLUMN: Adjudication Console & Institutional Standing (5 cols) */}
-        <div className="xl:col-span-5 flex flex-col gap-6">
-          {/* Reviewer Assessment & Statutory Remarks Card */}
-          <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-5 shadow-xs flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-surface-container-low">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-teal-700 text-[22px]">draw</span>
-                <h2 className="text-base text-on-surface font-bold">Reviewer Adjudication Console</h2>
-              </div>
-              <span className="text-xs text-teal-800 font-semibold bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-md">
-                {currentUser.roleLabel}
-              </span>
-            </div>
-
-            <div className="mt-4">
-              <label className="text-[11px] font-bold text-secondary block uppercase tracking-wider mb-1.5">
-                Statutory Endorsement Remarks & Ledger Notes
-              </label>
-              <textarea
-                value={remarks}
-                onChange={(e) => setRemarks(e.target.value)}
-                rows={4}
-                className="w-full bg-surface-container-low rounded-xl border border-surface-container p-3 text-xs text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white transition-colors"
-                placeholder="Enter statutory notes or select pre-approved regulatory snippets below..."
-              />
-            </div>
-
-            {/* Pre-approved Snippets */}
-            <div className="flex flex-wrap gap-1.5 mt-2.5">
-              {snippets.map((snip, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleAddSnippet(snip.text)}
-                  className="rounded-lg border border-surface-container bg-surface-container-lowest hover:bg-surface-container text-on-surface-variant text-[11px] px-2.5 py-1 font-medium transition-colors shadow-xs"
-                >
-                  {snip.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Statutory Compliance Checkboxes */}
-            <div className="mt-4 pt-3 border-t border-surface-container-low space-y-2.5 text-xs text-on-surface">
-              <label className="flex items-start gap-2.5 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={chkPhysical}
-                  onChange={(e) => setChkPhysical(e.target.checked)}
-                  className="mt-0.5 rounded text-primary focus:ring-primary h-4 w-4 border-slate-300"
-                />
-                <span className="group-hover:text-primary transition-colors leading-relaxed">
-                  Confirm physical verification of watermarked bond paper / digital e-FDR signature
-                </span>
-              </label>
-              <label className="flex items-start gap-2.5 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={chkTripartite}
-                  onChange={(e) => setChkTripartite(e.target.checked)}
-                  className="mt-0.5 rounded text-primary focus:ring-primary h-4 w-4 border-slate-300"
-                />
-                <span className="group-hover:text-primary transition-colors leading-relaxed">
-                  Confirm tripartite agreement Form D-1 is co-signed by Trust Secretary
-                </span>
-              </label>
-              <label className="flex items-start gap-2.5 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={chkAutoDispatch}
-                  onChange={(e) => setChkAutoDispatch(e.target.checked)}
-                  className="mt-0.5 rounded text-primary focus:ring-primary h-4 w-4 border-slate-300"
-                />
-                <span className="group-hover:text-primary transition-colors leading-relaxed">
-                  Authorize auto-dispatch of Form L-1 Lien Confirmation to PNB Nodal Branch
-                </span>
-              </label>
-            </div>
-
-            {/* Execution Buttons */}
-            <div className="mt-5 pt-3 border-t border-surface-container-low flex flex-col gap-2">
-              <button
-                onClick={() => handleAction(FDR_STATUSES.ACTIVE, `DSC Signature applied. ${activeFdr.fdrNumber} is now ACTIVE.`)}
-                className="w-full h-10 px-4 rounded-xl text-xs font-semibold bg-primary hover:bg-primary-container text-on-primary transition-colors shadow-xs flex items-center justify-center gap-1.5"
-                type="button"
-              >
-                <span className="material-symbols-outlined text-[18px]">verified</span>
-                <span>Approve & Apply Digital DSC Signature</span>
-              </button>
-              <button
-                onClick={() => handleAction(FDR_STATUSES.CORRECTION_REQUIRED, `${activeFdr.fdrNumber} returned with remarks: ${remarks.substring(0, 50)}...`)}
-                className="w-full h-9 px-4 rounded-xl text-xs font-medium border border-surface-container bg-surface-container-low hover:bg-surface-container text-on-surface transition-colors flex items-center justify-center gap-1.5"
-                type="button"
-              >
-                <span className="material-symbols-outlined text-[18px]">undo</span>
-                <span>Return to Trust with Remarks</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Institution Quick Profile */}
-          <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-5 shadow-xs flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-surface-container-low">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-teal-700 text-[22px]">domain</span>
-                <h3 className="text-base text-on-surface font-bold">Institutional Standing</h3>
-              </div>
-              <span className="text-xs text-teal-800 font-bold bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
-                Grade A Regulatory
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 text-xs pt-3">
-              <div>
-                <span className="text-[11px] font-semibold text-secondary block uppercase">AICTE PID</span>
-                <span className="font-data-mono font-semibold text-on-surface">{activeFdr.aictePid}</span>
-              </div>
-              <div>
-                <span className="text-[11px] font-semibold text-secondary block uppercase">Jurisdiction</span>
-                <span className="text-on-surface font-medium truncate block">WRO, Mumbai</span>
-              </div>
-              <div className="col-span-2">
-                <span className="text-[11px] font-semibold text-secondary block uppercase">Sponsoring Body</span>
-                <span className="text-on-surface font-medium block">St. Xavier's Technical Education Society</span>
-              </div>
-              <div className="col-span-2 pt-2 border-t border-surface-container-low">
-                <span className="text-[11px] font-semibold text-secondary block uppercase">Total AICTE Custody Portfolio</span>
-                <div className="flex items-baseline justify-between mt-1">
-                  <span className="text-lg font-bold text-on-surface font-data-mono">₹3,50,00,000</span>
-                  <span className="text-xs text-secondary">4 Active Programmes</span>
-                </div>
-                <div className="flex gap-1.5 mt-2 flex-wrap">
-                  <span className="text-[10px] bg-surface-container px-2 py-0.5 rounded-md text-secondary font-medium">UG Engg (₹1.00 Cr)</span>
-                  <span className="text-[10px] bg-surface-container px-2 py-0.5 rounded-md text-secondary font-medium">PG Tech (₹75 Lakhs)</span>
-                  <span className="text-[10px] bg-surface-container px-2 py-0.5 rounded-md text-secondary font-medium">Management (₹1.25 Cr)</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Instrument Custody Trail */}
-          <div className="bg-surface-container-lowest rounded-2xl border border-surface-container p-5 shadow-xs flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-surface-container-low">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-teal-700 text-[22px]">policy</span>
-                <h3 className="text-base text-on-surface font-bold">Instrument Custody Trail</h3>
-              </div>
-              <span className="text-xs text-secondary font-medium">5 Events Logged</span>
-            </div>
-
-            <div className="relative pl-5 mt-4 space-y-4 before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-surface-container text-xs">
-              <div className="relative">
-                <span className="absolute -left-5 top-1 w-3.5 h-3.5 rounded-full bg-teal-600 ring-4 ring-white shadow-xs"></span>
-                <div className="flex flex-col">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-teal-900">PNB Finacle Nodal API</span>
-                    <span className="font-data-mono text-[10px] text-secondary">Today 11:42 AM</span>
-                  </div>
-                  <p className="text-secondary mt-0.5">
-                    Bank Gateway confirmed lien attachment. Response: <code className="font-data-mono text-teal-900 bg-teal-50 px-1 py-0.2 rounded border border-teal-200">PNB_200_LIEN_CONFIRMED</code>
-                  </p>
-                </div>
-              </div>
-
-              <div className="relative">
-                <span className="absolute -left-5 top-1 w-3.5 h-3.5 rounded-full bg-slate-400 ring-4 ring-white shadow-xs"></span>
-                <div className="flex flex-col">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-on-surface">OCR Extraction Engine</span>
-                    <span className="font-data-mono text-[10px] text-secondary">Today 09:15 AM</span>
-                  </div>
-                  <p className="text-secondary mt-0.5">
-                    Document scanned at 99.2% accuracy. Minor mandate descriptor discrepancy identified.
-                  </p>
-                </div>
-              </div>
-
-              <div className="relative">
-                <span className="absolute -left-5 top-1 w-3.5 h-3.5 rounded-full bg-slate-300 ring-4 ring-white shadow-xs"></span>
-                <div className="flex flex-col">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-on-surface">Trust Secretary (SXEC)</span>
-                    <span className="font-data-mono text-[10px] text-secondary">Yesterday 04:30 PM</span>
-                  </div>
-                  <p className="text-secondary mt-0.5">
-                    Renewed instrument uploaded with Form L-2 signed by PNB branch manager.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
