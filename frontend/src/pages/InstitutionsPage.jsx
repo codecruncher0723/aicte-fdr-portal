@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRole } from '../context/RoleContext';
 import { exportToCSV } from '../data/mockData';
+import { institutionsApi } from '../api/client';
 
 export default function InstitutionsPage({ fdrs }) {
   const { setActiveRoute, setSearchQuery } = useRole();
@@ -161,8 +162,42 @@ export default function InstitutionsPage({ fdrs }) {
     }
   ];
 
+  const [institutions, setInstitutions] = useState(initialInstitutions);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchInstitutions() {
+      try {
+        const liveList = await institutionsApi.list();
+        if (isMounted && Array.isArray(liveList) && liveList.length > 0) {
+          const mapped = liveList.map((inst, idx) => {
+            const fallback = initialInstitutions.find(x => x.aictePid === inst.aicte_pid) || initialInstitutions[idx % initialInstitutions.length];
+            return {
+              ...fallback,
+              id: inst.id || fallback.id,
+              name: inst.name || fallback.name,
+              aictePid: inst.aicte_pid || fallback.aictePid,
+              region: (inst.region || fallback.region || 'wro').toLowerCase(),
+              regionLabel: inst.region ? `${inst.region} Region` : fallback.regionLabel,
+              city: inst.city || fallback.city,
+              state: inst.state || fallback.state,
+              sponsoringTrust: inst.sponsoring_trust || fallback.sponsoringTrust,
+              complianceStatus: inst.status === 'ACTIVE' ? '100% Compliant' : (fallback.complianceStatus || 'Active'),
+              complianceTag: inst.status === 'ACTIVE' ? 'success' : (fallback.complianceTag || 'success')
+            };
+          });
+          setInstitutions(mapped);
+        }
+      } catch (err) {
+        console.warn('Backend institutions list failed, using fixture set:', err);
+      }
+    }
+    fetchInstitutions();
+    return () => { isMounted = false; };
+  }, []);
+
   const filtered = useMemo(() => {
-    return initialInstitutions.filter(inst => {
+    return institutions.filter(inst => {
       const matchesSearch =
         !searchTerm ||
         inst.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
