@@ -215,7 +215,7 @@ Execution notes (Phase 2 Tasks 1-3):
 ### Tasks
 - [x] **M** Implement the repository-compatible authentication mechanism and seeded demo accounts; store only password hashes, never plaintext passwords.
 - [x] **M** Enforce the four roles: `AICTE_ADMIN`, `INSTITUTION_OFFICER`, `VERIFICATION_OFFICER`, `APPROVING_AUTHORITY`.
-- [ ] **M** Enforce authorization on every protected backend endpoint, including detail reads, document access, workflow actions, dashboard aggregates, audit views, and CSV exports.
+- [x] **M** Enforce authorization on every protected backend endpoint, including detail reads, document access, workflow actions, dashboard aggregates, audit views, and CSV exports.
 - [ ] **M** Derive an Institution Officer's `institution_id` and `created_by` from the authenticated principal; ignore/reject client attempts to select another institution.
 - [ ] **M** Apply resource-level checks to prevent IDOR; a guessed FDR/request/document ID must not bypass institution/role rules.
 - [ ] **M** Prevent the submitter from being the sole approving authority; record actor IDs in workflow actions.
@@ -224,7 +224,7 @@ Execution notes (Phase 2 Tasks 1-3):
 ### Definition of Done
 - [x] Demo login works for all four roles.
 - [x] Anonymous calls to protected endpoints return `401`; authenticated but unauthorized calls return `403` or non-disclosing `404` per API policy.
-- [ ] Institution Officer A cannot read/write Institution B's FDRs, requests, documents, notifications, reports, or dashboard rows.
+- [x] Institution Officer A cannot read/write Institution B's FDRs, requests, documents, notifications, reports, or dashboard rows.
 - [x] AICTE Admin cross-institution access is explicit; other roles see only authorized scope.
 - [x] The backend, not frontend visibility, enforces permissions.
 
@@ -256,6 +256,16 @@ Execution notes (Phase 3 Task 1):
   - Enforced separation of duties via `enforce_separation_of_duties` in `backend/app/auth.py` and model-level `SeparationOfDutiesError` in `backend/app/history.py`: submitters (`created_by_id`) are blocked from verifying or approving their own submissions with 403 Forbidden.
   - Added test suite in `backend/tests/test_role_enforcement.py` (13 tests) covering 401 for unauthenticated calls, role-based 403 rejections, separation of duties, and institution isolation.
   - All 92 backend tests pass in 5.88s. Frontend production build verified clean (`vite build` in 2.61s, exit code 0).
+- **Enforcing Authorization on Every Protected Endpoint**:
+  - Implemented and mounted modular REST routers covering all operations required by Section 8 of `REQUIREMENTS_UPDATED.md`:
+    - `backend/app/routers/fdrs.py`: FDR lists (`GET /api/v1/fdrs`), FDR detail reads (`GET /api/v1/fdrs/{fdr_id}`), draft creation (`POST /api/v1/fdrs`), submission (`POST /api/v1/fdrs/{fdr_id}/submit`), start-verification (`POST /api/v1/fdrs/{fdr_id}/start-verification`), and audit logs (`GET /api/v1/fdrs/{fdr_id}/audit-logs`).
+    - `backend/app/routers/documents.py`: Document lists (`GET /api/v1/fdrs/{fdr_id}/documents`), upload (`POST /api/v1/fdrs/{fdr_id}/documents`), metadata (`GET /api/v1/documents/{document_id}`), and authenticated binary download (`GET /api/v1/documents/{document_id}/download`).
+    - `backend/app/routers/dashboard.py`: Dashboard summary aggregates (`GET /api/v1/dashboard/summary`) and maturity horizon list (`GET /api/v1/dashboard/maturity`), strictly scoped to the caller's institution for Institution Officers.
+    - `backend/app/routers/reports.py`: CSV exports (`GET /api/v1/reports/fdrs.csv` and `/requests.csv`) enforcing institution boundaries and excluding sensitive tokens/hashes.
+    - `backend/app/routers/notifications.py`: User and institution notifications (`GET /api/v1/notifications` and `PATCH /api/v1/notifications/{id}`) with strict ownership protection.
+  - Enforced server-side checks across all endpoints: anonymous access returns 401; cross-institution access and forbidden roles return 403; forged `institution_id` query/payload parameters are rejected or overridden.
+  - Added test suite in `backend/tests/test_all_endpoints_authorization.py` (23 tests) verifying anonymous rejection across all endpoints, FDR IDOR isolation, document download/upload protection, dashboard scoping, audit access, CSV export security, notification patch ownership, and payload forgery overrides.
+  - All 115 backend tests pass in 6.88s. Frontend production build verified clean (`vite build` in 8.46s, exit code 0).
 
 ---
 
