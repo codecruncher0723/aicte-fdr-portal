@@ -3,8 +3,9 @@ FDR Records API Router (/api/v1/fdrs).
 Implements Section 8.3 of REQUIREMENTS_UPDATED.md with strict server-side RBAC and institution isolation.
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from datetime import date
+from decimal import Decimal
 from pydantic import BaseModel, Field, ConfigDict
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -33,11 +34,14 @@ class FDRCreateRequest(BaseModel):
     fdr_number: str = Field(..., min_length=1)
     cert_number: Optional[str] = None
     tripartite_ref: Optional[str] = None
-    bank_name: str = Field(..., min_length=1)
-    branch: str = Field(..., min_length=1)
-    ifsc: str = Field(..., min_length=1)
-    amount: float = Field(..., gt=0)
-    interest_rate: Optional[str] = None
+    bank_name: Optional[str] = None
+    issuing_bank: Optional[str] = None
+    branch: Optional[str] = None
+    branch_name: Optional[str] = None
+    ifsc: Optional[str] = None
+    amount: Optional[float] = None
+    deposit_amount: Optional[float] = None
+    interest_rate: Optional[Union[str, float]] = None
     issue_date: date
     maturity_date: date
     tenure_years: Optional[int] = 5
@@ -53,15 +57,19 @@ class FDRCreateRequest(BaseModel):
 
 class FDRResponse(BaseModel):
     id: int
+    fdr_id: Optional[int] = None
     fdr_number: str
     cert_number: Optional[str] = None
     tripartite_ref: Optional[str] = None
     institution_id: int
     institution_name: Optional[str] = None
     bank_name: str
+    issuing_bank: Optional[str] = None
     branch: str
+    branch_name: Optional[str] = None
     ifsc: str
     amount: float
+    deposit_amount: Optional[float] = None
     interest_rate: Optional[str] = None
     issue_date: date
     maturity_date: date
@@ -81,10 +89,13 @@ class FDRUpdateRequest(BaseModel):
     cert_number: Optional[str] = None
     tripartite_ref: Optional[str] = None
     bank_name: Optional[str] = None
+    issuing_bank: Optional[str] = None
     branch: Optional[str] = None
+    branch_name: Optional[str] = None
     ifsc: Optional[str] = None
     amount: Optional[float] = None
-    interest_rate: Optional[str] = None
+    deposit_amount: Optional[float] = None
+    interest_rate: Optional[Union[str, float]] = None
     issue_date: Optional[date] = None
     maturity_date: Optional[date] = None
     tenure_years: Optional[int] = None
@@ -107,9 +118,14 @@ class StatusTransitionRequest(BaseModel):
 
 @router.get("", summary="List FDR records scoped by role and institution")
 def list_fdrs(
-    status_filter: Optional[str] = Query(None, alias="status"),
+    status_param: Optional[str] = Query(None, alias="status"),
+    status_filter: Optional[str] = Query(None, alias="status_filter"),
     institution_id: Optional[int] = Query(None),
     issuing_bank: Optional[str] = Query(None),
+    maturity_from: Optional[date] = Query(None),
+    maturity_to: Optional[date] = Query(None),
+    amount_min: Optional[float] = Query(None),
+    amount_max: Optional[float] = Query(None),
     search: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
@@ -120,6 +136,8 @@ def list_fdrs(
     Returns FDR records scoped server-side by the authenticated user's role:
     - Institution Officers can view ONLY their own institution's FDRs.
     - AICTE Admin, Verifiers, and Approvers can view FDRs across all institutions.
+    Query parameters: status, institution_id, issuing_bank, maturity_from, maturity_to,
+    amount_min, amount_max, search, page, limit.
     """
     query = session.query(FDR)
 
@@ -136,10 +154,19 @@ def list_fdrs(
             query = query.filter(FDR.institution_id == institution_id)
 
     # 2. Filters
-    if status_filter:
-        query = query.filter(FDR.status == status_filter)
+    eff_status = status_param or status_filter
+    if eff_status:
+        query = query.filter(FDR.status == eff_status)
     if issuing_bank:
         query = query.filter(FDR.bank_name.ilike(f"%{issuing_bank}%"))
+    if maturity_from:
+        query = query.filter(FDR.maturity_date >= maturity_from)
+    if maturity_to:
+        query = query.filter(FDR.maturity_date <= maturity_to)
+    if amount_min is not None:
+        query = query.filter(FDR.amount >= amount_min)
+    if amount_max is not None:
+        query = query.filter(FDR.amount <= amount_max)
     if search:
         search_filter = f"%{search}%"
         query = query.filter(
@@ -155,21 +182,27 @@ def list_fdrs(
         "items": [
             {
                 "id": f.id,
+                "fdr_id": f.id,
                 "fdr_number": f.fdr_number,
                 "cert_number": f.cert_number,
                 "tripartite_ref": f.tripartite_ref,
                 "institution_id": f.institution_id,
                 "institution_name": f.institution.name if f.institution else None,
                 "bank_name": f.bank_name,
+                "issuing_bank": f.bank_name,
                 "branch": f.branch,
+                "branch_name": f.branch,
                 "ifsc": f.ifsc,
                 "amount": float(f.amount),
+                "deposit_amount": float(f.amount),
                 "interest_rate": f.interest_rate,
-                "issue_date": f.issue_date,
-                "maturity_date": f.maturity_date,
+                "issue_date": f.issue_date.isoformat() if isinstance(f.issue_date, date) else str(f.issue_date),
+                "maturity_date": f.maturity_date.isoformat() if isinstance(f.maturity_date, date) else str(f.maturity_date),
+                "tenure_years": f.tenure_years,
                 "status": f.status,
                 "lien_status": f.lien_status,
                 "auto_rollover": f.auto_rollover,
+                "created_by_id": f.created_by_id,
             }
             for f in items
         ],
@@ -197,18 +230,22 @@ def get_fdr(
 
     return {
         "id": fdr.id,
+        "fdr_id": fdr.id,
         "fdr_number": fdr.fdr_number,
         "cert_number": fdr.cert_number,
         "tripartite_ref": fdr.tripartite_ref,
         "institution_id": fdr.institution_id,
         "institution_name": fdr.institution.name if fdr.institution else None,
         "bank_name": fdr.bank_name,
+        "issuing_bank": fdr.bank_name,
         "branch": fdr.branch,
+        "branch_name": fdr.branch,
         "ifsc": fdr.ifsc,
         "amount": float(fdr.amount),
+        "deposit_amount": float(fdr.amount),
         "interest_rate": fdr.interest_rate,
-        "issue_date": fdr.issue_date,
-        "maturity_date": fdr.maturity_date,
+        "issue_date": fdr.issue_date.isoformat() if isinstance(fdr.issue_date, date) else str(fdr.issue_date),
+        "maturity_date": fdr.maturity_date.isoformat() if isinstance(fdr.maturity_date, date) else str(fdr.maturity_date),
         "tenure_years": fdr.tenure_years,
         "auto_rollover": fdr.auto_rollover,
         "status": fdr.status,
@@ -231,6 +268,26 @@ def create_fdr(
     Institution ID and created_by are derived strictly from the authenticated principal.
     Client-supplied institution ID is never trusted.
     """
+    # 1. Resolve and validate bank name
+    resolved_bank = req.bank_name or req.issuing_bank
+    if not resolved_bank or not resolved_bank.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Bank name / issuing bank is required.",
+        )
+
+    # 2. Resolve branch
+    resolved_branch = req.branch or req.branch_name or "Main Branch"
+
+    # 3. Resolve and validate deposit amount
+    resolved_amount = req.amount if req.amount is not None else req.deposit_amount
+    if resolved_amount is None or resolved_amount <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Amount / deposit amount must be positive.",
+        )
+
+    # 4. Validate dates
     if req.maturity_date < req.issue_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -242,14 +299,14 @@ def create_fdr(
 
     fdr = FDR(
         institution_id=inst_id,
-        fdr_number=req.fdr_number,
-        cert_number=req.cert_number,
-        tripartite_ref=req.tripartite_ref,
-        bank_name=req.bank_name,
-        branch=req.branch,
-        ifsc=req.ifsc,
-        amount=req.amount,
-        interest_rate=req.interest_rate,
+        fdr_number=req.fdr_number.strip(),
+        cert_number=req.cert_number.strip() if req.cert_number else None,
+        tripartite_ref=req.tripartite_ref.strip() if req.tripartite_ref else None,
+        bank_name=resolved_bank.strip(),
+        branch=resolved_branch.strip(),
+        ifsc=req.ifsc.strip() if req.ifsc else "N/A",
+        amount=resolved_amount,
+        interest_rate=str(req.interest_rate) if req.interest_rate is not None else None,
         issue_date=req.issue_date,
         maturity_date=req.maturity_date,
         tenure_years=req.tenure_years,
@@ -263,7 +320,7 @@ def create_fdr(
     session.add(fdr)
     session.flush()
 
-    # Provenance
+    # Initial provenance record
     prov = FieldProvenance(
         fdr_id=fdr.id,
         field_name="fdr_number",
@@ -276,7 +333,11 @@ def create_fdr(
     session.add(prov)
     session.commit()
 
-    return {"fdr_id": fdr.id, "status": fdr.status}
+    return {
+        "id": fdr.id,
+        "fdr_id": fdr.id,
+        "status": fdr.status,
+    }
 
 
 @router.patch("/{fdr_id}", summary="Update draft or correction-required FDR record")
@@ -315,43 +376,101 @@ def update_fdr(
             detail="Maturity date cannot be earlier than issue date.",
         )
 
-    critical_fields = ["fdr_number", "bank_name", "amount", "issue_date", "maturity_date"]
-    
-    for field in ["fdr_number", "cert_number", "tripartite_ref", "bank_name", "branch", "ifsc", "interest_rate", "tenure_years", "auto_rollover", "lien_status", "mandate_clause", "notes"]:
+    # Amount validation
+    new_amount = req.amount if req.amount is not None else req.deposit_amount
+    if new_amount is not None and new_amount <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Amount must be positive.",
+        )
+
+    new_bank = req.bank_name or req.issuing_bank
+    new_branch = req.branch or req.branch_name
+
+    # Check reason requirement if critical fields are modified
+    critical_check = {
+        "fdr_number": req.fdr_number,
+        "bank_name": new_bank,
+        "amount": new_amount,
+        "issue_date": req.issue_date,
+        "maturity_date": req.maturity_date,
+    }
+    has_critical_change = False
+    for k, v in critical_check.items():
+        if v is not None:
+            curr_v = getattr(fdr, k)
+            if k == "amount":
+                if Decimal(str(curr_v)) != Decimal(str(v)):
+                    has_critical_change = True
+            elif str(curr_v) != str(v):
+                has_critical_change = True
+
+    if has_critical_change and (not req.reason or not req.reason.strip()):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A non-empty reason is required when modifying critical fields.",
+        )
+
+    reason_text = req.reason.strip() if req.reason else "Draft field modification"
+
+    # Non-critical fields updates
+    for field in ["cert_number", "tripartite_ref", "ifsc", "tenure_years", "auto_rollover", "lien_status", "mandate_clause", "notes"]:
         val = getattr(req, field)
         if val is not None:
-            old_val = getattr(fdr, field)
-            if old_val != val:
-                setattr(fdr, field, val)
-                if field in critical_fields:
-                    session.add(
-                        FieldProvenance(
-                            fdr_id=fdr.id,
-                            field_name=field,
-                            old_value=str(old_val) if old_val is not None else None,
-                            new_value=str(val),
-                            source_category=ProvenanceSource.INSTITUTION_ENTERED.value,
-                            actor_id=current_user.id,
-                            reason=req.reason or "Draft field modification",
-                        )
-                    )
+            setattr(fdr, field, val)
 
-    if req.amount is not None and req.amount != fdr.amount:
-        if req.amount <= 0:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Amount must be positive.")
-        old_amount = fdr.amount
-        fdr.amount = req.amount
+    if req.interest_rate is not None:
+        fdr.interest_rate = str(req.interest_rate)
+
+    if new_branch is not None:
+        fdr.branch = new_branch
+
+    # Critical fields with provenance tracking
+    if req.fdr_number is not None and req.fdr_number != fdr.fdr_number:
+        old_val = fdr.fdr_number
+        fdr.fdr_number = req.fdr_number
         session.add(
             FieldProvenance(
                 fdr_id=fdr.id,
-                field_name="amount",
-                old_value=str(old_amount),
-                new_value=str(req.amount),
+                field_name="fdr_number",
+                old_value=str(old_val) if old_val is not None else None,
+                new_value=str(req.fdr_number),
                 source_category=ProvenanceSource.INSTITUTION_ENTERED.value,
                 actor_id=current_user.id,
-                reason=req.reason or "Draft amount modification",
+                reason=reason_text,
             )
         )
+
+    if new_bank is not None and new_bank != fdr.bank_name:
+        old_val = fdr.bank_name
+        fdr.bank_name = new_bank
+        session.add(
+            FieldProvenance(
+                fdr_id=fdr.id,
+                field_name="bank_name",
+                old_value=str(old_val) if old_val is not None else None,
+                new_value=str(new_bank),
+                source_category=ProvenanceSource.INSTITUTION_ENTERED.value,
+                actor_id=current_user.id,
+                reason=reason_text,
+            )
+        )
+
+    if new_amount is not None:
+        if Decimal(str(fdr.amount)) != Decimal(str(new_amount)):
+            old_amount = fdr.amount
+            fdr.amount = new_amount
+            session.add(
+                FieldProvenance(
+                    fdr_id=fdr.id,
+                    field_name="amount",
+                    old_value=str(old_amount),
+                    new_value=str(new_amount),
+                    source_category=ProvenanceSource.INSTITUTION_ENTERED.value,
+                    actor_id=current_user.id,
+                    reason=reason_text,
+                )
+            )
 
     if req.issue_date is not None and req.issue_date != fdr.issue_date:
         old_issue = fdr.issue_date
@@ -364,7 +483,7 @@ def update_fdr(
                 new_value=str(req.issue_date),
                 source_category=ProvenanceSource.INSTITUTION_ENTERED.value,
                 actor_id=current_user.id,
-                reason=req.reason or "Draft issue date modification",
+                reason=reason_text,
             )
         )
 
@@ -379,12 +498,16 @@ def update_fdr(
                 new_value=str(req.maturity_date),
                 source_category=ProvenanceSource.INSTITUTION_ENTERED.value,
                 actor_id=current_user.id,
-                reason=req.reason or "Draft maturity date modification",
+                reason=reason_text,
             )
         )
 
     session.commit()
-    return {"fdr_id": fdr.id, "status": fdr.status}
+    return {
+        "id": fdr.id,
+        "fdr_id": fdr.id,
+        "status": fdr.status,
+    }
 
 
 @router.post("/{fdr_id}/submit", summary="Submit draft FDR for regulatory verification")
