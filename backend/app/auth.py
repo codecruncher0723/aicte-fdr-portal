@@ -264,3 +264,28 @@ def derive_institution_id(user: User) -> int:
         status_code=status.HTTP_400_BAD_REQUEST,
         detail="Only Institution Officers operate within a derived institution context.",
     )
+
+
+def enforce_separation_of_duties(
+    actor: User,
+    submitter_id: Optional[int],
+    action: str = "review",
+) -> bool:
+    """
+    Enforces separation of duties: A user cannot verify or approve their own submission.
+    Raises 403 Forbidden on violation.
+    """
+    if submitter_id is not None and actor.id == submitter_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Separation of duties violation: Submitter cannot {action} their own submission.",
+        )
+    return True
+
+
+# Convenience role dependencies
+require_institution_officer = require_roles(UserRole.INSTITUTION_OFFICER.value)
+require_verification_officer = require_roles(UserRole.VERIFICATION_OFFICER.value, UserRole.AICTE_ADMIN.value)
+require_approving_authority = require_roles(UserRole.APPROVING_AUTHORITY.value, UserRole.AICTE_ADMIN.value)
+require_admin = require_roles(UserRole.AICTE_ADMIN.value)
+

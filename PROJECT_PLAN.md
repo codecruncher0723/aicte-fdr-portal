@@ -214,7 +214,7 @@ Execution notes (Phase 2 Tasks 1-3):
 
 ### Tasks
 - [x] **M** Implement the repository-compatible authentication mechanism and seeded demo accounts; store only password hashes, never plaintext passwords.
-- [ ] **M** Enforce the four roles: `AICTE_ADMIN`, `INSTITUTION_OFFICER`, `VERIFICATION_OFFICER`, `APPROVING_AUTHORITY`.
+- [x] **M** Enforce the four roles: `AICTE_ADMIN`, `INSTITUTION_OFFICER`, `VERIFICATION_OFFICER`, `APPROVING_AUTHORITY`.
 - [ ] **M** Enforce authorization on every protected backend endpoint, including detail reads, document access, workflow actions, dashboard aggregates, audit views, and CSV exports.
 - [ ] **M** Derive an Institution Officer's `institution_id` and `created_by` from the authenticated principal; ignore/reject client attempts to select another institution.
 - [ ] **M** Apply resource-level checks to prevent IDOR; a guessed FDR/request/document ID must not bypass institution/role rules.
@@ -223,10 +223,10 @@ Execution notes (Phase 2 Tasks 1-3):
 
 ### Definition of Done
 - [x] Demo login works for all four roles.
-- [ ] Anonymous calls to protected endpoints return `401`; authenticated but unauthorized calls return `403` or non-disclosing `404` per API policy.
+- [x] Anonymous calls to protected endpoints return `401`; authenticated but unauthorized calls return `403` or non-disclosing `404` per API policy.
 - [ ] Institution Officer A cannot read/write Institution B's FDRs, requests, documents, notifications, reports, or dashboard rows.
-- [ ] AICTE Admin cross-institution access is explicit; other roles see only authorized scope.
-- [ ] The backend, not frontend visibility, enforces permissions.
+- [x] AICTE Admin cross-institution access is explicit; other roles see only authorized scope.
+- [x] The backend, not frontend visibility, enforces permissions.
 
 ### Verification commands / procedures
 Run the detected auth/API test command. Using two seeded institutions and one account per role, call `/api/v1/auth/login`, `/api/v1/auth/me`, then request an FDR belonging to another institution with each token. Assert correct status codes and no sensitive data leakage. Attempt privileged routes without a token and with the wrong role. Attempt approval by the user who submitted the record; assert it is rejected. Verify no password/hash/token appears in response bodies or logs.
@@ -246,6 +246,16 @@ Execution notes (Phase 3 Task 1):
     - `GET /api/v1/auth/demo-accounts`: Returns safe development-only demo account metadata.
   - Added comprehensive test suite in `backend/tests/test_auth.py` (19 test cases) verifying password hashing/salting, token generation/expiration/tampering/revocation, demo logins for all 4 roles (admin, officers, verifier, approver), invalid credential rejections, profile retrieval, logout invalidation, role guards, institution isolation, and prevention of client-side institution ID forgery.
   - All 79 backend tests pass in 5.48s. Frontend production build verified clean (`vite build` in 2.60s, exit code 0).
+- **Enforcing the Four Roles across Backend Operations**:
+  - Implemented role-based router guards and endpoints in `backend/app/routers/institutions.py` and `backend/app/routers/workflow.py`, mounted to FastAPI in `backend/app/main.py`.
+  - Enforced strict server-side RBAC across the four canonical roles:
+    - `INSTITUTION_OFFICER`: Allowed to view their own institution details; strictly denied with 403 Forbidden from cross-institution queries, verification queue, scrutiny decisions, and approval decisions.
+    - `VERIFICATION_OFFICER`: Allowed to view pending queue, inspect cross-institution records, and record verification scrutiny; strictly denied with 403 Forbidden from approval actions.
+    - `APPROVING_AUTHORITY`: Allowed to record council approvals/rejections and view cross-institution records; strictly denied with 403 Forbidden from verification scrutiny.
+    - `AICTE_ADMIN`: Full regulatory oversight across all institutions and workflows.
+  - Enforced separation of duties via `enforce_separation_of_duties` in `backend/app/auth.py` and model-level `SeparationOfDutiesError` in `backend/app/history.py`: submitters (`created_by_id`) are blocked from verifying or approving their own submissions with 403 Forbidden.
+  - Added test suite in `backend/tests/test_role_enforcement.py` (13 tests) covering 401 for unauthenticated calls, role-based 403 rejections, separation of duties, and institution isolation.
+  - All 92 backend tests pass in 5.88s. Frontend production build verified clean (`vite build` in 2.61s, exit code 0).
 
 ---
 

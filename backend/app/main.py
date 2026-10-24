@@ -5,6 +5,8 @@ Main FastAPI Application for AICTE Fixed Deposit Receipt (FDR) Portal.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers.auth import router as auth_router
+from app.routers.institutions import router as institutions_router
+from app.routers.workflow import router as workflow_router
 
 app = FastAPI(
     title="AICTE FDR Management Portal API",
@@ -23,6 +25,8 @@ app.add_middleware(
 
 # Mount Routers
 app.include_router(auth_router)
+app.include_router(institutions_router)
+app.include_router(workflow_router)
 
 
 @app.get("/health", tags=["System"])
