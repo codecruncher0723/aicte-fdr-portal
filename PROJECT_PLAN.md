@@ -134,7 +134,7 @@ Execution notes:
 - [x] **M** Add keys/relationships and constraints: exactly one of `fdr_id` or `request_id` per approval record; required fields; positive deposit amount; maturity date not earlier than issue date; foreign keys; timestamps.
 - [x] **M** Store document metadata, relative private-storage reference, and SHA-256 hash; never store public URLs or expose raw storage paths through APIs.
 - [x] **M** Add append-only verification/approval history and auditable status history sufficient to retain old FDR values/documents on renewal.
-- [ ] **M** Preserve provenance for critical FDR fields where practical: source category, actor, timestamp, previous/new value, and reason for changes. Never label data `BANK_CONFIRMED` without an actual authoritative bank confirmation.
+- [x] **M** Preserve provenance for critical FDR fields where practical: source category, actor, timestamp, previous/new value, and reason for changes. Never label data `BANK_CONFIRMED` without an actual authoritative bank confirmation.
 - [ ] **M** Model document uploads as immutable versions with SHA-256, size, detected media type, uploader, timestamp, and private storage reference; replacement creates a new version rather than overwriting old evidence.
 - [ ] **M** Implement migrations using the detected migration mechanism and deterministic seed/demo data for all four roles and at least two institutions.
 - [ ] **O** Add notification persistence if time permits; if deferred, document the exact limitation and ensure the core dashboard/reminder path still works.
@@ -178,6 +178,13 @@ Execution notes (Phase 2 Tasks 1-3):
   - Implemented `complete_fdr_renewal`: captures historical FDR values in `FDRRenewalHistory`, records field-level audit provenance in `FieldProvenance`, leaves previous document versions intact and immutable, and preserves distinct FDR lifecycle state.
   - Enforced database-level immutability using SQLAlchemy event listeners (`before_update`, `before_delete`) on `VerificationRecord`, `ApprovalRecord`, `StatusTransitionHistory`, and `FDRRenewalHistory`, raising `ImmutableRecordError` on any attempted mutation or deletion.
   - Created `backend/tests/test_history.py` (11 test cases). All 34 backend tests pass in 1.09s. Frontend production build verified clean (`vite build` in 3.26s, exit code 0).
+- **Critical Field Provenance Tracking Service**:
+  - Created `backend/app/provenance.py` tracking critical FDR fields (`fdr_number`, `amount`, `bank_name`, `branch`, `ifsc`, `issue_date`, `maturity_date`, `interest_rate`, etc.) with actor, timestamp, previous/new value, source category, and mandatory change reason.
+  - Implemented `validate_source_category` with strict guard preventing false bank-confirmation claims: `BANK_CONFIRMED` raises `FalseBankConfirmationError` unless verified by actual authoritative bank confirmation. Manual uploads, OCR, and simulated checks are prohibited from using that label.
+  - Implemented `record_field_provenance` and atomic `update_fdr_fields`, requiring non-empty reasons when modifying existing field values (`MissingReasonError`).
+  - Integrated provenance recording with renewal completion workflow (`complete_fdr_renewal` in `history.py`).
+  - Enforced database-level immutability for `FieldProvenance` through SQLAlchemy event listeners (`before_update`, `before_delete`), disallowing any tampering or deletion.
+  - Created `backend/tests/test_provenance.py` (10 test cases). All 43 backend tests pass in 1.22s. Frontend build verified clean (`vite build` in 3.08s, exit code 0).
 
 ---
 

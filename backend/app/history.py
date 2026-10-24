@@ -60,7 +60,7 @@ def register_immutability_listeners():
     if _IMMUTABILITY_REGISTERED:
         return
 
-    models = [VerificationRecord, ApprovalRecord, StatusTransitionHistory, FDRRenewalHistory]
+    models = [VerificationRecord, ApprovalRecord, StatusTransitionHistory, FDRRenewalHistory, FieldProvenance]
     for model in models:
         @event.listens_for(model, "before_update")
         def _prevent_update(mapper, connection, target):

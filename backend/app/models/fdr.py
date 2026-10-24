@@ -60,6 +60,7 @@ class FieldProvenance(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     fdr = relationship("FDR", back_populates="provenance_records")
+    actor = relationship("User")
 
 class FDRRenewalHistory(Base):
     __tablename__ = "fdr_renewal_history"
