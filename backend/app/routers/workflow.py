@@ -21,6 +21,7 @@ from app.models.user import User
 from app.auth import (
     get_current_user,
     require_roles,
+    enforce_institution_isolation,
     enforce_separation_of_duties,
 )
 from app.history import (
@@ -184,4 +185,37 @@ def approve_fdr(
         "fdr_id": fdr.id,
         "decision": a_rec.decision,
         "new_status": fdr.status,
+    }
+
+
+@router.get("/requests/{request_id}", summary="Get workflow request detail with resource-level authorization")
+def get_workflow_request(
+    request_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    Returns workflow request detail.
+    Enforces resource-level authorization:
+    - Request must exist in database (404 if not found).
+    - Institution Officers can ONLY access requests associated with their own institution's FDR (403 otherwise).
+    - AICTE Admin, Verifiers, and Approvers have oversight.
+    """
+    req_obj = session.query(WorkflowRequest).filter_by(id=request_id).first()
+    if not req_obj:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Workflow request {request_id} not found.",
+        )
+
+    if req_obj.fdr:
+        enforce_institution_isolation(user=current_user, target_institution_id=req_obj.fdr.institution_id)
+
+    return {
+        "id": req_obj.id,
+        "fdr_id": req_obj.fdr_id,
+        "request_type": req_obj.request_type,
+        "status": req_obj.status,
+        "created_by_id": req_obj.created_by_id,
+        "created_at": req_obj.created_at.isoformat() if req_obj.created_at else None,
     }

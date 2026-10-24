@@ -76,6 +76,29 @@ class FDRResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class FDRUpdateRequest(BaseModel):
+    fdr_number: Optional[str] = None
+    cert_number: Optional[str] = None
+    tripartite_ref: Optional[str] = None
+    bank_name: Optional[str] = None
+    branch: Optional[str] = None
+    ifsc: Optional[str] = None
+    amount: Optional[float] = None
+    interest_rate: Optional[str] = None
+    issue_date: Optional[date] = None
+    maturity_date: Optional[date] = None
+    tenure_years: Optional[int] = None
+    auto_rollover: Optional[bool] = None
+    lien_status: Optional[str] = None
+    mandate_clause: Optional[str] = None
+    notes: Optional[str] = None
+    reason: Optional[str] = "FDR draft update"
+    # Tampering attempts safely ignored
+    institution_id: Optional[int] = None
+    created_by: Optional[int] = None
+    created_by_id: Optional[int] = None
+
+
 class StatusTransitionRequest(BaseModel):
     remarks: Optional[str] = None
     actor_id: Optional[int] = None
@@ -253,6 +276,114 @@ def create_fdr(
     session.add(prov)
     session.commit()
 
+    return {"fdr_id": fdr.id, "status": fdr.status}
+
+
+@router.patch("/{fdr_id}", summary="Update draft or correction-required FDR record")
+def update_fdr(
+    fdr_id: int,
+    req: FDRUpdateRequest,
+    current_user: User = Depends(require_roles(UserRole.INSTITUTION_OFFICER.value)),
+    session: Session = Depends(get_db),
+):
+    """
+    Updates an FDR record.
+    Enforces resource-level authorization:
+    - Target FDR must exist in database (404 if not found).
+    - Owning Institution Officer only (403 if belongs to another institution).
+    - Status check: only DRAFT or CORRECTION_REQUIRED can be updated (409 Conflict otherwise).
+    - Provenance recorded for critical field updates with actor_id=current_user.id.
+    """
+    fdr = session.query(FDR).filter_by(id=fdr_id).first()
+    if not fdr:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"FDR {fdr_id} not found.")
+
+    enforce_institution_isolation(user=current_user, target_institution_id=fdr.institution_id)
+
+    if fdr.status not in (FDRStatus.DRAFT.value, FDRStatus.CORRECTION_REQUIRED.value):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cannot edit FDR in '{fdr.status}' status. Only DRAFT or CORRECTION_REQUIRED records can be edited.",
+        )
+
+    # Date validation
+    new_issue = req.issue_date or fdr.issue_date
+    new_maturity = req.maturity_date or fdr.maturity_date
+    if new_maturity < new_issue:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maturity date cannot be earlier than issue date.",
+        )
+
+    critical_fields = ["fdr_number", "bank_name", "amount", "issue_date", "maturity_date"]
+    
+    for field in ["fdr_number", "cert_number", "tripartite_ref", "bank_name", "branch", "ifsc", "interest_rate", "tenure_years", "auto_rollover", "lien_status", "mandate_clause", "notes"]:
+        val = getattr(req, field)
+        if val is not None:
+            old_val = getattr(fdr, field)
+            if old_val != val:
+                setattr(fdr, field, val)
+                if field in critical_fields:
+                    session.add(
+                        FieldProvenance(
+                            fdr_id=fdr.id,
+                            field_name=field,
+                            old_value=str(old_val) if old_val is not None else None,
+                            new_value=str(val),
+                            source_category=ProvenanceSource.INSTITUTION_ENTERED.value,
+                            actor_id=current_user.id,
+                            reason=req.reason or "Draft field modification",
+                        )
+                    )
+
+    if req.amount is not None and req.amount != fdr.amount:
+        if req.amount <= 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Amount must be positive.")
+        old_amount = fdr.amount
+        fdr.amount = req.amount
+        session.add(
+            FieldProvenance(
+                fdr_id=fdr.id,
+                field_name="amount",
+                old_value=str(old_amount),
+                new_value=str(req.amount),
+                source_category=ProvenanceSource.INSTITUTION_ENTERED.value,
+                actor_id=current_user.id,
+                reason=req.reason or "Draft amount modification",
+            )
+        )
+
+    if req.issue_date is not None and req.issue_date != fdr.issue_date:
+        old_issue = fdr.issue_date
+        fdr.issue_date = req.issue_date
+        session.add(
+            FieldProvenance(
+                fdr_id=fdr.id,
+                field_name="issue_date",
+                old_value=str(old_issue),
+                new_value=str(req.issue_date),
+                source_category=ProvenanceSource.INSTITUTION_ENTERED.value,
+                actor_id=current_user.id,
+                reason=req.reason or "Draft issue date modification",
+            )
+        )
+
+    if req.maturity_date is not None and req.maturity_date != fdr.maturity_date:
+        old_mat = fdr.maturity_date
+        fdr.maturity_date = req.maturity_date
+        session.add(
+            FieldProvenance(
+                fdr_id=fdr.id,
+                field_name="maturity_date",
+                old_value=str(old_mat),
+                new_value=str(req.maturity_date),
+                source_category=ProvenanceSource.INSTITUTION_ENTERED.value,
+                actor_id=current_user.id,
+                reason=req.reason or "Draft maturity date modification",
+            )
+        )
+
+    session.commit()
     return {"fdr_id": fdr.id, "status": fdr.status}
 
 

@@ -65,13 +65,13 @@ def get_institution(
     Enforces server-side institution isolation: Institution Officer from Institution A
     attempting to view Institution B is rejected with 403 Forbidden.
     """
-    enforce_institution_isolation(user=current_user, target_institution_id=institution_id)
-
     inst = session.query(Institution).filter_by(id=institution_id).first()
     if not inst:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Institution with ID {institution_id} not found.",
         )
+
+    enforce_institution_isolation(user=current_user, target_institution_id=inst.id)
 
     return inst

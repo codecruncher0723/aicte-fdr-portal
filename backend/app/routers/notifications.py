@@ -81,18 +81,23 @@ def update_notification(
         )
 
     # Ownership check
-    if notif.recipient_user_id and notif.recipient_user_id != current_user.id:
-        if current_user.role == UserRole.INSTITUTION_OFFICER.value:
-            if notif.institution_id != current_user.institution_id:
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Cannot modify notification belonging to another recipient.",
-                )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Cannot modify notification belonging to another recipient.",
-            )
+    is_owner = False
+    if notif.recipient_user_id is not None:
+        if notif.recipient_user_id == current_user.id:
+            is_owner = True
+    elif current_user.role == UserRole.INSTITUTION_OFFICER.value:
+        if notif.institution_id is not None and notif.institution_id == current_user.institution_id:
+            is_owner = True
+    elif current_user.role == UserRole.AICTE_ADMIN.value:
+        is_owner = True
+    elif notif.recipient_role == current_user.role:
+        is_owner = True
+
+    if not is_owner:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot modify notification belonging to another recipient or institution.",
+        )
 
     notif.is_read = req.is_read
     session.commit()

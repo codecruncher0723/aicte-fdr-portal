@@ -217,7 +217,7 @@ Execution notes (Phase 2 Tasks 1-3):
 - [x] **M** Enforce the four roles: `AICTE_ADMIN`, `INSTITUTION_OFFICER`, `VERIFICATION_OFFICER`, `APPROVING_AUTHORITY`.
 - [x] **M** Enforce authorization on every protected backend endpoint, including detail reads, document access, workflow actions, dashboard aggregates, audit views, and CSV exports.
 - [x] **M** Derive an Institution Officer's `institution_id` and `created_by` from the authenticated principal; ignore/reject client attempts to select another institution.
-- [ ] **M** Apply resource-level checks to prevent IDOR; a guessed FDR/request/document ID must not bypass institution/role rules.
+- [x] **M** Apply resource-level checks to prevent IDOR; a guessed FDR/request/document ID must not bypass institution/role rules.
 - [ ] **M** Prevent the submitter from being the sole approving authority; record actor IDs in workflow actions.
 - [ ] **O** User administration beyond predefined demo accounts is optional and out of scope unless already present.
 
@@ -278,6 +278,19 @@ Execution notes (Phase 3 Task 1):
     * Valid independent submissions by officers from different institutions (St. Xavier's and BMS College of Engineering) with reciprocal cross-institution submission rejection (403).
     * Workflow status transitions, document uploads, verifications, and approvals strictly attributing records to the authentic caller principal.
   - All 127 backend tests pass in 6.90s. Frontend production build verified clean (`vite build` in 9.82s, exit code 0).
+- **Preventing IDOR through Resource-Level Authorization Checks**:
+  - Audited all endpoint handlers receiving resource IDs (`fdr_id`, `document_id`, `request_id`, `notification_id`, `institution_id`) to ensure they query the database record first and apply strict server-side authorization checks against actual record attributes.
+  - Implemented `PATCH /api/v1/fdrs/{fdr_id}` with strict resource-level isolation: checks database existence (404), enforces owning institution isolation (403), verifies editable draft/correction state (409), records field provenance, and safely ignores client identity payload tampering.
+  - Implemented `GET /api/v1/requests/{request_id}` in `workflow.py` with resource-level isolation against the linked FDR's institution.
+  - Updated `GET /api/v1/institutions/{institution_id}` to check database existence first before enforcing institution isolation, ensuring nonexistent IDs return 404 without leaking cross-institution metadata.
+  - Reinforced notification patch ownership in `PATCH /api/v1/notifications/{notification_id}` to protect institution-level and role-level notifications against cross-institution modification (403).
+  - Added comprehensive test suite `backend/tests/test_resource_level_idor.py` (25 tests) verifying:
+    * 14 endpoints returning 404 for guessed/nonexistent resource IDs across FDRs, requests, documents, notifications, and institutions.
+    * Institution Officers blocked with 403 Forbidden across cross-institution FDR detail, updates, submits, audit logs, document operations, institution details, notification patches, and workflow requests.
+    * Safely ignoring forged institution and creator fields in FDR patch payloads.
+    * Rejecting edits on non-draft/correction FDR statuses with 409 Conflict.
+    * Permitting statutory regulatory oversight reads across institutions for `AICTE_ADMIN`, `VERIFICATION_OFFICER`, and `APPROVING_AUTHORITY`.
+  - All 152 backend tests pass in 7.57s. Frontend production build verified clean (`vite build` in 2.27s, exit code 0).
 
 ---
 
