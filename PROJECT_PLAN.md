@@ -218,7 +218,7 @@ Execution notes (Phase 2 Tasks 1-3):
 - [x] **M** Enforce authorization on every protected backend endpoint, including detail reads, document access, workflow actions, dashboard aggregates, audit views, and CSV exports.
 - [x] **M** Derive an Institution Officer's `institution_id` and `created_by` from the authenticated principal; ignore/reject client attempts to select another institution.
 - [x] **M** Apply resource-level checks to prevent IDOR; a guessed FDR/request/document ID must not bypass institution/role rules.
-- [ ] **M** Prevent the submitter from being the sole approving authority; record actor IDs in workflow actions.
+- [x] **M** Prevent the submitter from being the sole approving authority; record actor IDs in workflow actions.
 - [ ] **O** User administration beyond predefined demo accounts is optional and out of scope unless already present.
 
 ### Definition of Done
@@ -291,6 +291,14 @@ Execution notes (Phase 3 Task 1):
     * Rejecting edits on non-draft/correction FDR statuses with 409 Conflict.
     * Permitting statutory regulatory oversight reads across institutions for `AICTE_ADMIN`, `VERIFICATION_OFFICER`, and `APPROVING_AUTHORITY`.
   - All 152 backend tests pass in 7.57s. Frontend production build verified clean (`vite build` in 2.27s, exit code 0).
+- **Enforcing Approval Separation of Duties and Recording Workflow Actors**:
+  - Enforced server-side separation of duties across all FDR and request verification/approval endpoints (`POST /api/v1/fdrs/{fdr_id}/verify`, `POST /api/v1/fdrs/{fdr_id}/approval`, `POST /api/v1/requests/{request_id}/verify`, `POST /api/v1/requests/{request_id}/approval`) via `enforce_separation_of_duties` in `backend/app/auth.py` and `SeparationOfDutiesError` in `backend/app/history.py`. The submitter (`created_by_id`) is strictly blocked with 403 Forbidden from verifying or approving their own submission, even if the submitter possesses admin privileges.
+  - Ignored client-supplied actor or approver IDs (`approver_id`, `actor_id`) in request bodies, strictly binding action provenance and audit records to the authenticated caller's verified session principal.
+  - Maintained canonical role boundaries between verification and approval: Verification Officers cannot approve (403); Approving Authorities cannot verify (403); Institution Officers cannot verify or approve (403).
+  - Recorded authenticated actor's ID, role, decision, timestamp, and remarks/reason across append-only history and audit tables (`VerificationRecord`, `ApprovalRecord`, `StatusTransitionHistory`, and `AuditLog`).
+  - Guaranteed transaction atomicity: invalid decisions (e.g. rejection without a reason or unauthorized attempts) roll back the session cleanly, preventing partial status updates or orphaned history records.
+  - Dedicated test suite `backend/tests/test_separation_of_duties_workflow.py` (8 tests) verifies self-approval blocking, forged approver ID blocking, self-verification blocking, workflow request self-decision blocking, complete actor attribution in audit and history records, role boundary enforcement, and atomic rollback on failed rejection.
+  - All 160 backend tests pass in 10.81s. Frontend production build verified clean (`vite build` in 12.00s, exit code 0).
 
 ---
 

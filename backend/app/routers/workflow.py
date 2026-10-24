@@ -160,7 +160,14 @@ def approve_fdr(
     if not fdr:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"FDR {fdr_id} not found.")
 
-    # 2. Separation of duties
+    # 2. Rejection reason check
+    if req.decision == "REJECTED" and (not req.remarks or not req.remarks.strip()):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Rejection decision requires a reason or remarks.",
+        )
+
+    # 3. Separation of duties
     enforce_separation_of_duties(actor=current_user, submitter_id=fdr.created_by_id, action="approve")
 
     try:
@@ -218,4 +225,113 @@ def get_workflow_request(
         "status": req_obj.status,
         "created_by_id": req_obj.created_by_id,
         "created_at": req_obj.created_at.isoformat() if req_obj.created_at else None,
+    }
+
+
+@router.post("/requests/{request_id}/verify", summary="Record workflow request verification decision")
+def verify_workflow_request(
+    request_id: int,
+    req: VerificationRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    Records verification scrutiny for a workflow request.
+    Enforces:
+    - Role check: Only VERIFICATION_OFFICER (or AICTE_ADMIN).
+    - Separation of duties: Submitter cannot verify their own request.
+    """
+    if current_user.role not in (UserRole.VERIFICATION_OFFICER.value, UserRole.AICTE_ADMIN.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Access forbidden: role '{current_user.role}' is not authorized to verify workflow requests.",
+        )
+
+    req_obj = session.query(WorkflowRequest).filter_by(id=request_id).first()
+    if not req_obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Workflow request {request_id} not found.")
+
+    enforce_separation_of_duties(actor=current_user, submitter_id=req_obj.created_by_id, action="verify")
+
+    try:
+        v_rec = record_verification_decision(
+            session=session,
+            officer=current_user,
+            decision=req.decision,
+            request=req_obj,
+            remarks=req.remarks,
+            discrepancy_code=req.discrepancy_code,
+            discrepancy_severity=req.discrepancy_severity,
+            discrepancy_note=req.discrepancy_note,
+        )
+        session.commit()
+    except SeparationOfDutiesError as e:
+        session.rollback()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except (UnauthorizedRoleError, ValueError) as e:
+        session.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    return {
+        "verification_id": v_rec.id,
+        "request_id": req_obj.id,
+        "decision": v_rec.decision,
+        "new_status": req_obj.status,
+    }
+
+
+@router.post("/requests/{request_id}/approval", summary="Record workflow request approval decision")
+def approve_workflow_request(
+    request_id: int,
+    req: ApprovalRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    Records approval or rejection for a workflow request.
+    Enforces:
+    - Role check: Only APPROVING_AUTHORITY (or AICTE_ADMIN).
+    - Separation of duties: Submitter cannot approve their own request.
+    - Rejection requires a reason.
+    """
+    if current_user.role not in (UserRole.APPROVING_AUTHORITY.value, UserRole.AICTE_ADMIN.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Access forbidden: role '{current_user.role}' is not authorized to approve workflow requests.",
+        )
+
+    if req.decision == "REJECTED" and (not req.remarks or not req.remarks.strip()):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Rejection decision requires a reason or remarks.",
+        )
+
+    req_obj = session.query(WorkflowRequest).filter_by(id=request_id).first()
+    if not req_obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Workflow request {request_id} not found.")
+
+    enforce_separation_of_duties(actor=current_user, submitter_id=req_obj.created_by_id, action="approve")
+
+    try:
+        a_rec = record_approval_decision(
+            session=session,
+            approver=current_user,
+            decision=req.decision,
+            request=req_obj,
+            council_order_ref=req.council_order_ref,
+            reason=req.remarks,
+        )
+        session.commit()
+    except SeparationOfDutiesError as e:
+        session.rollback()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+    except (UnauthorizedRoleError, ValueError) as e:
+        session.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    return {
+        "approval_id": a_rec.id,
+        "request_id": req_obj.id,
+        "decision": a_rec.decision,
+        "new_status": req_obj.status,
     }

@@ -187,6 +187,17 @@ def record_verification_decision(
         if request.fdr and decision == "CORRECTION_REQUIRED":
             pass  # FDR status preserved
 
+        audit = AuditLog(
+            actor_id=officer.id,
+            actor_name=officer.full_name,
+            actor_role=officer.role,
+            action=f"REQUEST_VERIFICATION_{decision}",
+            target_type="REQUEST",
+            target_id=str(request.id),
+            details=f"Workflow request {request.id} ({request.request_type}) verification decision: {decision}. Remarks: {remarks or 'N/A'}",
+        )
+        session.add(audit)
+
     # 4. Create immutable VerificationRecord
     v_rec = VerificationRecord(
         fdr_id=fdr.id if fdr else (request.fdr_id if request else None),
@@ -311,6 +322,17 @@ def record_approval_decision(
             council_order_ref=council_order_ref,
             reason=reason,
         )
+
+        audit = AuditLog(
+            actor_id=approver.id,
+            actor_name=approver.full_name,
+            actor_role=approver.role,
+            action=f"REQUEST_APPROVAL_{decision}",
+            target_type="REQUEST",
+            target_id=str(request.id),
+            details=f"Workflow request {request.id} ({request.request_type}) approval decision: {decision}. Reason: {reason or 'N/A'}",
+        )
+        session.add(audit)
 
     session.add(appr_rec)
     session.flush()
