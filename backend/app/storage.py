@@ -119,6 +119,11 @@ class FileIntegrityError(StorageError):
     pass
 
 
+class UnauthorizedDocumentAccessError(StorageError):
+    """Raised when a user attempts unauthorized access or upload of a document."""
+    pass
+
+
 def detect_file_signature(content: bytes) -> str:
     """
     Detect the canonical format from magic bytes (file signature).
@@ -485,3 +490,153 @@ def format_document_response(doc: DocumentVersion) -> Dict[str, Any]:
         "uploaded_by_id": doc.uploaded_by_id,
         "created_at": doc.created_at.isoformat() if doc.created_at else None,
     }
+
+
+def get_document_versions(
+    session: Session,
+    fdr_id: Optional[int] = None,
+    request_id: Optional[int] = None,
+    document_type: Optional[str] = None,
+) -> List[DocumentVersion]:
+    """
+    Returns all historical versions of a document, ordered chronologically (version ascending).
+    """
+    query = session.query(DocumentVersion)
+    if fdr_id is not None:
+        query = query.filter(DocumentVersion.fdr_id == fdr_id)
+    if request_id is not None:
+        query = query.filter(DocumentVersion.request_id == request_id)
+    if document_type is not None:
+        query = query.filter(DocumentVersion.document_type == document_type)
+
+    return query.order_by(DocumentVersion.version.asc()).all()
+
+
+def get_latest_document_version(
+    session: Session,
+    fdr_id: Optional[int] = None,
+    request_id: Optional[int] = None,
+    document_type: str = "FDR_RECEIPT",
+) -> Optional[DocumentVersion]:
+    """
+    Returns the latest (most recent) version of a document.
+    """
+    versions = get_document_versions(
+        session=session,
+        fdr_id=fdr_id,
+        request_id=request_id,
+        document_type=document_type,
+    )
+    return versions[-1] if versions else None
+
+
+def authorize_document_access(user: Any, document: DocumentVersion) -> bool:
+    """
+    Enforces server-side RBAC and institution isolation for document access.
+
+    Rules:
+    - AICTE_ADMIN, APPROVING_AUTHORITY, VERIFICATION_OFFICER: authorized for review.
+    - INSTITUTION_OFFICER: authorized ONLY if the document belongs to their institution.
+    """
+    role = getattr(user, "role", None)
+    if role in ("AICTE_ADMIN", "APPROVING_AUTHORITY", "VERIFICATION_OFFICER"):
+        return True
+
+    if role == "INSTITUTION_OFFICER":
+        user_inst_id = getattr(user, "institution_id", None)
+        doc_inst_id = None
+        if document.fdr and document.fdr.institution_id:
+            doc_inst_id = document.fdr.institution_id
+        elif document.request and document.request.fdr and document.request.fdr.institution_id:
+            doc_inst_id = document.request.fdr.institution_id
+
+        if doc_inst_id is not None and user_inst_id == doc_inst_id:
+            return True
+
+        raise UnauthorizedDocumentAccessError(
+            f"Access denied: Institution Officer from institution {user_inst_id} "
+            f"cannot access document from institution {doc_inst_id}."
+        )
+
+    raise UnauthorizedDocumentAccessError(f"Role '{role}' is not authorized to access documents.")
+
+
+def authorize_document_upload(user: Any, fdr: Optional[Any] = None, request: Optional[Any] = None) -> bool:
+    """
+    Enforces authorization to upload a document to an FDR or request.
+    Institution Officer can upload ONLY to their own institution's FDR.
+    """
+    role = getattr(user, "role", None)
+    if role in ("AICTE_ADMIN",):
+        return True
+
+    target = fdr or (request.fdr if request else None)
+    if not target:
+        return True
+
+    if role == "INSTITUTION_OFFICER":
+        user_inst_id = getattr(user, "institution_id", None)
+        target_inst_id = getattr(target, "institution_id", None)
+        if user_inst_id != target_inst_id:
+            raise UnauthorizedDocumentAccessError(
+                f"Unauthorized upload: Institution Officer from institution {user_inst_id} "
+                f"cannot upload documents to institution {target_inst_id}."
+            )
+        return True
+
+    if role in ("VERIFICATION_OFFICER", "APPROVING_AUTHORITY"):
+        return True
+
+    raise UnauthorizedDocumentAccessError(f"Role '{role}' is not authorized to upload documents.")
+
+
+def replace_document_version(
+    session: Session,
+    document_type: str,
+    content: bytes,
+    original_filename: str,
+    uploader: Any,
+    fdr_id: Optional[int] = None,
+    request_id: Optional[int] = None,
+    declared_mime: Optional[str] = None,
+    storage_root: Optional[str] = None,
+) -> Tuple[Optional[DocumentVersion], DocumentVersion]:
+    """
+    Replaces an existing document by creating an immutable new DocumentVersion.
+    CRITICAL INVARIANT:
+    Never deletes or overwrites the previous version's file or database record!
+
+    Returns:
+        tuple: (previous_document_version, new_document_version)
+    """
+    from app.models.fdr import FDR
+    from app.models.workflow import WorkflowRequest
+
+    fdr = session.query(FDR).filter_by(id=fdr_id).first() if fdr_id else None
+    req = session.query(WorkflowRequest).filter_by(id=request_id).first() if request_id else None
+
+    # Enforce upload authorization
+    authorize_document_upload(user=uploader, fdr=fdr, request=req)
+
+    # Find prior latest version
+    prior_version = get_latest_document_version(
+        session=session,
+        fdr_id=fdr_id,
+        request_id=request_id,
+        document_type=document_type,
+    )
+
+    # Create immutable new version
+    new_version = save_document_version(
+        session=session,
+        document_type=document_type,
+        content=content,
+        original_filename=original_filename,
+        uploaded_by_id=uploader.id,
+        fdr_id=fdr_id,
+        request_id=request_id,
+        declared_mime=declared_mime,
+        storage_root=storage_root,
+    )
+
+    return prior_version, new_version

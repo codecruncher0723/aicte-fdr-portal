@@ -135,7 +135,7 @@ Execution notes:
 - [x] **M** Store document metadata, relative private-storage reference, and SHA-256 hash; never store public URLs or expose raw storage paths through APIs.
 - [x] **M** Add append-only verification/approval history and auditable status history sufficient to retain old FDR values/documents on renewal.
 - [x] **M** Preserve provenance for critical FDR fields where practical: source category, actor, timestamp, previous/new value, and reason for changes. Never label data `BANK_CONFIRMED` without an actual authoritative bank confirmation.
-- [ ] **M** Model document uploads as immutable versions with SHA-256, size, detected media type, uploader, timestamp, and private storage reference; replacement creates a new version rather than overwriting old evidence.
+- [x] **M** Model document uploads as immutable versions with SHA-256, size, detected media type, uploader, timestamp, and private storage reference; replacement creates a new version rather than overwriting old evidence.
 - [ ] **M** Implement migrations using the detected migration mechanism and deterministic seed/demo data for all four roles and at least two institutions.
 - [ ] **O** Add notification persistence if time permits; if deferred, document the exact limitation and ensure the core dashboard/reminder path still works.
 
@@ -185,6 +185,13 @@ Execution notes (Phase 2 Tasks 1-3):
   - Integrated provenance recording with renewal completion workflow (`complete_fdr_renewal` in `history.py`).
   - Enforced database-level immutability for `FieldProvenance` through SQLAlchemy event listeners (`before_update`, `before_delete`), disallowing any tampering or deletion.
   - Created `backend/tests/test_provenance.py` (10 test cases). All 43 backend tests pass in 1.22s. Frontend build verified clean (`vite build` in 3.08s, exit code 0).
+- **Immutable Document-Version Tracking & Authorization**:
+  - Implemented version incrementing and replacement orchestration in `backend/app/storage.py` (`replace_document_version`, `get_document_versions`, `get_latest_document_version`).
+  - Replacing a document automatically creates version N+1 with a distinct SHA-256 hash and relative private storage key; old physical files and database records are never modified or deleted.
+  - Implemented server-side role and institution isolation guards: `authorize_document_access` and `authorize_document_upload` (`UnauthorizedDocumentAccessError`). Institution officers cannot access or upload documents across institution boundaries; AICTE Admin, Verifiers, and Approvers have global oversight.
+  - Enforced database-level immutability for `DocumentVersion` via SQLAlchemy event listeners (`before_update`, `before_delete`) in `backend/app/history.py`, blocking any in-place mutation or deletion.
+  - Added focused test suite in `backend/tests/test_document_versioning.py` (9 tests) covering metadata accuracy, replacement preserving old versions, ordered retrieval, cross-institution rejection, valid role/same-institution access, unauthorized uploads, DB immutability, and rejection of invalid/oversized files without affecting existing versions.
+  - All 52 backend tests pass in 1.48s. Frontend production build verified clean (`vite build` in 2.86s, exit code 0).
 
 ---
 
