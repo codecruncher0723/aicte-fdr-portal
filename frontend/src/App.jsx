@@ -121,6 +121,8 @@ function MainRouter() {
         <AdminDashboard
           fdrs={fdrs}
           onSelectFdr={handleSelectFdr}
+          onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
+          onOpenDetailModal={handleOpenDetailModal}
         />
       );
     }
@@ -335,6 +337,8 @@ function MainRouter() {
       <AdminDashboard
         fdrs={fdrs}
         onSelectFdr={handleSelectFdr}
+        onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
+        onOpenDetailModal={handleOpenDetailModal}
       />
     );
   };
