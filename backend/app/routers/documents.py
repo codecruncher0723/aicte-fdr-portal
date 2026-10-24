@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.enums import UserRole
 from app.models.fdr import FDR
+from app.models.workflow import WorkflowRequest
 from app.models.document import DocumentVersion
 from app.models.user import User
 from app.auth import get_current_user, require_roles, enforce_institution_isolation
@@ -160,3 +161,74 @@ def download_document(
         media_type=doc.mime_type,
         headers={"Content-Disposition": f'attachment; filename="{doc.file_name}"'},
     )
+
+@router.get("/requests/{request_id}/documents", summary="List document versions for a workflow request")
+def list_request_documents(
+    request_id: int,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    Lists document versions associated with a workflow request.
+    Enforces institution isolation.
+    """
+    req_obj = session.query(WorkflowRequest).filter_by(id=request_id).first()
+    if not req_obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Workflow request {request_id} not found.")
+
+    if req_obj.fdr:
+        enforce_institution_isolation(user=current_user, target_institution_id=req_obj.fdr.institution_id)
+
+    docs = (
+        session.query(DocumentVersion)
+        .filter_by(request_id=request_id)
+        .order_by(DocumentVersion.version.asc())
+        .all()
+    )
+    return [format_document_response(d) for d in docs]
+
+
+@router.post("/requests/{request_id}/documents", status_code=status.HTTP_201_CREATED, summary="Upload a workflow request document version")
+async def upload_request_document(
+    request_id: int,
+    file: UploadFile = File(...),
+    document_type: str = Form("SUPPORTING_DOCUMENT"),
+    uploaded_by_id: Optional[int] = Form(None),
+    institution_id: Optional[int] = Form(None),
+    current_user: User = Depends(require_roles(UserRole.INSTITUTION_OFFICER.value, UserRole.AICTE_ADMIN.value)),
+    session: Session = Depends(get_db),
+):
+    """
+    Uploads a new document version for a workflow request into private storage.
+    Enforces file format, 10 MB limit, magic byte signature check, and institution isolation.
+    """
+    req_obj = session.query(WorkflowRequest).filter_by(id=request_id).first()
+    if not req_obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Workflow request {request_id} not found.")
+
+    if req_obj.fdr:
+        enforce_institution_isolation(user=current_user, target_institution_id=req_obj.fdr.institution_id)
+
+    content = await file.read()
+    try:
+        doc = save_document_version(
+            session=session,
+            document_type=document_type,
+            content=content,
+            original_filename=file.filename or "uploaded_document.pdf",
+            uploaded_by_id=current_user.id,
+            request_id=req_obj.id,
+            fdr_id=req_obj.fdr_id,
+            declared_mime=file.content_type,
+        )
+        session.commit()
+    except FileTooLargeError as e:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(e))
+    except UnsupportedFileTypeError as e:
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(e))
+    except FileValidationError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except UnauthorizedDocumentAccessError as e:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(e))
+
+    return format_document_response(doc)

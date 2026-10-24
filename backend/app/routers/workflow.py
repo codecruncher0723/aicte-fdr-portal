@@ -42,6 +42,7 @@ class VerificationRequest(BaseModel):
     discrepancy_note: Optional[str] = None
     officer_id: Optional[int] = None
     actor_id: Optional[int] = None
+    document_version_id: Optional[int] = None
 
 
 class ApprovalRequest(BaseModel):
@@ -50,6 +51,7 @@ class ApprovalRequest(BaseModel):
     council_order_ref: Optional[str] = None
     approver_id: Optional[int] = None
     actor_id: Optional[int] = None
+    document_version_id: Optional[int] = None
 
 
 @router.get("/verifications/pending", summary="List items pending scrutiny and verification")
@@ -118,6 +120,7 @@ def verify_fdr(
             discrepancy_code=req.discrepancy_code,
             discrepancy_severity=req.discrepancy_severity,
             discrepancy_note=req.discrepancy_note,
+            document_version_id=req.document_version_id,
         )
         session.commit()
     except SeparationOfDutiesError as e:
@@ -132,6 +135,7 @@ def verify_fdr(
         "fdr_id": fdr.id,
         "decision": v_rec.decision,
         "new_status": fdr.status,
+        "document_version_id": v_rec.document_version_id,
     }
 
 
@@ -178,6 +182,7 @@ def approve_fdr(
             fdr=fdr,
             council_order_ref=req.council_order_ref,
             reason=req.remarks,
+            document_version_id=req.document_version_id,
         )
         session.commit()
     except SeparationOfDutiesError as e:
@@ -192,6 +197,7 @@ def approve_fdr(
         "fdr_id": fdr.id,
         "decision": a_rec.decision,
         "new_status": fdr.status,
+        "document_version_id": a_rec.document_version_id,
     }
 
 
@@ -263,6 +269,7 @@ def verify_workflow_request(
             discrepancy_code=req.discrepancy_code,
             discrepancy_severity=req.discrepancy_severity,
             discrepancy_note=req.discrepancy_note,
+            document_version_id=req.document_version_id,
         )
         session.commit()
     except SeparationOfDutiesError as e:
@@ -277,6 +284,7 @@ def verify_workflow_request(
         "request_id": req_obj.id,
         "decision": v_rec.decision,
         "new_status": req_obj.status,
+        "document_version_id": v_rec.document_version_id,
     }
 
 
@@ -320,6 +328,7 @@ def approve_workflow_request(
             request=req_obj,
             council_order_ref=req.council_order_ref,
             reason=req.remarks,
+            document_version_id=req.document_version_id,
         )
         session.commit()
     except SeparationOfDutiesError as e:
@@ -334,4 +343,5 @@ def approve_workflow_request(
         "request_id": req_obj.id,
         "decision": a_rec.decision,
         "new_status": req_obj.status,
+        "document_version_id": a_rec.document_version_id,
     }

@@ -477,18 +477,23 @@ def format_document_response(doc: DocumentVersion) -> Dict[str, Any]:
     Never expose raw filesystem paths, storage_key, or internal URLs.
     Only client-safe metadata is returned.
     """
+    created_iso = doc.created_at.isoformat() if doc.created_at else None
     return {
         "id": doc.id,
+        "document_id": doc.id,
         "fdr_id": doc.fdr_id,
         "request_id": doc.request_id,
         "document_type": doc.document_type,
         "version": doc.version,
         "file_name": doc.file_name,
+        "original_filename": doc.file_name,
         "file_size": doc.file_size,
         "mime_type": doc.mime_type,
         "sha256_hash": doc.sha256_hash,
+        "sha256": doc.sha256_hash,
         "uploaded_by_id": doc.uploaded_by_id,
-        "created_at": doc.created_at.isoformat() if doc.created_at else None,
+        "created_at": created_iso,
+        "uploaded_at": created_iso,
     }
 
 

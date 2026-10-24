@@ -3,7 +3,8 @@ import { useRole } from '../context/RoleContext';
 import { FDR_STATUSES } from '../data/mockData';
 
 export default function AdminDashboard({
-  fdrs,
+  fdrs = [],
+  releaseRequests = [],
   onSelectFdr,
   onOpenSubmitModal,
   onOpenDetailModal
@@ -42,9 +43,9 @@ export default function AdminDashboard({
     const pendingReviews = fdrs.filter(f => f.status === FDR_STATUSES.SUBMITTED || f.status === FDR_STATUSES.UNDER_VERIFICATION).length;
     const correctionsRequired = fdrs.filter(f => f.status === FDR_STATUSES.CORRECTION_REQUIRED).length;
     const renewalsDue = fdrs.filter(f => f.status === FDR_STATUSES.MATURING_SOON || f.status === FDR_STATUSES.RENEWAL_REQUESTED).length;
-    const releasePending = (releaseRequests && releaseRequests.length > 0)
+    const releasePending = Array.isArray(releaseRequests)
       ? releaseRequests.filter(r => ['REQUESTED', 'UNDER_VERIFICATION', 'PENDING_APPROVAL', 'RELEASE_APPROVED', 'AWAITING_CONFIRMATION'].includes(r.status)).length
-      : fdrs.filter(f => f.status === FDR_STATUSES.RELEASE_REQUESTED || f.status === FDR_STATUSES.RELEASE_APPROVED).length;
+      : (fdrs || []).filter(f => f.status === FDR_STATUSES.RELEASE_REQUESTED || f.status === FDR_STATUSES.RELEASE_APPROVED).length;
 
     return [
       {
@@ -84,7 +85,7 @@ export default function AdminDashboard({
         badgeColor: 'bg-secondary-container text-on-secondary-container'
       }
     ];
-  }, [fdrs]);
+  }, [fdrs, releaseRequests]);
 
   // 3. Filtered Recent FDR Activity Table
   const filteredFdrs = useMemo(() => {

@@ -31,6 +31,9 @@ function MainRouter() {
   // Master State for FDR records across the application
   const [fdrs, setFdrs] = useState(INITIAL_FDRS);
 
+  // Master State for Release / Refund requests across the application
+  const [releaseRequests, setReleaseRequests] = useState(INITIAL_RELEASE_REQUESTS);
+
   // Selected FDR for detail modal & verification workspace
   const [selectedFdr, setSelectedFdr] = useState(() => {
     return INITIAL_FDRS.find(f => f.fdrNumber === selectedFdrRef) || INITIAL_FDRS[0];
@@ -113,6 +116,57 @@ function MainRouter() {
     );
   };
 
+  // Release request status transition handler
+  const handleUpdateReleaseRequest = (requestId, transitionType, payload = {}) => {
+    setReleaseRequests(prev =>
+      prev.map(req => {
+        if (req.id !== requestId) return req;
+        const today = new Date().toISOString().split('T')[0];
+        switch (transitionType) {
+          case 'START_VERIFICATION':
+            return { ...req, status: 'UNDER_VERIFICATION' };
+          case 'VERIFY_APPROVE':
+            return { ...req, status: 'PENDING_APPROVAL', notes: payload.remarks || req.notes };
+          case 'REQUEST_CORRECTION':
+            return { ...req, status: 'CORRECTION_REQUIRED', notes: payload.remarks || req.notes };
+          case 'RESUBMIT':
+            return { ...req, status: 'REQUESTED', notes: payload.remarks || req.notes };
+          case 'APPROVE':
+            return { ...req, status: 'RELEASE_APPROVED', councilOrderRef: payload.orderRef, approvalDate: today };
+          case 'REJECT':
+            return { ...req, status: 'REJECTED', notes: payload.reason || req.notes };
+          case 'CONFIRM_READINESS':
+            return { ...req, status: 'AWAITING_CONFIRMATION', readinessRemarks: payload.remarks };
+          case 'CONFIRM_RELEASE':
+            return {
+              ...req,
+              status: 'RELEASED_REFUNDED',
+              confirmationRef: payload.confirmationRef,
+              confirmationVoucher: payload.voucherFile
+            };
+          case 'CANCEL':
+            return { ...req, status: 'CANCELLED', notes: payload.reason || req.notes };
+          default:
+            return req;
+        }
+      })
+    );
+
+    // Synchronize underlying FDR status if release confirmed
+    if (transitionType === 'CONFIRM_RELEASE') {
+      const targetReq = releaseRequests.find(r => r.id === requestId);
+      if (targetReq) {
+        handleUpdateFdrStatus(targetReq.fdrId, FDR_STATUSES.RELEASED_REFUNDED);
+      }
+    }
+    return { success: true };
+  };
+
+  // Add new release request
+  const handleCreateReleaseRequest = (newReq) => {
+    setReleaseRequests(prev => [newReq, ...prev]);
+  };
+
   // Route Rendering
   const renderCurrentRoute = () => {
     // AICTE Admin & Officer routes
@@ -120,6 +174,7 @@ function MainRouter() {
       return (
         <AdminDashboard
           fdrs={fdrs}
+          releaseRequests={releaseRequests}
           onSelectFdr={handleSelectFdr}
           onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
           onOpenDetailModal={handleOpenDetailModal}
@@ -165,6 +220,9 @@ function MainRouter() {
       return (
         <ReleaseRequestsPage
           fdrs={fdrs}
+          releaseRequests={releaseRequests}
+          onUpdateReleaseRequest={handleUpdateReleaseRequest}
+          onCreateReleaseRequest={handleCreateReleaseRequest}
           onUpdateFdrStatus={handleUpdateFdrStatus}
         />
       );
@@ -301,6 +359,9 @@ function MainRouter() {
       return (
         <ReleaseRequestsPage
           fdrs={fdrs}
+          releaseRequests={releaseRequests}
+          onUpdateReleaseRequest={handleUpdateReleaseRequest}
+          onCreateReleaseRequest={handleCreateReleaseRequest}
           onUpdateFdrStatus={handleUpdateFdrStatus}
         />
       );
@@ -336,6 +397,7 @@ function MainRouter() {
     return (
       <AdminDashboard
         fdrs={fdrs}
+        releaseRequests={releaseRequests}
         onSelectFdr={handleSelectFdr}
         onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
         onOpenDetailModal={handleOpenDetailModal}

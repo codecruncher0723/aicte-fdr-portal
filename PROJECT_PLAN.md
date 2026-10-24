@@ -311,18 +311,18 @@ Execution notes (Phase 3 Task 1):
 - [x] **M** Implement `POST /api/v1/fdrs/{fdr_id}/submit`: only `DRAFT` or `CORRECTION_REQUIRED` → `SUBMITTED`, with an audit/history event.
 - [x] **M** Implement FDR field validation: required FDR number, institution, bank, amount, issue/maturity dates, and required supporting document; amount > 0; maturity ≥ issue date.
 - [x] **M** Implement configurable duplicate-candidate detection without assuming FDR number is globally unique; uniqueness scope remains `TBD`.
-- [ ] **M** Implement private upload/storage for PDF, JPG/JPEG, PNG, WEBP; max 10 MB; validate extension, MIME and magic bytes; reject empty/corrupt/mismatched files; generate server-side names; block path traversal; calculate SHA-256.
-- [ ] **M** Implement authenticated metadata list/detail/download endpoints with resource-level authorization. Never serve private files directly from the public web root.
-- [ ] **M** Keep original filename as metadata only; avoid returning internal storage paths.
-- [ ] **M** Preserve each prior submitted document version; link the version reviewed/approved to its workflow evidence where feasible.
+- [x] **M** Implement private upload/storage for PDF, JPG/JPEG, PNG, WEBP; max 10 MB; validate extension, MIME and magic bytes; reject empty/corrupt/mismatched files; generate server-side names; block path traversal; calculate SHA-256.
+- [x] **M** Implement authenticated metadata list/detail/download endpoints with resource-level authorization. Never serve private files directly from the public web root.
+- [x] **M** Keep original filename as metadata only; avoid returning internal storage paths.
+- [x] **M** Preserve each prior submitted document version; link the version reviewed/approved to its workflow evidence where feasible.
 - [ ] **O** Image dimension limits or additional PDF hardening beyond baseline validation, if compatible with available libraries.
 
 ### Definition of Done
-- [ ] Institution Officer can create a draft, attach a valid document, view it through authorized APIs, edit permitted fields, and submit it.
-- [ ] Invalid fields/files and over-limit files are rejected with consistent errors.
-- [ ] A document's SHA-256 is persisted and the previous document remains available after a replacement/correction upload.
-- [ ] Unauthorized cross-institution document download fails.
-- [ ] Submission is `SUBMITTED`, not silently `UNDER_VERIFICATION`.
+- [x] Institution Officer can create a draft, attach a valid document, view it through authorized APIs, edit permitted fields, and submit it.
+- [x] Invalid fields/files and over-limit files are rejected with consistent errors.
+- [x] A document's SHA-256 is persisted and the previous document remains available after a replacement/correction upload.
+- [x] Unauthorized cross-institution document download fails.
+- [x] Submission is `SUBMITTED`, not silently `UNDER_VERIFICATION`.
 
 ### Verification commands / procedures
 Run backend tests and any file-security tests. Upload one valid file of each supported type if sample fixtures exist; otherwise test at least PDF and one image plus negative fixtures. Test empty, corrupt, extension/MIME/signature mismatch, unsupported type, path-traversal filename, and a file over 10 MB. Recompute SHA-256 of a stored test file and compare to metadata. Confirm the download route requires authentication and refuses cross-institution IDs. Submit a draft and assert status `SUBMITTED` and audit history; try submit from an invalid state and assert `409 INVALID_STATUS_TRANSITION`.
