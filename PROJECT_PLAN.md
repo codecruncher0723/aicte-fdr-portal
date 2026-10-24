@@ -129,9 +129,9 @@ Execution notes:
 **Dependencies:** Phase 1 stack/repository inspection complete.
 
 ### Tasks
-- [ ] **M** Reuse the existing relational database/ORM if present; choose SQLite only if it fits the existing stack and local demo constraints. Do not switch database technology without a concrete blocker.
-- [ ] **M** Model institutions, users, roles, FDR records, documents, verification records, workflow requests, approval records, audit logs, and notifications if feasible. Keep request type (`RENEWAL`, `RELEASE_REFUND`) and request status separate from FDR status.
-- [ ] **M** Add keys/relationships and constraints: exactly one of `fdr_id` or `request_id` per approval record; required fields; positive deposit amount; maturity date not earlier than issue date; foreign keys; timestamps.
+- [x] **M** Reuse the existing relational database/ORM if present; choose SQLite only if it fits the existing stack and local demo constraints. Do not switch database technology without a concrete blocker.
+- [x] **M** Model institutions, users, roles, FDR records, documents, verification records, workflow requests, approval records, audit logs, and notifications if feasible. Keep request type (`RENEWAL`, `RELEASE_REFUND`) and request status separate from FDR status.
+- [x] **M** Add keys/relationships and constraints: exactly one of `fdr_id` or `request_id` per approval record; required fields; positive deposit amount; maturity date not earlier than issue date; foreign keys; timestamps.
 - [ ] **M** Store document metadata, relative private-storage reference, and SHA-256 hash; never store public URLs or expose raw storage paths through APIs.
 - [ ] **M** Add append-only verification/approval history and auditable status history sufficient to retain old FDR values/documents on renewal.
 - [ ] **M** Preserve provenance for critical FDR fields where practical: source category, actor, timestamp, previous/new value, and reason for changes. Never label data `BANK_CONFIRMED` without an actual authoritative bank confirmation.
@@ -152,6 +152,15 @@ Use the migration and seed commands discovered in Phase 1. Verify from a clean t
 ### Dependencies and blockers
 - Depends on the actual framework/database discovered in Phase 1.
 - Blockers: no migration mechanism, missing DB driver/service, or unresolved legacy schema conflicts. Keep schema changes minimal and migration-backed; do not edit production data directly.
+
+Execution notes (Phase 2 Tasks 1-3):
+- **Database Selection & Setup**: Inspected repository: no existing database or ORM was present. Selected SQLite (SQLAlchemy 2.0.52 + Python 3.14.2) perfectly matching local standalone demo constraints with zero external service dependencies.
+- **Engine & Configuration**: Created `backend/app/config.py` and `backend/app/database.py` with automatic `PRAGMA foreign_keys=ON` connection event listener for strict relational integrity enforcement.
+- **Verification**: Created `backend/run_tests.py` and `backend/tests/test_database.py`. Ran tests via pytest: 3/3 passed in 0.58s (`test_database_connection`, `test_foreign_keys_pragma_enabled`, `test_session_lifecycle`). Frontend build remains passing (`vite build` in 2.94s, exit code 0).
+- **Core Database Models**: Created modular SQLAlchemy models in `backend/app/models/`: `Institution`, `User`, `FDR`, `FieldProvenance`, `DocumentVersion`, `WorkflowRequest`, `VerificationRecord`, `ApprovalRecord`, `AuditLog`, and `Notification`.
+- **Canonical Enums**: Defined `UserRole` (4 roles), `FDRStatus` (14 statuses), `RequestType` (RENEWAL, RELEASE_REFUND), `RenewalStatus` (8 statuses), `ReleaseStatus` (9 statuses), `DiscrepancySeverity`, and `ProvenanceSource`.
+- **Relational Integrity & Check Constraints**: Enforced `amount > 0` (`chk_fdr_amount_positive`), `maturity_date >= issue_date` (`chk_fdr_maturity_after_issue`), `length(sha256_hash) == 64` (`chk_doc_hash_length`), `file_size > 0` (`chk_doc_size_positive`), and exclusive target check on approval records (`chk_approval_target_exclusive`). Foreign keys enforced via SQLite connection event.
+- **Verification Suite**: Created `backend/tests/test_models.py`. Ran pytest: 10/10 passed in 0.83s. Verified invalid amounts, reversed maturity dates, non-existent foreign keys, invalid document hashes, and dual/null approval targets are strictly rejected. Verified renewal and release requests coexist while preserving distinct FDR status. Frontend build passes (`npm run build` exit code 0).
 
 ---
 
