@@ -425,19 +425,19 @@ Run integration tests for create, start verification, correction/resubmit, appro
 **Dependencies:** Phases 2–7, shared request verification/approval and secure document handling.
 
 ### Tasks
-- [ ] **M** Implement release request creation `POST /api/v1/fdrs/{fdr_id}/release-requests` → `REQUESTED`, requiring reason and configured supporting document(s).
-- [ ] **M** Reuse shared start-verification, verification/correction/resubmit/cancel and approval actions; enforce request-type-specific validation.
-- [ ] **M** Approval moves request to `RELEASE_APPROVED`, never directly to `RELEASED_REFUNDED`.
-- [ ] **M** Implement `POST /api/v1/requests/{request_id}/release-confirmation/ready`: `RELEASE_APPROVED → AWAITING_CONFIRMATION`.
-- [ ] **M** Implement `POST /api/v1/requests/{request_id}/release-confirmation`: only from `AWAITING_CONFIRMATION`; record reference, actor, timestamp, remarks, audit event, and `RELEASED_REFUNDED` atomically.
-- [ ] **M** Do not transfer funds or imply bank confirmation. Label demo confirmation as `DEMO`/`SIMULATED`; only close underlying FDR if an explicitly configured closure policy permits it, otherwise leave as not closed and document the TBD rule.
-- [ ] **O** Add an optional evidence attachment to the confirmation record if existing document architecture supports it safely.
+- [x] **M** Implement release request creation `POST /api/v1/fdrs/{fdr_id}/release-requests` → `REQUESTED`, requiring reason and configured supporting document(s).
+- [x] **M** Reuse shared start-verification, verification/correction/resubmit/cancel and approval actions; enforce request-type-specific validation.
+- [x] **M** Approval moves request to `RELEASE_APPROVED`, never directly to `RELEASED_REFUNDED`.
+- [x] **M** Implement `POST /api/v1/requests/{request_id}/release-confirmation/ready`: `RELEASE_APPROVED → AWAITING_CONFIRMATION`.
+- [x] **M** Implement `POST /api/v1/requests/{request_id}/release-confirmation`: only from `AWAITING_CONFIRMATION`; record reference, actor, timestamp, remarks, audit event, and `RELEASED_REFUNDED` atomically.
+- [x] **M** Do not transfer funds or imply bank confirmation. Label demo confirmation as `DEMO`/`SIMULATED`; only close underlying FDR if an explicitly configured closure policy permits it, otherwise leave as not closed and document the TBD rule.
+- [x] **O** Add an optional evidence attachment to the confirmation record if existing document architecture supports it safely.
 
 ### Definition of Done
-- [ ] Release workflow reaches `RELEASED_REFUNDED` only after readiness and explicit confirmation actions.
-- [ ] Confirmation cannot be recorded from `RELEASE_APPROVED` or any other invalid state.
-- [ ] Approval alone does not imply funds moved; request rejection leaves underlying FDR status unchanged.
-- [ ] Confirmation and audit history are atomic and confirmation is visibly simulated unless a real integration is proven.
+- [x] Release workflow reaches `RELEASED_REFUNDED` only after readiness and explicit confirmation actions.
+- [x] Confirmation cannot be recorded from `RELEASE_APPROVED` or any other invalid state.
+- [x] Approval alone does not imply funds moved; request rejection leaves underlying FDR status unchanged.
+- [x] Confirmation and audit history are atomic and confirmation is visibly simulated unless a real integration is proven.
 
 ### Verification commands / procedures
 Run API/integration tests through request creation, verification, approval, readiness, and confirmation. Assert status sequence `REQUESTED → UNDER_VERIFICATION → PENDING_APPROVAL → RELEASE_APPROVED → AWAITING_CONFIRMATION → RELEASED_REFUNDED`. Attempt confirmation before readiness and repeat confirmation; assert `409` and no duplicate/partial audit state. Verify reference, actor and timestamp are saved. Confirm no payment/bank API call is made by the demo path.

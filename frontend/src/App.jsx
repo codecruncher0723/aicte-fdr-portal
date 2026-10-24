@@ -134,9 +134,22 @@ function MainRouter() {
     }
   }, []);
 
+  // Load Release Requests from backend API
+  const loadReleaseRequests = useCallback(async () => {
+    try {
+      const data = await apiClient.getRequests({ request_type: 'RELEASE_REFUND' });
+      if (Array.isArray(data)) {
+        setReleaseRequests(data);
+      }
+    } catch (err) {
+      console.warn('Could not load backend release requests:', err.message);
+    }
+  }, []);
+
   useEffect(() => {
     loadFdrs();
-  }, [loadFdrs, currentUser?.userId]);
+    loadReleaseRequests();
+  }, [loadFdrs, loadReleaseRequests, currentUser?.userId]);
 
   // Sync selected FDR when ref changes
   useEffect(() => {

@@ -323,6 +323,41 @@ export const apiClient = {
     });
   },
 
+  async createReleaseRequest(fdrId, data) {
+    return await apiFetch('/api/v1/fdrs/' + fdrId + '/release-requests', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async resubmitWorkflowRequest(requestId, data = {}) {
+    return await apiFetch('/api/v1/requests/' + requestId + '/resubmit', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async cancelWorkflowRequest(requestId, data) {
+    return await apiFetch('/api/v1/requests/' + requestId + '/cancel', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async setReleaseReadiness(requestId, data = {}) {
+    return await apiFetch('/api/v1/requests/' + requestId + '/release-confirmation/ready', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async confirmReleaseDisbursement(requestId, data) {
+    return await apiFetch('/api/v1/requests/' + requestId + '/release-confirmation', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
   async getDuplicateCandidates(fdrId) {
     return await apiFetch(`/api/v1/fdrs/${fdrId}/duplicate-candidates`);
   },

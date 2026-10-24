@@ -1,10 +1,12 @@
 """
-Workflow Verification & Approval Operations Router.
-Enforces Section 8.3 & 8.5 of REQUIREMENTS_UPDATED.md:
+Workflow Verification, Approval, Renewal & Release Operations Router.
+Enforces Section 8.3, 8.5 & 8.6 of REQUIREMENTS_UPDATED.md:
 - Role boundaries: Scrutiny/Verification is strictly reserved for VERIFICATION_OFFICER.
 - Role boundaries: Final Approval is strictly reserved for APPROVING_AUTHORITY.
 - Separation of duties: Submitter CANNOT verify or approve their own submission.
-- Renewal creation and completion for authorized Institution Officers.
+- Renewal creation, verification, approval, and transactional completion.
+- Release creation, verification, approval, readiness staging, and disbursement confirmation.
+- Status invariants: Readiness only from RELEASE_APPROVED; Confirmation only from AWAITING_CONFIRMATION.
 - Rejection of unauthenticated requests with 401 Unauthorized.
 - Rejection of unauthorized roles with 403 Forbidden.
 - Discrepancy flagging: RENEWAL_DETAILS_DIFFER_FROM_CURRENT_RECORD.
@@ -23,6 +25,7 @@ from app.models.enums import (
     FDRStatus,
     RequestType,
     RenewalStatus,
+    ReleaseStatus,
     DiscrepancyCode,
 )
 from app.models.fdr import FDR
@@ -37,6 +40,7 @@ from app.auth import (
     enforce_separation_of_duties,
 )
 from app.history import (
+    record_status_transition,
     record_verification_decision,
     record_approval_decision,
     complete_fdr_renewal,
@@ -45,8 +49,12 @@ from app.history import (
     InvalidStatusTransitionError,
 )
 
-router = APIRouter(prefix="/api/v1", tags=["Workflow Verification & Approval"])
+router = APIRouter(prefix="/api/v1", tags=["Workflow Verification, Approval & Requests"])
 
+
+# =====================================================================
+# Request Schemas
+# =====================================================================
 
 class VerificationRequest(BaseModel):
     decision: str = Field(..., description="VERIFIED, CORRECTION_REQUIRED, or REJECTED")
@@ -85,6 +93,31 @@ class RenewalCompleteRequest(BaseModel):
     remarks: Optional[str] = Field(None, description="Completion remarks")
 
 
+class ReleaseCreateRequest(BaseModel):
+    reason: str = Field(..., min_length=3, description="Statutory justification for release or refund")
+    supporting_document_id: Optional[int] = Field(None, description="Uploaded governing body closure/surrender document ID")
+    applicant_notes: Optional[str] = Field(None, description="Additional notes from applicant institution")
+
+
+class ReleaseReadinessRequest(BaseModel):
+    remarks: Optional[str] = Field(None, description="Readiness remarks confirming readiness for disbursement recording")
+
+
+class ReleaseConfirmationRequest(BaseModel):
+    confirmation_reference: str = Field(..., min_length=3, description="Bank voucher or UTR confirmation reference (e.g. UTR-SBI-2026-9901)")
+    remarks: Optional[str] = Field(None, description="Disbursement confirmation remarks")
+    voucher_document_id: Optional[int] = Field(None, description="Uploaded payment confirmation advice document ID")
+
+
+class RequestResubmitRequest(BaseModel):
+    remarks: Optional[str] = Field(None, description="Clarification / resubmission remarks")
+    supporting_document_id: Optional[int] = Field(None, description="Amended document version ID")
+
+
+class RequestCancelRequest(BaseModel):
+    reason: str = Field(..., min_length=3, description="Cancellation reason")
+
+
 def _extract_proposed_details(req_obj: WorkflowRequest) -> Dict[str, Any]:
     """Helper to parse proposed renewal details and compute discrepancy flags."""
     prop_details: Dict[str, Any] = {}
@@ -118,7 +151,7 @@ def _extract_proposed_details(req_obj: WorkflowRequest) -> Dict[str, Any]:
 
 
 # =====================================================================
-# Verification & Approval for initial FDR
+# Verification & Approval for Initial FDR Submissions
 # =====================================================================
 
 @router.get("/verifications/pending", summary="List items pending scrutiny and verification")
@@ -256,7 +289,7 @@ def approve_fdr(
 
 
 # =====================================================================
-# Renewal Requests & Workflow Operations
+# Renewal Requests & Operations
 # =====================================================================
 
 @router.post("/fdrs/{fdr_id}/renewals", status_code=status.HTTP_201_CREATED, summary="Create renewal request for an FDR")
@@ -268,10 +301,6 @@ def create_renewal_request(
 ):
     """
     Creates a new renewal request for an eligible FDR.
-    - Role: INSTITUTION_OFFICER (or AICTE_ADMIN).
-    - Strict institution isolation: Cannot initiate renewal for another institution's FDR.
-    - Validates proposed maturity date is not earlier than current issue/maturity date.
-    - Checks whether renewal details differ from current record and flags accordingly.
     """
     if current_user.role not in (UserRole.INSTITUTION_OFFICER.value, UserRole.AICTE_ADMIN.value):
         raise HTTPException(
@@ -285,14 +314,12 @@ def create_renewal_request(
 
     enforce_institution_isolation(user=current_user, target_institution_id=fdr.institution_id)
 
-    # Ineligible statuses
     if fdr.status in (FDRStatus.REJECTED.value, FDRStatus.CLOSED.value, FDRStatus.DRAFT.value):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot initiate renewal on FDR in '{fdr.status}' status.",
         )
 
-    # Date sanity checks
     if fdr.issue_date and req.proposed_maturity_date < fdr.issue_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -304,7 +331,6 @@ def create_renewal_request(
             detail="Proposed maturity date must extend beyond the current maturity date.",
         )
 
-    # Check for discrepancy: details differ from current record
     prop_fdr_num = (req.proposed_fdr_number or fdr.fdr_number).strip()
     prop_rate = (req.proposed_interest_rate or fdr.interest_rate or "").strip()
     differ_flag = (
@@ -313,7 +339,6 @@ def create_renewal_request(
         or (prop_rate != (fdr.interest_rate or ""))
     )
 
-    # Store serialized metadata
     meta = {
         "proposed_maturity_date": str(req.proposed_maturity_date),
         "proposed_fdr_number": prop_fdr_num,
@@ -334,13 +359,11 @@ def create_renewal_request(
     session.add(workflow_req)
     session.flush()
 
-    # Link supporting document if provided
     if req.supporting_document_id:
         doc = session.query(DocumentVersion).filter_by(id=req.supporting_document_id).first()
         if doc:
             doc.request_id = workflow_req.id
 
-    # Record audit log
     audit = AuditLog(
         actor_id=current_user.id,
         actor_name=current_user.full_name,
@@ -368,6 +391,105 @@ def create_renewal_request(
     }
 
 
+# =====================================================================
+# Release & Refund Requests & Operations
+# =====================================================================
+
+@router.post("/fdrs/{fdr_id}/release-requests", status_code=status.HTTP_201_CREATED, summary="Create release and refund request for an FDR")
+def create_release_request(
+    fdr_id: int,
+    req: ReleaseCreateRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    Creates a new release/refund request for an eligible FDR.
+    - Role: INSTITUTION_OFFICER (or AICTE_ADMIN).
+    - Strict institution isolation: Cannot initiate release for another institution's FDR.
+    - Eligible statuses: ACTIVE, MATURING_SOON, MATURED.
+    - Prevents duplicate active release requests on the same FDR.
+    """
+    if current_user.role not in (UserRole.INSTITUTION_OFFICER.value, UserRole.AICTE_ADMIN.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Access forbidden: role '{current_user.role}' cannot create release requests.",
+        )
+
+    fdr = session.query(FDR).filter_by(id=fdr_id).first()
+    if not fdr:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"FDR {fdr_id} not found.")
+
+    enforce_institution_isolation(user=current_user, target_institution_id=fdr.institution_id)
+
+    if fdr.status in (FDRStatus.DRAFT.value, FDRStatus.REJECTED.value, FDRStatus.CLOSED.value, FDRStatus.RELEASED_REFUNDED.value):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot initiate release request on FDR in '{fdr.status}' status.",
+        )
+
+    # Prevent duplicate active release request
+    existing_active = (
+        session.query(WorkflowRequest)
+        .filter(
+            WorkflowRequest.fdr_id == fdr.id,
+            WorkflowRequest.request_type == RequestType.RELEASE_REFUND.value,
+            WorkflowRequest.status.notin_([
+                ReleaseStatus.RELEASED_REFUNDED.value,
+                ReleaseStatus.REJECTED.value,
+                ReleaseStatus.CANCELLED.value,
+            ])
+        )
+        .first()
+    )
+    if existing_active:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"An active release request (#{existing_active.id}) already exists for FDR {fdr.fdr_number} (status: '{existing_active.status}').",
+        )
+
+    workflow_req = WorkflowRequest(
+        fdr_id=fdr.id,
+        request_type=RequestType.RELEASE_REFUND.value,
+        status=ReleaseStatus.REQUESTED.value,
+        reason=req.reason,
+        applicant_notes=req.applicant_notes,
+        created_by_id=current_user.id,
+    )
+    session.add(workflow_req)
+    session.flush()
+
+    if req.supporting_document_id:
+        doc = session.query(DocumentVersion).filter_by(id=req.supporting_document_id).first()
+        if doc:
+            doc.request_id = workflow_req.id
+
+    audit = AuditLog(
+        actor_id=current_user.id,
+        actor_name=current_user.full_name,
+        actor_role=current_user.role,
+        action="RELEASE_REQUEST_CREATED",
+        target_type="REQUEST",
+        target_id=str(workflow_req.id),
+        details=f"Release & refund request created for FDR {fdr.fdr_number}. Reason: {req.reason}",
+    )
+    session.add(audit)
+    session.commit()
+
+    return {
+        "request_id": workflow_req.id,
+        "fdr_id": fdr.id,
+        "request_type": workflow_req.request_type,
+        "status": workflow_req.status,
+        "reason": workflow_req.reason,
+        "created_by_id": workflow_req.created_by_id,
+        "created_at": workflow_req.created_at.isoformat() if workflow_req.created_at else None,
+    }
+
+
+# =====================================================================
+# Workflow Requests Listing & Detail
+# =====================================================================
+
 @router.get("/requests", summary="List workflow requests scoped by role and institution")
 def list_workflow_requests(
     request_type: Optional[str] = Query(None),
@@ -379,8 +501,6 @@ def list_workflow_requests(
 ):
     """
     Returns workflow requests scoped by role and institution.
-    - Institution Officers can view ONLY their own institution's requests.
-    - AICTE Admin, Verifiers, and Approvers have oversight.
     """
     query = session.query(WorkflowRequest).join(FDR, WorkflowRequest.fdr_id == FDR.id)
 
@@ -424,6 +544,9 @@ def list_workflow_requests(
             "applicant_notes": r.applicant_notes,
             "officer_remarks": r.officer_remarks,
             "council_order_ref": r.council_order_ref,
+            "readiness_remarks": r.readiness_remarks,
+            "confirmation_reference": r.confirmation_reference,
+            "confirmation_timestamp": r.confirmation_timestamp.isoformat() if r.confirmation_timestamp else None,
             "proposed_details": parsed_info["proposed_details"],
             "discrepancy_flags": parsed_info["discrepancy_flags"],
             "created_by_id": r.created_by_id,
@@ -471,6 +594,9 @@ def get_workflow_request(
         "applicant_notes": req_obj.applicant_notes,
         "officer_remarks": req_obj.officer_remarks,
         "council_order_ref": req_obj.council_order_ref,
+        "readiness_remarks": req_obj.readiness_remarks,
+        "confirmation_reference": req_obj.confirmation_reference,
+        "confirmation_timestamp": req_obj.confirmation_timestamp.isoformat() if req_obj.confirmation_timestamp else None,
         "proposed_details": parsed_info["proposed_details"],
         "discrepancy_flags": parsed_info["discrepancy_flags"],
         "created_by_id": req_obj.created_by_id,
@@ -478,6 +604,10 @@ def get_workflow_request(
         "updated_at": req_obj.updated_at.isoformat() if req_obj.updated_at else None,
     }
 
+
+# =====================================================================
+# Shared Actions: Verification, Approval, Resubmission, Cancellation
+# =====================================================================
 
 @router.post("/requests/{request_id}/start-verification", summary="Claim workflow request for verification review")
 def start_request_verification(
@@ -503,13 +633,13 @@ def start_request_verification(
 
     enforce_separation_of_duties(actor=current_user, submitter_id=req_obj.created_by_id, action="verify")
 
-    if req_obj.status != RenewalStatus.REQUESTED.value:
+    if req_obj.status != "REQUESTED":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Cannot claim verification on request in '{req_obj.status}' status. Must be 'REQUESTED'.",
         )
 
-    req_obj.status = RenewalStatus.UNDER_VERIFICATION.value
+    req_obj.status = "UNDER_VERIFICATION"
 
     audit = AuditLog(
         actor_id=current_user.id,
@@ -580,6 +710,119 @@ def verify_workflow_request(
     }
 
 
+@router.post("/requests/{request_id}/resubmit", summary="Resubmit corrected workflow request")
+def resubmit_workflow_request(
+    request_id: int,
+    req: RequestResubmitRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    Resubmits a workflow request that was returned for clarification.
+    - Role: Owning INSTITUTION_OFFICER (or AICTE_ADMIN).
+    - Status invariant: Request must be in 'CORRECTION_REQUIRED'.
+    - Moves request back to 'REQUESTED'.
+    """
+    if current_user.role not in (UserRole.INSTITUTION_OFFICER.value, UserRole.AICTE_ADMIN.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Access forbidden: role '{current_user.role}' cannot resubmit requests.",
+        )
+
+    req_obj = session.query(WorkflowRequest).filter_by(id=request_id).first()
+    if not req_obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Workflow request {request_id} not found.")
+
+    if req_obj.fdr:
+        enforce_institution_isolation(user=current_user, target_institution_id=req_obj.fdr.institution_id)
+
+    if req_obj.status != "CORRECTION_REQUIRED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot resubmit request in '{req_obj.status}' status. Must be 'CORRECTION_REQUIRED'.",
+        )
+
+    req_obj.status = "REQUESTED"
+    if req.remarks:
+        req_obj.applicant_notes = (req_obj.applicant_notes or "") + f" [Resubmitted: {req.remarks}]"
+
+    if req.supporting_document_id:
+        doc = session.query(DocumentVersion).filter_by(id=req.supporting_document_id).first()
+        if doc:
+            doc.request_id = req_obj.id
+
+    audit = AuditLog(
+        actor_id=current_user.id,
+        actor_name=current_user.full_name,
+        actor_role=current_user.role,
+        action="REQUEST_RESUBMITTED",
+        target_type="REQUEST",
+        target_id=str(req_obj.id),
+        details=f"Request {req_obj.id} resubmitted with remarks: {req.remarks or 'N/A'}",
+    )
+    session.add(audit)
+    session.commit()
+
+    return {
+        "request_id": req_obj.id,
+        "status": req_obj.status,
+    }
+
+
+@router.post("/requests/{request_id}/cancel", summary="Cancel pending workflow request")
+def cancel_workflow_request(
+    request_id: int,
+    req: RequestCancelRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    Cancels a workflow request before scrutiny starts.
+    - Role: Owning INSTITUTION_OFFICER (or AICTE_ADMIN).
+    - Status invariant: Request must be in 'REQUESTED'.
+    - Moves request to 'CANCELLED'.
+    """
+    if current_user.role not in (UserRole.INSTITUTION_OFFICER.value, UserRole.AICTE_ADMIN.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Access forbidden: role '{current_user.role}' cannot cancel requests.",
+        )
+
+    req_obj = session.query(WorkflowRequest).filter_by(id=request_id).first()
+    if not req_obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Workflow request {request_id} not found.")
+
+    if req_obj.fdr:
+        enforce_institution_isolation(user=current_user, target_institution_id=req_obj.fdr.institution_id)
+
+    if req_obj.status != "REQUESTED":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Cannot cancel request in '{req_obj.status}' status. Verification has already started or request is inactive.",
+        )
+
+    req_obj.status = "CANCELLED"
+    req_obj.officer_remarks = f"Cancelled: {req.reason}"
+
+    audit = AuditLog(
+        actor_id=current_user.id,
+        actor_name=current_user.full_name,
+        actor_role=current_user.role,
+        action="REQUEST_CANCELLED",
+        target_type="REQUEST",
+        target_id=str(req_obj.id),
+        details=f"Request {req_obj.id} cancelled by institution. Reason: {req.reason}",
+    )
+    session.add(audit)
+    session.commit()
+
+    return {
+        "request_id": req_obj.id,
+        "status": req_obj.status,
+        "reason": req.reason,
+    }
+
+
 @router.post("/requests/{request_id}/approval", summary="Record workflow request approval decision")
 def approve_workflow_request(
     request_id: int,
@@ -635,6 +878,166 @@ def approve_workflow_request(
     }
 
 
+# =====================================================================
+# Release Readiness & Confirmation Endpoints
+# =====================================================================
+
+@router.post("/requests/{request_id}/release-confirmation/ready", summary="Stage release request as ready for confirmation")
+def set_release_readiness(
+    request_id: int,
+    req: ReleaseReadinessRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    Stages an approved release request as ready for confirmation:
+    - Role: APPROVING_AUTHORITY or AICTE_ADMIN.
+    - Status invariant: Request must be in 'RELEASE_APPROVED' status.
+      Attempting confirmation before readiness or from an invalid state returns 409 Conflict.
+    - Transitions RELEASE_APPROVED -> AWAITING_CONFIRMATION.
+    - Note: This action confirms administrative readiness only; no funds move.
+    """
+    if current_user.role not in (UserRole.APPROVING_AUTHORITY.value, UserRole.AICTE_ADMIN.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Access forbidden: role '{current_user.role}' cannot stage release readiness.",
+        )
+
+    req_obj = session.query(WorkflowRequest).filter_by(id=request_id).first()
+    if not req_obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Workflow request {request_id} not found.")
+
+    if req_obj.request_type != RequestType.RELEASE_REFUND.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Readiness staging is only applicable to release/refund requests.",
+        )
+
+    if req_obj.status != ReleaseStatus.RELEASE_APPROVED.value:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Invalid transition: request must be in 'RELEASE_APPROVED' status to stage readiness (current status: '{req_obj.status}').",
+        )
+
+    req_obj.status = ReleaseStatus.AWAITING_CONFIRMATION.value
+    req_obj.readiness_remarks = req.remarks or "Supporting confirmation details ready for recording."
+
+    if req_obj.fdr:
+        record_status_transition(
+            session=session,
+            fdr=req_obj.fdr,
+            to_status=FDRStatus.AWAITING_CONFIRMATION.value,
+            actor=current_user,
+            reason=req.remarks or "Release readiness staged",
+            request=req_obj,
+            transition_type="RELEASE_WORKFLOW",
+        )
+
+    audit = AuditLog(
+        actor_id=current_user.id,
+        actor_name=current_user.full_name,
+        actor_role=current_user.role,
+        action="RELEASE_READINESS_CONFIRMED",
+        target_type="REQUEST",
+        target_id=str(req_obj.id),
+        details=f"Release readiness staged for request {req_obj.id}. Status moved to AWAITING_CONFIRMATION (No funds moved).",
+    )
+    session.add(audit)
+    session.commit()
+
+    return {
+        "request_id": req_obj.id,
+        "status": req_obj.status,
+    }
+
+
+@router.post("/requests/{request_id}/release-confirmation", summary="Record disbursement confirmation reference")
+def confirm_release_disbursement(
+    request_id: int,
+    req: ReleaseConfirmationRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    Records disbursement confirmation reference:
+    - Role: APPROVING_AUTHORITY or AICTE_ADMIN.
+    - Status invariant: Request must be in 'AWAITING_CONFIRMATION'.
+      Calling from any other status (including RELEASE_APPROVED) returns 409 Conflict.
+    - Transitions AWAITING_CONFIRMATION -> RELEASED_REFUNDED.
+    - Discloses demo simulation: Records voucher reference without actual fund transfer.
+    """
+    if current_user.role not in (UserRole.APPROVING_AUTHORITY.value, UserRole.AICTE_ADMIN.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Access forbidden: role '{current_user.role}' cannot record release confirmation.",
+        )
+
+    req_obj = session.query(WorkflowRequest).filter_by(id=request_id).first()
+    if not req_obj:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Workflow request {request_id} not found.")
+
+    if req_obj.request_type != RequestType.RELEASE_REFUND.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Release confirmation is only applicable to release/refund requests.",
+        )
+
+    if req_obj.status != ReleaseStatus.AWAITING_CONFIRMATION.value:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Invalid transition: cannot confirm release from status '{req_obj.status}'. Readiness must be confirmed first (status must be 'AWAITING_CONFIRMATION').",
+        )
+
+    now_ts = datetime.now(timezone.utc)
+    req_obj.status = ReleaseStatus.RELEASED_REFUNDED.value
+    req_obj.confirmation_reference = req.confirmation_reference
+    req_obj.confirmation_timestamp = now_ts
+    if req.remarks:
+        req_obj.officer_remarks = req.remarks
+
+    if req_obj.fdr:
+        record_status_transition(
+            session=session,
+            fdr=req_obj.fdr,
+            to_status=FDRStatus.RELEASED_REFUNDED.value,
+            actor=current_user,
+            reason=f"Disbursement confirmed (Ref: {req.confirmation_reference})",
+            request=req_obj,
+            transition_type="RELEASE_CONFIRMATION",
+        )
+
+    if req.voucher_document_id:
+        doc = session.query(DocumentVersion).filter_by(id=req.voucher_document_id).first()
+        if doc:
+            doc.request_id = req_obj.id
+
+    audit = AuditLog(
+        actor_id=current_user.id,
+        actor_name=current_user.full_name,
+        actor_role=current_user.role,
+        action="RELEASE_CONFIRMATION_RECORDED",
+        target_type="REQUEST",
+        target_id=str(req_obj.id),
+        details=f"Disbursement confirmation recorded with reference {req.confirmation_reference} (SIMULATED/DEMO). Status moved to RELEASED_REFUNDED.",
+    )
+    session.add(audit)
+    session.commit()
+
+    return {
+        "request_id": req_obj.id,
+        "status": req_obj.status,
+        "confirmation_reference": req_obj.confirmation_reference,
+        "confirmed_by": current_user.id,
+        "confirmed_at": req_obj.confirmation_timestamp.isoformat(),
+        "fdr_status": req_obj.fdr.status if req_obj.fdr else None,
+        "is_simulated": True,
+    }
+
+
+# =====================================================================
+# Renewal Completion
+# =====================================================================
+
 @router.post("/requests/{request_id}/complete", summary="Complete approved renewal and update FDR transactionally")
 def complete_renewal_endpoint(
     request_id: int,
@@ -674,7 +1077,6 @@ def complete_renewal_endpoint(
             detail=f"Cannot complete renewal from status '{req_obj.status}'. Request must be 'APPROVED'.",
         )
 
-    # Date sanity check
     if req_obj.fdr and req_obj.fdr.issue_date and req.renewed_maturity_date < req_obj.fdr.issue_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
