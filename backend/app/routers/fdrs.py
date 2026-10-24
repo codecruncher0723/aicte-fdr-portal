@@ -27,6 +27,12 @@ from app.auth import (
     enforce_separation_of_duties,
 )
 from app.history import record_status_transition
+from app.duplicate_detection import (
+    find_duplicate_candidates,
+    build_duplicate_discrepancy,
+    resolve_scope,
+    DuplicateScope,
+)
 
 router = APIRouter(prefix="/api/v1/fdrs", tags=["FDR Records"])
 
@@ -109,6 +115,18 @@ class FDRUpdateRequest(BaseModel):
     institution_id: Optional[int] = None
     created_by: Optional[int] = None
     created_by_id: Optional[int] = None
+
+
+class DuplicateCheckRequest(BaseModel):
+    fdr_number: str = Field(..., min_length=1)
+    bank_name: Optional[str] = None
+    issuing_bank: Optional[str] = None
+    institution_id: Optional[int] = None
+    amount: Optional[float] = None
+    deposit_amount: Optional[float] = None
+    issue_date: Optional[date] = None
+    exclude_fdr_id: Optional[int] = None
+    scope: Optional[str] = None
 
 
 class StatusTransitionRequest(BaseModel):
@@ -214,6 +232,52 @@ def list_fdrs(
         "page": page,
         "limit": limit,
         "total": total,
+    }
+
+
+@router.post("/check-duplicates", summary="Check prospective FDR fields for duplicate candidates")
+def check_prospective_duplicates(
+    req: DuplicateCheckRequest,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    Evaluates duplicate candidates for prospective or in-progress FDR records.
+    Derives or isolates institution_id for Institution Officers.
+    Never rejects records or enforces uniqueness. Returns candidate records and discrepancy details.
+    """
+    if current_user.role == UserRole.INSTITUTION_OFFICER.value:
+        inst_id = derive_institution_id(current_user)
+    else:
+        inst_id = req.institution_id
+
+    try:
+        effective_scope = resolve_scope(req.scope)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    fdr_payload = {
+        "fdr_number": req.fdr_number,
+        "bank_name": req.bank_name or req.issuing_bank,
+        "institution_id": inst_id,
+        "amount": req.amount if req.amount is not None else req.deposit_amount,
+        "issue_date": req.issue_date,
+    }
+
+    candidates = find_duplicate_candidates(
+        session=session,
+        fdr=fdr_payload,
+        exclude_fdr_id=req.exclude_fdr_id,
+        scope=effective_scope,
+    )
+    discrepancy = build_duplicate_discrepancy(candidates, effective_scope)
+
+    return {
+        "configured_scope": effective_scope,
+        "has_candidates": len(candidates) > 0,
+        "candidate_count": len(candidates),
+        "discrepancy": discrepancy,
+        "candidates": candidates,
     }
 
 
@@ -720,3 +784,51 @@ def get_fdr_audit_logs(
         }
         for l in logs
     ]
+
+@router.get("/{fdr_id}/duplicate-candidates", summary="Get configurable duplicate candidate records for an FDR")
+def get_fdr_duplicate_candidates(
+    fdr_id: int,
+    scope: Optional[str] = Query(None, description="Optional override of detection scope"),
+    include_rejected: bool = Query(False, description="Whether to include rejected records in candidate evaluation"),
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    """
+    Evaluates potential duplicate FDR candidates under the configured or specified uniqueness scope.
+    Enforces resource-level authorization:
+    - Target FDR must exist (404 Not Found).
+    - Institution Officers can only inspect their own institution's FDRs (403 Forbidden).
+    - AICTE_ADMIN, VERIFICATION_OFFICER, APPROVING_AUTHORITY can inspect any FDR.
+    - If candidates are found, returns discrepancy metadata (DUPLICATE_FDR_CANDIDATE, REVIEW_REQUIRED).
+    - Does NOT reject records or enforce global uniqueness constraint.
+    """
+    fdr = session.query(FDR).filter_by(id=fdr_id).first()
+    if not fdr:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"FDR {fdr_id} not found.")
+
+    enforce_institution_isolation(user=current_user, target_institution_id=fdr.institution_id)
+
+    try:
+        effective_scope = resolve_scope(scope)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    candidates = find_duplicate_candidates(
+        session=session,
+        fdr=fdr,
+        exclude_fdr_id=fdr.id,
+        scope=effective_scope,
+        include_rejected=include_rejected,
+    )
+    discrepancy = build_duplicate_discrepancy(candidates, effective_scope)
+
+    return {
+        "fdr_id": fdr.id,
+        "fdr_number": fdr.fdr_number,
+        "institution_id": fdr.institution_id,
+        "configured_scope": effective_scope,
+        "has_candidates": len(candidates) > 0,
+        "candidate_count": len(candidates),
+        "discrepancy": discrepancy,
+        "candidates": candidates,
+    }
