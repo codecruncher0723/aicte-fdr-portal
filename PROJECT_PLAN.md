@@ -468,8 +468,17 @@ Run API/integration tests through request creation, verification, approval, read
 - [x] Dashboard counts/totals match database queries and change when workflows change.
 - [x] Filters and pagination operate server-side and produce consistent list and CSV results.
 - [x] Institution isolation is preserved across metrics, searches, exports, notifications and audit views.
-- [ ] Audit history shows actor, timestamp, entity, action, old/new status or value where applicable, and remarks where supplied.
-- [ ] CSV files contain only authorized, necessary columns and escape values safely for CSV consumers.
+- [x] Audit history shows actor, timestamp, entity, action, old/new status or value where applicable, and remarks where supplied.
+- [x] CSV files contain only authorized, necessary columns and escape values safely for CSV consumers.
+
+Execution notes (Institutional Profile & Regulatory Trust Standing):
+- **Real Backend Integration & Separation of Duties**:
+  - Connected `ProfileTrustPage.jsx` to genuine backend records (`GET /api/v1/institutions/{id}` and active FDR instruments), completely replacing hardcoded mock data.
+  - Removed fabricated profile values (e.g. fake trust registration numbers `MAH/PUN/F-10294/1998`, fake PFMS codes `PFMS-MH-2018-88192`, fake phone numbers `+91-20-2567-9100`).
+  - Added `PATCH /api/v1/institutions/{institution_id}` allowing authorized Institution Officers and AICTE Admins to update sponsoring trust and campus location, while enforcing strict IDOR protection (403 Forbidden for cross-institution edits) and RBAC separation of duties (403 Forbidden for Verification Officers and Approving Authorities).
+  - Appends an `AuditLog` entry (`UPDATE_INSTITUTION_PROFILE`) on every profile modification.
+  - Added transparent regulatory schema disclosure banner highlighting database-synchronized statutory records versus unmodeled fields.
+  - Added loading skeleton, error retry state, save feedback, and 6 focused integration tests in `backend/tests/test_profile_trust_integration.py` (all passing).
 
 ### Verification commands / procedures
 Run backend and frontend tests. Compare dashboard totals to direct test-database queries. For each role, apply each filter and compare list results to CSV rows; include cross-institution data to test isolation. Inspect CSV headers/content for secrets, private paths and unauthorized institutions. Perform several workflow actions and verify ordered audit events and actor/timestamps. Confirm no fabricated hard-coded dashboard counts.

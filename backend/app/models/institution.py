@@ -38,3 +38,11 @@ class Institution(Base):
                 if u.email:
                     return u.email
         return None
+
+    @property
+    def contact_name(self) -> Optional[str]:
+        if self.users:
+            for u in self.users:
+                if u.full_name:
+                    return u.full_name
+        return None

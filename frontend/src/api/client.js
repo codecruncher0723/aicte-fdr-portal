@@ -412,6 +412,28 @@ export const apiClient = {
     return await res.blob();
   },
 
+  // Institutions API
+  async getInstitutions(params = {}) {
+    const q = new URLSearchParams();
+    if (params.search) q.set('search', params.search);
+    if (params.region && params.region !== 'all') q.set('region', params.region);
+    if (params.status && params.status !== 'all') q.set('status', params.status);
+    if (params.institution_id) q.set('institution_id', params.institution_id);
+    const qs = q.toString() ? `?${q.toString()}` : '';
+    return await apiFetch(`/api/v1/institutions${qs}`);
+  },
+
+  async getInstitution(institutionId) {
+    return await apiFetch(`/api/v1/institutions/${institutionId}`);
+  },
+
+  async updateInstitution(institutionId, data) {
+    return await apiFetch(`/api/v1/institutions/${institutionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
   async downloadRequestsCsv(params = {}) {
     const q = new URLSearchParams();
     if (params.request_type && params.request_type !== 'all') q.set('request_type', params.request_type);
