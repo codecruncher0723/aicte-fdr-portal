@@ -1,0 +1,282 @@
+document_version_id,field_name,value,page,region,confidence,engine,engine_version,data_origin
+DOCVER-FDR-A01-01,fdr_number,FDR/00123,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A01-01,bank_name,Zenith Trust Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A01-01,branch,Central Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A01-01,ifsc,ZTBL0000451,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A01-01,amount,500000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A01-01,issue_date,2026-09-29,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A01-01,maturity_date,2027-09-29,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A01-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A01-01,holder_name,Sahyadri Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A01-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A02-01,fdr_number,fdr 00123,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A02-01,bank_name,Navbharat Co-op Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A02-01,branch,Riverside Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A02-01,ifsc,ZNVB0000452,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A02-01,amount,650000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A02-01,issue_date,2026-06-15,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A02-01,maturity_date,2027-06-15,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A02-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A02-01,holder_name,Dakshin Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A02-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A03-01,fdr_number,FDR-123,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A03-01,bank_name,Gramin Savings Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A03-01,branch,Hillview Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A03-01,ifsc,ZGRB0000453,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A03-01,amount,800000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A03-01,issue_date,2026-03-18,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A03-01,maturity_date,2027-03-18,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A03-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A03-01,holder_name,Purvanchal Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A03-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A04-01,fdr_number,FDR00504,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A04-01,bank_name,Konkan Sahakari Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A04-01,branch,Market Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A04-01,ifsc,ZKSB0000454,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A04-01,amount,950000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A04-01,issue_date,2026-11-29,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A04-01,maturity_date,2027-11-29,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A04-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A04-01,holder_name,Uttar Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A04-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A05-01,fdr_number,FDR00505,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A05-01,bank_name,Meridian Union Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A05-01,branch,Central Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A05-01,ifsc,ZMHB0000455,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A05-01,amount,950000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A05-01,issue_date,2026-10-29,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A05-01,maturity_date,2027-10-29,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A05-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A05-01,holder_name,Konkan Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A05-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A06-01,fdr_number,FDR00506,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A06-01,bank_name,Zenith Trust Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A06-01,branch,Riverside Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A06-01,ifsc,ZTBL0000456,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A06-01,amount,1000000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A06-01,issue_date,2026-07-16,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A06-01,maturity_date,2027-07-16,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A06-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A06-01,holder_name,Vindhya Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A06-01,lien_in_favour_of,Synthetic Ministry of Demos,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A07-01,fdr_number,FDR00507,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A07-01,bank_name,Navbharat Co-op Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A07-01,branch,Hillview Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A07-01,ifsc,ZNVB0000457,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A07-01,amount,1400000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A07-01,issue_date,2026-07-13,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A07-01,maturity_date,2027-07-13,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A07-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A07-01,holder_name,Nilgiri Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A07-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A08-01,fdr_number,FDR00508,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A08-01,bank_name,Gramin Savings Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A08-01,branch,Market Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A08-01,ifsc,ZGRB0000458,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A08-01,amount,1550000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A08-01,issue_date,2026-08-25,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A08-01,maturity_date,2027-08-25,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A08-01,tenure_months,6,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A08-01,holder_name,Satpura Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A08-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A09-01,fdr_number,FDR00509,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A09-01,bank_name,Konkan Sahakari Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A09-01,branch,Central Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A09-01,ifsc,ZKSB0000459,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A09-01,amount,1700000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A09-01,issue_date,2025-10-25,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A09-01,maturity_date,2026-10-25,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A09-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A09-01,holder_name,Malabar Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A09-01,lien_in_favour_of,Synthetic Ministry of Demos,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A10-01,fdr_number,FDR00510,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A10-01,bank_name,Meridian Union Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A10-01,branch,Riverside Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A10-01,ifsc,ZMHB0000460,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A10-01,amount,1850000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A10-01,issue_date,2025-12-08,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A10-01,maturity_date,2026-12-08,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A10-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A10-01,holder_name,Aravali Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A10-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A11-01,fdr_number,FDR00511,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A11-01,bank_name,Zenith Trust Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A11-01,branch,Hillview Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A11-01,ifsc,ZTBL0000461,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A11-01,amount,2000000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A11-01,issue_date,2025-11-13,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A11-01,maturity_date,2026-11-13,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A11-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A11-01,holder_name,Kalinga Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A11-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A12-01,fdr_number,FDR00512,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A12-01,bank_name,Navbharat Co-op Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A12-01,branch,Market Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A12-01,ifsc,ZNVB0000462,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A12-01,amount,2150000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A12-01,issue_date,2026-01-02,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A12-01,maturity_date,2027-01-02,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A12-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A12-01,holder_name,Deccan Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A12-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A13-01,fdr_number,FDR00513,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A13-01,bank_name,Gramin Savings Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A13-01,branch,Central Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A13-01,ifsc,ZGRB0000463,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A13-01,amount,2300000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A13-01,issue_date,2026-01-09,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A13-01,maturity_date,2027-01-09,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A13-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A13-01,holder_name,Sahyadri Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A13-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A14-01,fdr_number,FDR00514,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A14-01,bank_name,Konkan Sahakari Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A14-01,branch,Riverside Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A14-01,ifsc,ZKSB0000464,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A14-01,amount,2450000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A14-01,issue_date,2025-11-12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A14-01,maturity_date,2026-11-12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A14-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A14-01,holder_name,Dakshin Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A14-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A15-01,fdr_number,FDR00515,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A15-01,bank_name,Meridian Union Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A15-01,branch,Hillview Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A15-01,ifsc,ZMHB0000465,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A15-01,amount,550000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A15-01,issue_date,2025-10-24,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A15-01,maturity_date,2026-10-24,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A15-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A15-01,holder_name,Purvanchal Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A15-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A16-01,fdr_number,FDR00516,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A16-01,bank_name,Zenith Trust Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A16-01,branch,Market Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A16-01,ifsc,ZTBL0000466,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A16-01,amount,700000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A16-01,issue_date,2025-10-23,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A16-01,maturity_date,2026-10-23,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A16-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A16-01,holder_name,Uttar Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A16-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A17-01,fdr_number,FDR00517,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A17-01,bank_name,Navbharat Co-op Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A17-01,branch,Central Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A17-01,ifsc,ZNVB0000467,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A17-01,amount,850000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A17-01,issue_date,2025-10-04,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A17-01,maturity_date,2026-10-04,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A17-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A17-01,holder_name,Konkan Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A17-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A18-01,fdr_number,FDR00518,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A18-01,bank_name,Gramin Savings Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A18-01,branch,Riverside Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A18-01,ifsc,ZGRB0000468,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A18-01,amount,1000000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A18-01,issue_date,2025-10-09,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A18-01,maturity_date,2026-10-09,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A18-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A18-01,holder_name,Vindhya Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A18-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A19-01,fdr_number,FDR00519,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A19-01,bank_name,Konkan Sahakari Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A19-01,branch,Hillview Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A19-01,ifsc,ZKSB0000469,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A19-01,amount,1150000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A19-01,issue_date,2025-09-24,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A19-01,maturity_date,2026-09-24,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A19-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A19-01,holder_name,Nilgiri Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A19-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A20-01,fdr_number,FDR00520,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A20-01,bank_name,Meridian Union Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A20-01,branch,Market Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A20-01,ifsc,ZMHB0000470,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A20-01,amount,1300000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A20-01,issue_date,2025-09-11,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A20-01,maturity_date,2026-09-11,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A20-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A20-01,holder_name,Satpura Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A20-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A21-01,fdr_number,FDR00521,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A21-01,bank_name,Zenith Trust Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A21-01,branch,Central Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A21-01,ifsc,ZTBL0000471,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A21-01,amount,1450000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A21-01,issue_date,2025-09-12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A21-01,maturity_date,2026-09-12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A21-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A21-01,holder_name,Malabar Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-A21-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P01-01,fdr_number,FDRPRED001,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P01-01,bank_name,Gramin Savings Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P01-01,branch,Oldtown Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P01-01,ifsc,ZGRB0000702,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P01-01,amount,500000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P01-01,issue_date,2025-09-14,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P01-01,maturity_date,2026-09-14,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P01-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P01-01,holder_name,Synthetic Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P01-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P02-01,fdr_number,FDRPRED002,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P02-01,bank_name,Gramin Savings Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P02-01,branch,Oldtown Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P02-01,ifsc,ZGRB0000703,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P02-01,amount,1250000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P02-01,issue_date,2025-07-16,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P02-01,maturity_date,2026-07-16,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P02-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P02-01,holder_name,Synthetic Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P02-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P03-01,fdr_number,FDRPRED003,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P03-01,bank_name,Meridian Union Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P03-01,branch,Oldtown Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P03-01,ifsc,ZMHB0000704,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P03-01,amount,1550000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P03-01,issue_date,2025-08-25,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P03-01,maturity_date,2026-08-25,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P03-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P03-01,holder_name,Synthetic Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-P03-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C01-01,fdr_number,FDRCLOSED01,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C01-01,bank_name,Zenith Trust Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C01-01,branch,Harbour Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C01-01,ifsc,ZTBL0000802,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C01-01,amount,1000000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C01-01,issue_date,2025-02-21,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C01-01,maturity_date,2027-02-21,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C01-01,tenure_months,24,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C01-01,holder_name,Sahyadri Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C01-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C02-01,fdr_number,FDRCLOSED02,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C02-01,bank_name,Navbharat Co-op Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C02-01,branch,Harbour Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C02-01,ifsc,ZNVB0000803,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C02-01,amount,1000000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C02-01,issue_date,2025-02-21,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C02-01,maturity_date,2027-02-21,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C02-01,tenure_months,24,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C02-01,holder_name,Dakshin Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-C02-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-D01-01,fdr_number,FDR00927,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-D01-01,bank_name,Gramin Savings Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-D01-01,branch,Civic Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-D01-01,ifsc,ZGRB0000928,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-D01-01,amount,1250000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-D01-01,issue_date,2026-10-04,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-D01-01,maturity_date,2027-10-04,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-D01-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-D01-01,holder_name,Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-D01-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-S01-01,fdr_number,FDR00928,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-S01-01,bank_name,Konkan Sahakari Bank,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-S01-01,branch,Civic Branch,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-S01-01,ifsc,ZKSB0000929,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-S01-01,amount,1250000.00,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-S01-01,issue_date,2026-10-04,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-S01-01,maturity_date,2027-10-04,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-S01-01,tenure_months,12,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-S01-01,holder_name,Demo Technical Institute,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-FDR-S01-01,lien_in_favour_of,All India Council for Technical Education,1,body,0.94,seeded_synthetic,1,synthetic
+DOCVER-SPECIAL-AMOUNT-MISMATCH,amount,950000.00,1,body,0.96,seeded_synthetic,1,synthetic

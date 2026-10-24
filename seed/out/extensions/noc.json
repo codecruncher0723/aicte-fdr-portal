@@ -1,0 +1,19 @@
+{
+  "data_origin": "synthetic",
+  "nocs": [
+    {
+      "instrument_id": "FDR-A01",
+      "qr_payload": "https://demo.invalid/noc/NOC-VALID-01",
+      "reference_id": "NOC-VALID-01",
+      "status": "valid",
+      "verification_url": "https://demo.invalid/noc/NOC-VALID-01"
+    },
+    {
+      "instrument_id": "FDR-A02",
+      "qr_payload": "https://demo.invalid/noc/NOC-REVOKED-01",
+      "reference_id": "NOC-REVOKED-01",
+      "status": "revoked",
+      "verification_url": "https://demo.invalid/noc/NOC-REVOKED-01"
+    }
+  ]
+}

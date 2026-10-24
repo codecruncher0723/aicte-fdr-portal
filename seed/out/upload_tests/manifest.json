@@ -1,0 +1,15 @@
+{
+  "data_origin": "synthetic",
+  "fixtures": {
+    "oversized.bin": "one byte over configured maximum",
+    "renamed_png.pdf": "PNG bytes with PDF extension",
+    "spoofed_exe.pdf": "MZ executable header",
+    "valid_small.jpg": "valid 1x1 JPEG",
+    "valid_small.png": "valid 1x1 RGBA PNG",
+    "zero_byte.pdf": "empty file"
+  },
+  "path_traversal": {
+    "original_filename": "../../etc/passwd.pdf",
+    "safe_fixture_path": "upload_tests/.._.._etc_passwd.pdf"
+  }
+}

@@ -1,0 +1,10 @@
+id,instrument_id,check_result_id,severity,state,assignee,resolution,rationale,created_at,updated_at,data_origin
+CASE-AMOUNT-MISMATCH,FDR-A05,CHECK-AMOUNT-MISMATCH,medium,resolved,USR-VERIFICATION-OFFICER-01,synthetic review completed,accepted with recorded synthetic rationale,2026-10-19T09:30:00Z,2026-10-24T09:30:00Z,synthetic
+CASE-LIEN-A06,FDR-A06,CHECK-LIEN-A06,high,resolved,USR-VERIFICATION-OFFICER-01,synthetic review completed,accepted with recorded synthetic rationale,2026-10-19T09:30:00Z,2026-10-24T09:30:00Z,synthetic
+CASE-EXACT-DUP,FDR-A02,CHECK-EXACT-DUP,high,resolved,USR-VERIFICATION-OFFICER-01,synthetic review completed,accepted with recorded synthetic rationale,2026-10-19T09:30:00Z,2026-10-24T09:30:00Z,synthetic
+CASE-LOOSE-DUP,FDR-A03,CHECK-LOOSE-DUP,medium,resolved,USR-VERIFICATION-OFFICER-01,synthetic review completed,accepted with recorded synthetic rationale,2026-10-19T09:30:00Z,2026-10-24T09:30:00Z,synthetic
+CASE-LOW-AMOUNT,FDR-A05,CHECK-LOW-AMOUNT,medium,resolved,USR-VERIFICATION-OFFICER-01,synthetic review completed,accepted with recorded synthetic rationale,2026-10-19T09:30:00Z,2026-10-24T09:30:00Z,synthetic
+CASE-LOW-TENURE,FDR-A08,CHECK-LOW-TENURE,medium,resolved,USR-VERIFICATION-OFFICER-01,synthetic review completed,accepted with recorded synthetic rationale,2026-10-19T09:30:00Z,2026-10-24T09:30:00Z,synthetic
+CASE-BAD-SIGNATURE,FDR-A09,CHECK-BAD-SIGNATURE,medium,resolved,USR-VERIFICATION-OFFICER-01,synthetic review completed,accepted with recorded synthetic rationale,2026-10-19T09:30:00Z,2026-10-24T09:30:00Z,synthetic
+CASE-CROSS-FILE,FDR-A01,CHECK-CROSS-FILE,high,resolved,USR-VERIFICATION-OFFICER-01,synthetic review completed,accepted with recorded synthetic rationale,2026-10-19T09:30:00Z,2026-10-24T09:30:00Z,synthetic
+CASE-HIGH-01,FDR-A09,CHECK-LIEN-HIGH,high,open,USR-VERIFICATION-OFFICER-01,,,2026-10-12T09:30:00Z,2026-10-24T09:30:00Z,synthetic

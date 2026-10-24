@@ -1,0 +1,253 @@
+instrument_id,field_name,value,source,source_ref,confidence,recorded_by,recorded_at,data_origin
+FDR-A01,fdr_number,FDR/00123,institution_entered,FDR-A01,1.00,USR-SUBMITTER-01,2026-02-21T09:30:00Z,synthetic
+FDR-A01,bank_name,Zenith Trust Bank,institution_entered,FDR-A01,1.00,USR-SUBMITTER-01,2026-02-21T09:30:00Z,synthetic
+FDR-A01,branch,Central Branch,institution_entered,FDR-A01,1.00,USR-SUBMITTER-01,2026-02-21T09:30:00Z,synthetic
+FDR-A01,ifsc,ZTBL0000451,institution_entered,FDR-A01,1.00,USR-SUBMITTER-01,2026-02-21T09:30:00Z,synthetic
+FDR-A01,amount,500000.00,institution_entered,FDR-A01,1.00,USR-SUBMITTER-01,2026-02-21T09:30:00Z,synthetic
+FDR-A01,issue_date,2026-09-29,institution_entered,FDR-A01,1.00,USR-SUBMITTER-01,2026-02-21T09:30:00Z,synthetic
+FDR-A01,maturity_date,2027-09-29,institution_entered,FDR-A01,1.00,USR-SUBMITTER-01,2026-02-21T09:30:00Z,synthetic
+FDR-A01,holder_name,Sahyadri Demo Technical Institute,institution_entered,FDR-A01,1.00,USR-SUBMITTER-01,2026-02-21T09:30:00Z,synthetic
+FDR-A01,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A01,1.00,USR-SUBMITTER-01,2026-02-21T09:30:00Z,synthetic
+FDR-A02,fdr_number,fdr 00123,bank_confirmed,BANKREQ-ACCEPTED-01,1.00,USR-VERIFICATION-OFFICER-01,2026-06-15T09:30:00Z,synthetic
+FDR-A02,bank_name,Navbharat Co-op Bank,bank_confirmed,BANKREQ-ACCEPTED-01,1.00,USR-VERIFICATION-OFFICER-01,2026-06-15T09:30:00Z,synthetic
+FDR-A02,branch,Riverside Branch,bank_confirmed,BANKREQ-ACCEPTED-01,1.00,USR-VERIFICATION-OFFICER-01,2026-06-15T09:30:00Z,synthetic
+FDR-A02,ifsc,ZNVB0000452,bank_confirmed,BANKREQ-ACCEPTED-01,1.00,USR-VERIFICATION-OFFICER-01,2026-06-15T09:30:00Z,synthetic
+FDR-A02,amount,650000.00,bank_confirmed,BANKREQ-ACCEPTED-01,1.00,USR-VERIFICATION-OFFICER-01,2026-06-15T09:30:00Z,synthetic
+FDR-A02,issue_date,2026-06-15,bank_confirmed,BANKREQ-ACCEPTED-01,1.00,USR-VERIFICATION-OFFICER-01,2026-06-15T09:30:00Z,synthetic
+FDR-A02,maturity_date,2027-06-15,bank_confirmed,BANKREQ-ACCEPTED-01,1.00,USR-VERIFICATION-OFFICER-01,2026-06-15T09:30:00Z,synthetic
+FDR-A02,holder_name,Dakshin Demo Technical Institute,bank_confirmed,BANKREQ-ACCEPTED-01,1.00,USR-VERIFICATION-OFFICER-01,2026-06-15T09:30:00Z,synthetic
+FDR-A02,lien_in_favour_of,All India Council for Technical Education,bank_confirmed,BANKREQ-ACCEPTED-01,1.00,USR-VERIFICATION-OFFICER-01,2026-06-15T09:30:00Z,synthetic
+FDR-A03,fdr_number,FDR-123,institution_entered,FDR-A03,1.00,USR-SUBMITTER-01,2026-03-18T09:30:00Z,synthetic
+FDR-A03,bank_name,Gramin Savings Bank,institution_entered,FDR-A03,1.00,USR-SUBMITTER-01,2026-03-18T09:30:00Z,synthetic
+FDR-A03,branch,Hillview Branch,institution_entered,FDR-A03,1.00,USR-SUBMITTER-01,2026-03-18T09:30:00Z,synthetic
+FDR-A03,ifsc,ZGRB0000453,institution_entered,FDR-A03,1.00,USR-SUBMITTER-01,2026-03-18T09:30:00Z,synthetic
+FDR-A03,amount,800000.00,institution_entered,FDR-A03,1.00,USR-SUBMITTER-01,2026-03-18T09:30:00Z,synthetic
+FDR-A03,issue_date,2026-03-18,institution_entered,FDR-A03,1.00,USR-SUBMITTER-01,2026-03-18T09:30:00Z,synthetic
+FDR-A03,maturity_date,2027-03-18,institution_entered,FDR-A03,1.00,USR-SUBMITTER-01,2026-03-18T09:30:00Z,synthetic
+FDR-A03,holder_name,Purvanchal Demo Technical Institute,institution_entered,FDR-A03,1.00,USR-SUBMITTER-01,2026-03-18T09:30:00Z,synthetic
+FDR-A03,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A03,1.00,USR-SUBMITTER-01,2026-03-18T09:30:00Z,synthetic
+FDR-A04,fdr_number,FDR00504,institution_entered,FDR-A04,1.00,USR-SUBMITTER-01,2026-11-29T09:30:00Z,synthetic
+FDR-A04,bank_name,Konkan Sahakari Bank,institution_entered,FDR-A04,1.00,USR-SUBMITTER-01,2026-11-29T09:30:00Z,synthetic
+FDR-A04,branch,Market Branch,institution_entered,FDR-A04,1.00,USR-SUBMITTER-01,2026-11-29T09:30:00Z,synthetic
+FDR-A04,ifsc,ZKSB0000454,institution_entered,FDR-A04,1.00,USR-SUBMITTER-01,2026-11-29T09:30:00Z,synthetic
+FDR-A04,amount,950000.00,institution_entered,FDR-A04,1.00,USR-SUBMITTER-01,2026-11-29T09:30:00Z,synthetic
+FDR-A04,issue_date,2026-11-29,institution_entered,FDR-A04,1.00,USR-SUBMITTER-01,2026-11-29T09:30:00Z,synthetic
+FDR-A04,maturity_date,2027-11-29,institution_entered,FDR-A04,1.00,USR-SUBMITTER-01,2026-11-29T09:30:00Z,synthetic
+FDR-A04,holder_name,Uttar Demo Technical Institute,institution_entered,FDR-A04,1.00,USR-SUBMITTER-01,2026-11-29T09:30:00Z,synthetic
+FDR-A04,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A04,1.00,USR-SUBMITTER-01,2026-11-29T09:30:00Z,synthetic
+FDR-A05,fdr_number,FDR00505,institution_entered,FDR-A05,1.00,USR-SUBMITTER-01,2026-10-29T09:30:00Z,synthetic
+FDR-A05,bank_name,Meridian Union Bank,institution_entered,FDR-A05,1.00,USR-SUBMITTER-01,2026-10-29T09:30:00Z,synthetic
+FDR-A05,branch,Central Branch,institution_entered,FDR-A05,1.00,USR-SUBMITTER-01,2026-10-29T09:30:00Z,synthetic
+FDR-A05,ifsc,ZMHB0000455,institution_entered,FDR-A05,1.00,USR-SUBMITTER-01,2026-10-29T09:30:00Z,synthetic
+FDR-A05,amount,450000.00,institution_entered,FDR-A05,1.00,USR-SUBMITTER-01,2026-10-29T09:30:00Z,synthetic
+FDR-A05,issue_date,2026-10-29,institution_entered,FDR-A05,1.00,USR-SUBMITTER-01,2026-10-29T09:30:00Z,synthetic
+FDR-A05,maturity_date,2027-10-29,institution_entered,FDR-A05,1.00,USR-SUBMITTER-01,2026-10-29T09:30:00Z,synthetic
+FDR-A05,holder_name,Konkan Demo Technical Institute,institution_entered,FDR-A05,1.00,USR-SUBMITTER-01,2026-10-29T09:30:00Z,synthetic
+FDR-A05,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A05,1.00,USR-SUBMITTER-01,2026-10-29T09:30:00Z,synthetic
+FDR-A06,fdr_number,FDR00506,bank_confirmed,BANKREQ-ACCEPTED-02,1.00,USR-VERIFICATION-OFFICER-01,2026-10-07T09:30:00Z,synthetic
+FDR-A06,bank_name,Zenith Trust Bank,bank_confirmed,BANKREQ-ACCEPTED-02,1.00,USR-VERIFICATION-OFFICER-01,2026-10-07T09:30:00Z,synthetic
+FDR-A06,branch,Riverside Branch,bank_confirmed,BANKREQ-ACCEPTED-02,1.00,USR-VERIFICATION-OFFICER-01,2026-10-07T09:30:00Z,synthetic
+FDR-A06,ifsc,ZTBL0000456,bank_confirmed,BANKREQ-ACCEPTED-02,1.00,USR-VERIFICATION-OFFICER-01,2026-10-07T09:30:00Z,synthetic
+FDR-A06,amount,1000000.00,bank_confirmed,BANKREQ-ACCEPTED-02,1.00,USR-VERIFICATION-OFFICER-01,2026-10-07T09:30:00Z,synthetic
+FDR-A06,issue_date,2026-07-16,bank_confirmed,BANKREQ-ACCEPTED-02,1.00,USR-VERIFICATION-OFFICER-01,2026-10-07T09:30:00Z,synthetic
+FDR-A06,maturity_date,2027-07-16,bank_confirmed,BANKREQ-ACCEPTED-02,1.00,USR-VERIFICATION-OFFICER-01,2026-10-07T09:30:00Z,synthetic
+FDR-A06,holder_name,Vindhya Demo Technical Institute,bank_confirmed,BANKREQ-ACCEPTED-02,1.00,USR-VERIFICATION-OFFICER-01,2026-10-07T09:30:00Z,synthetic
+FDR-A06,lien_in_favour_of,All India Council for Technical Education,bank_confirmed,BANKREQ-ACCEPTED-02,1.00,USR-VERIFICATION-OFFICER-01,2026-10-07T09:30:00Z,synthetic
+FDR-A07,fdr_number,FDR00507,institution_entered,FDR-A07,1.00,USR-SUBMITTER-01,2026-07-13T09:30:00Z,synthetic
+FDR-A07,bank_name,Navbharat Co-op Bank,institution_entered,FDR-A07,1.00,USR-SUBMITTER-01,2026-07-13T09:30:00Z,synthetic
+FDR-A07,branch,Hillview Branch,institution_entered,FDR-A07,1.00,USR-SUBMITTER-01,2026-07-13T09:30:00Z,synthetic
+FDR-A07,ifsc,ZNVB0000457,institution_entered,FDR-A07,1.00,USR-SUBMITTER-01,2026-07-13T09:30:00Z,synthetic
+FDR-A07,amount,1400000.00,institution_entered,FDR-A07,1.00,USR-SUBMITTER-01,2026-07-13T09:30:00Z,synthetic
+FDR-A07,issue_date,2026-07-13,institution_entered,FDR-A07,1.00,USR-SUBMITTER-01,2026-07-13T09:30:00Z,synthetic
+FDR-A07,maturity_date,2027-07-13,institution_entered,FDR-A07,1.00,USR-SUBMITTER-01,2026-07-13T09:30:00Z,synthetic
+FDR-A07,holder_name,Nilgiri Demo Technical Institute,institution_entered,FDR-A07,1.00,USR-SUBMITTER-01,2026-07-13T09:30:00Z,synthetic
+FDR-A07,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A07,1.00,USR-SUBMITTER-01,2026-07-13T09:30:00Z,synthetic
+FDR-A08,fdr_number,FDR00508,institution_entered,FDR-A08,1.00,USR-SUBMITTER-01,2026-06-05T09:30:00Z,synthetic
+FDR-A08,bank_name,Gramin Savings Bank,institution_entered,FDR-A08,1.00,USR-SUBMITTER-01,2026-06-05T09:30:00Z,synthetic
+FDR-A08,branch,Market Branch,institution_entered,FDR-A08,1.00,USR-SUBMITTER-01,2026-06-05T09:30:00Z,synthetic
+FDR-A08,ifsc,ZGRB0000458,institution_entered,FDR-A08,1.00,USR-SUBMITTER-01,2026-06-05T09:30:00Z,synthetic
+FDR-A08,amount,1550000.00,institution_entered,FDR-A08,1.00,USR-SUBMITTER-01,2026-06-05T09:30:00Z,synthetic
+FDR-A08,issue_date,2026-08-25,institution_entered,FDR-A08,1.00,USR-SUBMITTER-01,2026-06-05T09:30:00Z,synthetic
+FDR-A08,maturity_date,2027-08-25,institution_entered,FDR-A08,1.00,USR-SUBMITTER-01,2026-06-05T09:30:00Z,synthetic
+FDR-A08,holder_name,Satpura Demo Technical Institute,institution_entered,FDR-A08,1.00,USR-SUBMITTER-01,2026-06-05T09:30:00Z,synthetic
+FDR-A08,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A08,1.00,USR-SUBMITTER-01,2026-06-05T09:30:00Z,synthetic
+FDR-A09,fdr_number,FDR00509,institution_entered,FDR-A09,1.00,USR-SUBMITTER-01,2025-10-25T09:30:00Z,synthetic
+FDR-A09,bank_name,Konkan Sahakari Bank,institution_entered,FDR-A09,1.00,USR-SUBMITTER-01,2025-10-25T09:30:00Z,synthetic
+FDR-A09,branch,Central Branch,institution_entered,FDR-A09,1.00,USR-SUBMITTER-01,2025-10-25T09:30:00Z,synthetic
+FDR-A09,ifsc,ZKSB0000459,institution_entered,FDR-A09,1.00,USR-SUBMITTER-01,2025-10-25T09:30:00Z,synthetic
+FDR-A09,amount,1700000.00,institution_entered,FDR-A09,1.00,USR-SUBMITTER-01,2025-10-25T09:30:00Z,synthetic
+FDR-A09,issue_date,2025-10-25,institution_entered,FDR-A09,1.00,USR-SUBMITTER-01,2025-10-25T09:30:00Z,synthetic
+FDR-A09,maturity_date,2026-10-25,institution_entered,FDR-A09,1.00,USR-SUBMITTER-01,2025-10-25T09:30:00Z,synthetic
+FDR-A09,holder_name,Malabar Demo Technical Institute,institution_entered,FDR-A09,1.00,USR-SUBMITTER-01,2025-10-25T09:30:00Z,synthetic
+FDR-A09,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A09,1.00,USR-SUBMITTER-01,2025-10-25T09:30:00Z,synthetic
+FDR-A10,fdr_number,FDR00510,institution_entered,FDR-A10,1.00,USR-SUBMITTER-01,2025-12-08T09:30:00Z,synthetic
+FDR-A10,bank_name,Meridian Union Bank,institution_entered,FDR-A10,1.00,USR-SUBMITTER-01,2025-12-08T09:30:00Z,synthetic
+FDR-A10,branch,Riverside Branch,institution_entered,FDR-A10,1.00,USR-SUBMITTER-01,2025-12-08T09:30:00Z,synthetic
+FDR-A10,ifsc,ZMHB0000460,institution_entered,FDR-A10,1.00,USR-SUBMITTER-01,2025-12-08T09:30:00Z,synthetic
+FDR-A10,amount,1850000.00,institution_entered,FDR-A10,1.00,USR-SUBMITTER-01,2025-12-08T09:30:00Z,synthetic
+FDR-A10,issue_date,2025-12-08,institution_entered,FDR-A10,1.00,USR-SUBMITTER-01,2025-12-08T09:30:00Z,synthetic
+FDR-A10,maturity_date,2026-12-08,institution_entered,FDR-A10,1.00,USR-SUBMITTER-01,2025-12-08T09:30:00Z,synthetic
+FDR-A10,holder_name,Aravali Demo Technical Institute,institution_entered,FDR-A10,1.00,USR-SUBMITTER-01,2025-12-08T09:30:00Z,synthetic
+FDR-A10,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A10,1.00,USR-SUBMITTER-01,2025-12-08T09:30:00Z,synthetic
+FDR-A11,fdr_number,FDR00511,institution_entered,FDR-A11,1.00,USR-SUBMITTER-01,2025-11-13T09:30:00Z,synthetic
+FDR-A11,bank_name,Zenith Trust Bank,institution_entered,FDR-A11,1.00,USR-SUBMITTER-01,2025-11-13T09:30:00Z,synthetic
+FDR-A11,branch,Hillview Branch,institution_entered,FDR-A11,1.00,USR-SUBMITTER-01,2025-11-13T09:30:00Z,synthetic
+FDR-A11,ifsc,ZTBL0000461,institution_entered,FDR-A11,1.00,USR-SUBMITTER-01,2025-11-13T09:30:00Z,synthetic
+FDR-A11,amount,2000000.00,institution_entered,FDR-A11,1.00,USR-SUBMITTER-01,2025-11-13T09:30:00Z,synthetic
+FDR-A11,issue_date,2025-11-13,institution_entered,FDR-A11,1.00,USR-SUBMITTER-01,2025-11-13T09:30:00Z,synthetic
+FDR-A11,maturity_date,2026-11-13,institution_entered,FDR-A11,1.00,USR-SUBMITTER-01,2025-11-13T09:30:00Z,synthetic
+FDR-A11,holder_name,Kalinga Demo Technical Institute,institution_entered,FDR-A11,1.00,USR-SUBMITTER-01,2025-11-13T09:30:00Z,synthetic
+FDR-A11,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A11,1.00,USR-SUBMITTER-01,2025-11-13T09:30:00Z,synthetic
+FDR-A12,fdr_number,FDR00512,institution_entered,FDR-A12,1.00,USR-SUBMITTER-01,2026-01-02T09:30:00Z,synthetic
+FDR-A12,bank_name,Navbharat Co-op Bank,institution_entered,FDR-A12,1.00,USR-SUBMITTER-01,2026-01-02T09:30:00Z,synthetic
+FDR-A12,branch,Market Branch,institution_entered,FDR-A12,1.00,USR-SUBMITTER-01,2026-01-02T09:30:00Z,synthetic
+FDR-A12,ifsc,ZNVB0000462,institution_entered,FDR-A12,1.00,USR-SUBMITTER-01,2026-01-02T09:30:00Z,synthetic
+FDR-A12,amount,2150000.00,institution_entered,FDR-A12,1.00,USR-SUBMITTER-01,2026-01-02T09:30:00Z,synthetic
+FDR-A12,issue_date,2026-01-02,institution_entered,FDR-A12,1.00,USR-SUBMITTER-01,2026-01-02T09:30:00Z,synthetic
+FDR-A12,maturity_date,2027-01-02,institution_entered,FDR-A12,1.00,USR-SUBMITTER-01,2026-01-02T09:30:00Z,synthetic
+FDR-A12,holder_name,Deccan Demo Technical Institute,institution_entered,FDR-A12,1.00,USR-SUBMITTER-01,2026-01-02T09:30:00Z,synthetic
+FDR-A12,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A12,1.00,USR-SUBMITTER-01,2026-01-02T09:30:00Z,synthetic
+FDR-A13,fdr_number,FDR00513,bank_confirmed,BANKREQ-ACCEPTED-03,1.00,USR-VERIFICATION-OFFICER-01,2026-01-09T09:30:00Z,synthetic
+FDR-A13,bank_name,Gramin Savings Bank,bank_confirmed,BANKREQ-ACCEPTED-03,1.00,USR-VERIFICATION-OFFICER-01,2026-01-09T09:30:00Z,synthetic
+FDR-A13,branch,Central Branch,bank_confirmed,BANKREQ-ACCEPTED-03,1.00,USR-VERIFICATION-OFFICER-01,2026-01-09T09:30:00Z,synthetic
+FDR-A13,ifsc,ZGRB0000463,bank_confirmed,BANKREQ-ACCEPTED-03,1.00,USR-VERIFICATION-OFFICER-01,2026-01-09T09:30:00Z,synthetic
+FDR-A13,amount,2300000.00,bank_confirmed,BANKREQ-ACCEPTED-03,1.00,USR-VERIFICATION-OFFICER-01,2026-01-09T09:30:00Z,synthetic
+FDR-A13,issue_date,2026-01-09,bank_confirmed,BANKREQ-ACCEPTED-03,1.00,USR-VERIFICATION-OFFICER-01,2026-01-09T09:30:00Z,synthetic
+FDR-A13,maturity_date,2027-01-09,bank_confirmed,BANKREQ-ACCEPTED-03,1.00,USR-VERIFICATION-OFFICER-01,2026-01-09T09:30:00Z,synthetic
+FDR-A13,holder_name,Sahyadri Demo Technical Institute,bank_confirmed,BANKREQ-ACCEPTED-03,1.00,USR-VERIFICATION-OFFICER-01,2026-01-09T09:30:00Z,synthetic
+FDR-A13,lien_in_favour_of,All India Council for Technical Education,bank_confirmed,BANKREQ-ACCEPTED-03,1.00,USR-VERIFICATION-OFFICER-01,2026-01-09T09:30:00Z,synthetic
+FDR-A14,fdr_number,FDR00514,institution_entered,FDR-A14,1.00,USR-SUBMITTER-01,2025-11-12T09:30:00Z,synthetic
+FDR-A14,bank_name,Konkan Sahakari Bank,institution_entered,FDR-A14,1.00,USR-SUBMITTER-01,2025-11-12T09:30:00Z,synthetic
+FDR-A14,branch,Riverside Branch,institution_entered,FDR-A14,1.00,USR-SUBMITTER-01,2025-11-12T09:30:00Z,synthetic
+FDR-A14,ifsc,ZKSB0000464,institution_entered,FDR-A14,1.00,USR-SUBMITTER-01,2025-11-12T09:30:00Z,synthetic
+FDR-A14,amount,2450000.00,institution_entered,FDR-A14,1.00,USR-SUBMITTER-01,2025-11-12T09:30:00Z,synthetic
+FDR-A14,issue_date,2025-11-12,institution_entered,FDR-A14,1.00,USR-SUBMITTER-01,2025-11-12T09:30:00Z,synthetic
+FDR-A14,maturity_date,2026-11-12,institution_entered,FDR-A14,1.00,USR-SUBMITTER-01,2025-11-12T09:30:00Z,synthetic
+FDR-A14,holder_name,Dakshin Demo Technical Institute,institution_entered,FDR-A14,1.00,USR-SUBMITTER-01,2025-11-12T09:30:00Z,synthetic
+FDR-A14,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A14,1.00,USR-SUBMITTER-01,2025-11-12T09:30:00Z,synthetic
+FDR-A15,fdr_number,FDR00515,institution_entered,FDR-A15,1.00,USR-SUBMITTER-01,2025-10-24T09:30:00Z,synthetic
+FDR-A15,bank_name,Meridian Union Bank,institution_entered,FDR-A15,1.00,USR-SUBMITTER-01,2025-10-24T09:30:00Z,synthetic
+FDR-A15,branch,Hillview Branch,institution_entered,FDR-A15,1.00,USR-SUBMITTER-01,2025-10-24T09:30:00Z,synthetic
+FDR-A15,ifsc,ZMHB0000465,institution_entered,FDR-A15,1.00,USR-SUBMITTER-01,2025-10-24T09:30:00Z,synthetic
+FDR-A15,amount,550000.00,institution_entered,FDR-A15,1.00,USR-SUBMITTER-01,2025-10-24T09:30:00Z,synthetic
+FDR-A15,issue_date,2025-10-24,institution_entered,FDR-A15,1.00,USR-SUBMITTER-01,2025-10-24T09:30:00Z,synthetic
+FDR-A15,maturity_date,2026-10-24,institution_entered,FDR-A15,1.00,USR-SUBMITTER-01,2025-10-24T09:30:00Z,synthetic
+FDR-A15,holder_name,Purvanchal Demo Technical Institute,institution_entered,FDR-A15,1.00,USR-SUBMITTER-01,2025-10-24T09:30:00Z,synthetic
+FDR-A15,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A15,1.00,USR-SUBMITTER-01,2025-10-24T09:30:00Z,synthetic
+FDR-A16,fdr_number,FDR00516,institution_entered,FDR-A16,1.00,USR-SUBMITTER-01,2025-10-23T09:30:00Z,synthetic
+FDR-A16,bank_name,Zenith Trust Bank,institution_entered,FDR-A16,1.00,USR-SUBMITTER-01,2025-10-23T09:30:00Z,synthetic
+FDR-A16,branch,Market Branch,institution_entered,FDR-A16,1.00,USR-SUBMITTER-01,2025-10-23T09:30:00Z,synthetic
+FDR-A16,ifsc,ZTBL0000466,institution_entered,FDR-A16,1.00,USR-SUBMITTER-01,2025-10-23T09:30:00Z,synthetic
+FDR-A16,amount,700000.00,institution_entered,FDR-A16,1.00,USR-SUBMITTER-01,2025-10-23T09:30:00Z,synthetic
+FDR-A16,issue_date,2025-10-23,institution_entered,FDR-A16,1.00,USR-SUBMITTER-01,2025-10-23T09:30:00Z,synthetic
+FDR-A16,maturity_date,2026-10-23,institution_entered,FDR-A16,1.00,USR-SUBMITTER-01,2025-10-23T09:30:00Z,synthetic
+FDR-A16,holder_name,Uttar Demo Technical Institute,institution_entered,FDR-A16,1.00,USR-SUBMITTER-01,2025-10-23T09:30:00Z,synthetic
+FDR-A16,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A16,1.00,USR-SUBMITTER-01,2025-10-23T09:30:00Z,synthetic
+FDR-A17,fdr_number,FDR00517,bank_confirmed,BANKREQ-ACCEPTED-04,1.00,USR-VERIFICATION-OFFICER-01,2025-10-04T09:30:00Z,synthetic
+FDR-A17,bank_name,Navbharat Co-op Bank,bank_confirmed,BANKREQ-ACCEPTED-04,1.00,USR-VERIFICATION-OFFICER-01,2025-10-04T09:30:00Z,synthetic
+FDR-A17,branch,Central Branch,bank_confirmed,BANKREQ-ACCEPTED-04,1.00,USR-VERIFICATION-OFFICER-01,2025-10-04T09:30:00Z,synthetic
+FDR-A17,ifsc,ZNVB0000467,bank_confirmed,BANKREQ-ACCEPTED-04,1.00,USR-VERIFICATION-OFFICER-01,2025-10-04T09:30:00Z,synthetic
+FDR-A17,amount,850000.00,bank_confirmed,BANKREQ-ACCEPTED-04,1.00,USR-VERIFICATION-OFFICER-01,2025-10-04T09:30:00Z,synthetic
+FDR-A17,issue_date,2025-10-04,bank_confirmed,BANKREQ-ACCEPTED-04,1.00,USR-VERIFICATION-OFFICER-01,2025-10-04T09:30:00Z,synthetic
+FDR-A17,maturity_date,2026-10-04,bank_confirmed,BANKREQ-ACCEPTED-04,1.00,USR-VERIFICATION-OFFICER-01,2025-10-04T09:30:00Z,synthetic
+FDR-A17,holder_name,Konkan Demo Technical Institute,bank_confirmed,BANKREQ-ACCEPTED-04,1.00,USR-VERIFICATION-OFFICER-01,2025-10-04T09:30:00Z,synthetic
+FDR-A17,lien_in_favour_of,All India Council for Technical Education,bank_confirmed,BANKREQ-ACCEPTED-04,1.00,USR-VERIFICATION-OFFICER-01,2025-10-04T09:30:00Z,synthetic
+FDR-A18,fdr_number,FDR00518,institution_entered,FDR-A18,1.00,USR-SUBMITTER-01,2025-10-09T09:30:00Z,synthetic
+FDR-A18,bank_name,Gramin Savings Bank,institution_entered,FDR-A18,1.00,USR-SUBMITTER-01,2025-10-09T09:30:00Z,synthetic
+FDR-A18,branch,Riverside Branch,institution_entered,FDR-A18,1.00,USR-SUBMITTER-01,2025-10-09T09:30:00Z,synthetic
+FDR-A18,ifsc,ZGRB0000468,institution_entered,FDR-A18,1.00,USR-SUBMITTER-01,2025-10-09T09:30:00Z,synthetic
+FDR-A18,amount,1000000.00,institution_entered,FDR-A18,1.00,USR-SUBMITTER-01,2025-10-09T09:30:00Z,synthetic
+FDR-A18,issue_date,2025-10-09,institution_entered,FDR-A18,1.00,USR-SUBMITTER-01,2025-10-09T09:30:00Z,synthetic
+FDR-A18,maturity_date,2026-10-09,institution_entered,FDR-A18,1.00,USR-SUBMITTER-01,2025-10-09T09:30:00Z,synthetic
+FDR-A18,holder_name,Vindhya Demo Technical Institute,institution_entered,FDR-A18,1.00,USR-SUBMITTER-01,2025-10-09T09:30:00Z,synthetic
+FDR-A18,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A18,1.00,USR-SUBMITTER-01,2025-10-09T09:30:00Z,synthetic
+FDR-A19,fdr_number,FDR00519,institution_entered,FDR-A19,1.00,USR-SUBMITTER-01,2025-09-24T09:30:00Z,synthetic
+FDR-A19,bank_name,Konkan Sahakari Bank,institution_entered,FDR-A19,1.00,USR-SUBMITTER-01,2025-09-24T09:30:00Z,synthetic
+FDR-A19,branch,Hillview Branch,institution_entered,FDR-A19,1.00,USR-SUBMITTER-01,2025-09-24T09:30:00Z,synthetic
+FDR-A19,ifsc,ZKSB0000469,institution_entered,FDR-A19,1.00,USR-SUBMITTER-01,2025-09-24T09:30:00Z,synthetic
+FDR-A19,amount,1150000.00,institution_entered,FDR-A19,1.00,USR-SUBMITTER-01,2025-09-24T09:30:00Z,synthetic
+FDR-A19,issue_date,2025-09-24,institution_entered,FDR-A19,1.00,USR-SUBMITTER-01,2025-09-24T09:30:00Z,synthetic
+FDR-A19,maturity_date,2026-09-24,institution_entered,FDR-A19,1.00,USR-SUBMITTER-01,2025-09-24T09:30:00Z,synthetic
+FDR-A19,holder_name,Nilgiri Demo Technical Institute,institution_entered,FDR-A19,1.00,USR-SUBMITTER-01,2025-09-24T09:30:00Z,synthetic
+FDR-A19,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A19,1.00,USR-SUBMITTER-01,2025-09-24T09:30:00Z,synthetic
+FDR-A20,fdr_number,FDR00520,institution_entered,FDR-A20,1.00,USR-SUBMITTER-01,2025-09-11T09:30:00Z,synthetic
+FDR-A20,bank_name,Meridian Union Bank,institution_entered,FDR-A20,1.00,USR-SUBMITTER-01,2025-09-11T09:30:00Z,synthetic
+FDR-A20,branch,Market Branch,institution_entered,FDR-A20,1.00,USR-SUBMITTER-01,2025-09-11T09:30:00Z,synthetic
+FDR-A20,ifsc,ZMHB0000470,institution_entered,FDR-A20,1.00,USR-SUBMITTER-01,2025-09-11T09:30:00Z,synthetic
+FDR-A20,amount,1300000.00,institution_entered,FDR-A20,1.00,USR-SUBMITTER-01,2025-09-11T09:30:00Z,synthetic
+FDR-A20,issue_date,2025-09-11,institution_entered,FDR-A20,1.00,USR-SUBMITTER-01,2025-09-11T09:30:00Z,synthetic
+FDR-A20,maturity_date,2026-09-11,institution_entered,FDR-A20,1.00,USR-SUBMITTER-01,2025-09-11T09:30:00Z,synthetic
+FDR-A20,holder_name,Satpura Demo Technical Institute,institution_entered,FDR-A20,1.00,USR-SUBMITTER-01,2025-09-11T09:30:00Z,synthetic
+FDR-A20,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A20,1.00,USR-SUBMITTER-01,2025-09-11T09:30:00Z,synthetic
+FDR-A21,fdr_number,FDR00521,institution_entered,FDR-A21,1.00,USR-SUBMITTER-01,2025-09-12T09:30:00Z,synthetic
+FDR-A21,bank_name,Zenith Trust Bank,institution_entered,FDR-A21,1.00,USR-SUBMITTER-01,2025-09-12T09:30:00Z,synthetic
+FDR-A21,branch,Central Branch,institution_entered,FDR-A21,1.00,USR-SUBMITTER-01,2025-09-12T09:30:00Z,synthetic
+FDR-A21,ifsc,ZTBL0000471,institution_entered,FDR-A21,1.00,USR-SUBMITTER-01,2025-09-12T09:30:00Z,synthetic
+FDR-A21,amount,1450000.00,institution_entered,FDR-A21,1.00,USR-SUBMITTER-01,2025-09-12T09:30:00Z,synthetic
+FDR-A21,issue_date,2025-09-12,institution_entered,FDR-A21,1.00,USR-SUBMITTER-01,2025-09-12T09:30:00Z,synthetic
+FDR-A21,maturity_date,2026-09-12,institution_entered,FDR-A21,1.00,USR-SUBMITTER-01,2025-09-12T09:30:00Z,synthetic
+FDR-A21,holder_name,Malabar Demo Technical Institute,institution_entered,FDR-A21,1.00,USR-SUBMITTER-01,2025-09-12T09:30:00Z,synthetic
+FDR-A21,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-A21,1.00,USR-SUBMITTER-01,2025-09-12T09:30:00Z,synthetic
+FDR-P01,fdr_number,FDRPRED001,institution_entered,FDR-P01,1.00,USR-SUBMITTER-01,2025-09-14T09:30:00Z,synthetic
+FDR-P01,bank_name,Gramin Savings Bank,institution_entered,FDR-P01,1.00,USR-SUBMITTER-01,2025-09-14T09:30:00Z,synthetic
+FDR-P01,branch,Oldtown Branch,institution_entered,FDR-P01,1.00,USR-SUBMITTER-01,2025-09-14T09:30:00Z,synthetic
+FDR-P01,ifsc,ZGRB0000702,institution_entered,FDR-P01,1.00,USR-SUBMITTER-01,2025-09-14T09:30:00Z,synthetic
+FDR-P01,amount,500000.00,institution_entered,FDR-P01,1.00,USR-SUBMITTER-01,2025-09-14T09:30:00Z,synthetic
+FDR-P01,issue_date,2025-09-14,institution_entered,FDR-P01,1.00,USR-SUBMITTER-01,2025-09-14T09:30:00Z,synthetic
+FDR-P01,maturity_date,2026-09-14,institution_entered,FDR-P01,1.00,USR-SUBMITTER-01,2025-09-14T09:30:00Z,synthetic
+FDR-P01,holder_name,Synthetic Technical Institute,institution_entered,FDR-P01,1.00,USR-SUBMITTER-01,2025-09-14T09:30:00Z,synthetic
+FDR-P01,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-P01,1.00,USR-SUBMITTER-01,2025-09-14T09:30:00Z,synthetic
+FDR-P02,fdr_number,FDRPRED002,institution_entered,FDR-P02,1.00,USR-SUBMITTER-01,2025-07-16T09:30:00Z,synthetic
+FDR-P02,bank_name,Gramin Savings Bank,institution_entered,FDR-P02,1.00,USR-SUBMITTER-01,2025-07-16T09:30:00Z,synthetic
+FDR-P02,branch,Oldtown Branch,institution_entered,FDR-P02,1.00,USR-SUBMITTER-01,2025-07-16T09:30:00Z,synthetic
+FDR-P02,ifsc,ZGRB0000703,institution_entered,FDR-P02,1.00,USR-SUBMITTER-01,2025-07-16T09:30:00Z,synthetic
+FDR-P02,amount,1250000.00,institution_entered,FDR-P02,1.00,USR-SUBMITTER-01,2025-07-16T09:30:00Z,synthetic
+FDR-P02,issue_date,2025-07-16,institution_entered,FDR-P02,1.00,USR-SUBMITTER-01,2025-07-16T09:30:00Z,synthetic
+FDR-P02,maturity_date,2026-07-16,institution_entered,FDR-P02,1.00,USR-SUBMITTER-01,2025-07-16T09:30:00Z,synthetic
+FDR-P02,holder_name,Synthetic Technical Institute,institution_entered,FDR-P02,1.00,USR-SUBMITTER-01,2025-07-16T09:30:00Z,synthetic
+FDR-P02,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-P02,1.00,USR-SUBMITTER-01,2025-07-16T09:30:00Z,synthetic
+FDR-P03,fdr_number,FDRPRED003,institution_entered,FDR-P03,1.00,USR-SUBMITTER-01,2025-08-25T09:30:00Z,synthetic
+FDR-P03,bank_name,Meridian Union Bank,institution_entered,FDR-P03,1.00,USR-SUBMITTER-01,2025-08-25T09:30:00Z,synthetic
+FDR-P03,branch,Oldtown Branch,institution_entered,FDR-P03,1.00,USR-SUBMITTER-01,2025-08-25T09:30:00Z,synthetic
+FDR-P03,ifsc,ZMHB0000704,institution_entered,FDR-P03,1.00,USR-SUBMITTER-01,2025-08-25T09:30:00Z,synthetic
+FDR-P03,amount,1550000.00,institution_entered,FDR-P03,1.00,USR-SUBMITTER-01,2025-08-25T09:30:00Z,synthetic
+FDR-P03,issue_date,2025-08-25,institution_entered,FDR-P03,1.00,USR-SUBMITTER-01,2025-08-25T09:30:00Z,synthetic
+FDR-P03,maturity_date,2026-08-25,institution_entered,FDR-P03,1.00,USR-SUBMITTER-01,2025-08-25T09:30:00Z,synthetic
+FDR-P03,holder_name,Synthetic Technical Institute,institution_entered,FDR-P03,1.00,USR-SUBMITTER-01,2025-08-25T09:30:00Z,synthetic
+FDR-P03,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-P03,1.00,USR-SUBMITTER-01,2025-08-25T09:30:00Z,synthetic
+FDR-C01,fdr_number,FDRCLOSED01,institution_entered,FDR-C01,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C01,bank_name,Zenith Trust Bank,institution_entered,FDR-C01,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C01,branch,Harbour Branch,institution_entered,FDR-C01,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C01,ifsc,ZTBL0000802,institution_entered,FDR-C01,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C01,amount,1000000.00,institution_entered,FDR-C01,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C01,issue_date,2025-02-21,institution_entered,FDR-C01,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C01,maturity_date,2027-02-21,institution_entered,FDR-C01,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C01,holder_name,Sahyadri Demo Technical Institute,institution_entered,FDR-C01,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C01,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-C01,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C02,fdr_number,FDRCLOSED02,institution_entered,FDR-C02,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C02,bank_name,Navbharat Co-op Bank,institution_entered,FDR-C02,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C02,branch,Harbour Branch,institution_entered,FDR-C02,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C02,ifsc,ZNVB0000803,institution_entered,FDR-C02,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C02,amount,1000000.00,institution_entered,FDR-C02,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C02,issue_date,2025-02-21,institution_entered,FDR-C02,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C02,maturity_date,2027-02-21,institution_entered,FDR-C02,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C02,holder_name,Dakshin Demo Technical Institute,institution_entered,FDR-C02,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-C02,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-C02,1.00,USR-SUBMITTER-01,2025-02-21T09:30:00Z,synthetic
+FDR-D01,fdr_number,FDR00927,institution_entered,FDR-D01,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-D01,bank_name,Gramin Savings Bank,institution_entered,FDR-D01,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-D01,branch,Civic Branch,institution_entered,FDR-D01,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-D01,ifsc,ZGRB0000928,institution_entered,FDR-D01,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-D01,amount,1250000.00,institution_entered,FDR-D01,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-D01,issue_date,2026-10-04,institution_entered,FDR-D01,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-D01,maturity_date,2027-10-04,institution_entered,FDR-D01,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-D01,holder_name,Demo Technical Institute,institution_entered,FDR-D01,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-D01,lien_in_favour_of,All India Council for Technical Education,institution_entered,FDR-D01,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-S01,fdr_number,FDR00928,imported,seed-import,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-S01,bank_name,Konkan Sahakari Bank,imported,seed-import,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-S01,branch,Civic Branch,imported,seed-import,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-S01,ifsc,ZKSB0000929,imported,seed-import,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-S01,amount,1250000.00,imported,seed-import,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-S01,issue_date,2026-10-04,imported,seed-import,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-S01,maturity_date,2027-10-04,imported,seed-import,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-S01,holder_name,Demo Technical Institute,imported,seed-import,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic
+FDR-S01,lien_in_favour_of,All India Council for Technical Education,imported,seed-import,1.00,USR-SUBMITTER-01,2026-10-04T09:30:00Z,synthetic

@@ -1,0 +1,2 @@
+instrument_id,field_name,old_value,new_value,source,evidence_ref,reason,changed_by,changed_at,data_origin
+FDR-A05,amount,500000.00,450000.00,officer_entered,DOC-FDR-A05-V1,Synthetic correction preserves submitted value,USR-VERIFICATION-OFFICER-01,2026-10-31T09:30:00Z,synthetic

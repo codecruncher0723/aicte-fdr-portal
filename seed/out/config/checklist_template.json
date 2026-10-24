@@ -1,0 +1,32 @@
+{
+  "header": "prototype default, confirm against AICTE handbook",
+  "items": [
+    {
+      "item_code": "ORIGINAL_SURRENDERED",
+      "label": "Original FDR surrendered",
+      "mandatory": true,
+      "waivable": false
+    },
+    {
+      "demo_only": true,
+      "item_code": "BANK_NO_DUES",
+      "label": "Bank no-dues confirmation",
+      "mandatory": true,
+      "waivable": true
+    },
+    {
+      "item_code": "INSTITUTION_REQUEST",
+      "label": "Institution release request",
+      "mandatory": false,
+      "waivable": false
+    },
+    {
+      "item_code": "NOC_CHECK",
+      "label": "NOC status reviewed",
+      "mandatory": false,
+      "waivable": false
+    }
+  ],
+  "template_id": "RELEASE-DEMO",
+  "template_version": "v1"
+}

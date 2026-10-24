@@ -1,0 +1,3 @@
+id,release_request_id,decision,rationale,decided_by,decided_at,exception_refs,data_origin
+DEC-C01,RR-C01,approve,Synthetic completed release,USR-AUTHORIZED-APPROVER-01,2026-09-14T09:30:00Z,,synthetic
+DEC-C02,RR-C02,approve,Synthetic completed release,USR-APPROVER-02,2026-09-29T09:30:00Z,,synthetic

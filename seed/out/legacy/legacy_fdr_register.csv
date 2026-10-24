@@ -1,0 +1,41 @@
+FD No,Bank,Branch,IFSC Code,Amt (INR),Start,End,Institute,Unused Note,Data Origin
+LEGACY-001,Navbharat Co-op Bank,Legacy Branch 01,ZNVB0000001,550000.00,20/09/2025,20/09/2026,Dakshin Demo Institute,not used,synthetic
+LEGACY-002,Gramin Savings Bank,Legacy Branch 02,ZGRB0000002,600000.00,2025-09-21,21/09/2026,Purvanchal Demo Institute,not used,synthetic
+LEGACY-003,Konkan Sahakari Bank,Legacy Branch 03,ZKSB0000003,650000.00,22/09/2025,22/09/2026,Uttar Demo Institute,not used,synthetic
+LEGACY-004,Meridian Union Bank,Legacy Branch 04,ZMHB0000004,700000.00,23/09/2025,23/09/2026,Konkan Demo Institute,not used,synthetic
+LEGACY-005,Zenith Trust Bank,Legacy Branch 05,ZTBL0000005,750000.00,31/02/2026,24/09/2026,Vindhya Demo Institute,not used,synthetic
+LEGACY-006,Navbharat Co-op Bank,Legacy Branch 06,ZNVB0000006,800000.00,25/09/2025,25/09/2026,Nilgiri Demo Institute,not used,synthetic
+LEGACY-007,Gramin Savings Bank,Legacy Branch 07,ZGRB0000007,850000.00,26/09/2025,26/09/2026,Satpura Demo Institute,not used,synthetic
+LEGACY-008,Konkan Sahakari Bank,Legacy Branch 08,ZKSB0000008,900000.00,27/09/2025,27/09/2026,Malabar Demo Institute,not used,synthetic
+LEGACY-009,Meridian Union Bank,Legacy Branch 09,ZMHB0000009,950000.00,28/09/2025,28/09/2026,Aravali Demo Institute,not used,synthetic
+LEGACY-010,Zenith Trust Bank,Legacy Branch 10,ZTBL0000010,1000000.00,29/09/2025,2026-13-40,Kalinga Demo Institute,not used,synthetic
+LEGACY-011,Navbharat Co-op Bank,Legacy Branch 11,ZNVB0000011,1050000.00,30/09/2025,30/09/2026,Deccan Demo Institute,not used,synthetic
+LEGACY-012,Gramin Savings Bank,Legacy Branch 12,ZGRB0000012,1100000.00,01/10/2025,01/10/2026,Sahyadri Demo Institute,not used,synthetic
+LEGACY-013,Konkan Sahakari Bank,Legacy Branch 13,ZKSB0000013,1150000.00,02/10/2025,02/10/2026,Dakshin Demo Institute,not used,synthetic
+LEGACY-014,Meridian Union Bank,Legacy Branch 14,ZMHB0000014,1200000.00,03/10/2025,03/10/2026,Purvanchal Demo Institute,not used,synthetic
+LEGACY-015,Zenith Trust Bank,Legacy Branch 15,ZTBL0000015,1250000.00,04/10/2025,04/10/2025,Uttar Demo Institute,not used,synthetic
+LEGACY-016,Navbharat Co-op Bank,Legacy Branch 16,ZNVB0000016,1300000.00,05/10/2025,05/10/2026,Konkan Demo Institute,not used,synthetic
+LEGACY-017,Gramin Savings Bank,Legacy Branch 17,ZGRB0000017,1350000.00,06/10/2025,06/10/2026,Vindhya Demo Institute,not used,synthetic
+LEGACY-018,Konkan Sahakari Bank,Legacy Branch 18,ZKSB0000018,1400000.00,07/10/2025,07/10/2026,Nilgiri Demo Institute,not used,synthetic
+LEGACY-019,Meridian Union Bank,Legacy Branch 19,ZMHB0000019,1450000.00,08/10/2025,08/10/2026,Satpura Demo Institute,not used,synthetic
+LEGACY-020,Zenith Trust Bank,Legacy Branch 20,BADIFSC,1500000.00,09/10/2025,09/10/2026,Malabar Demo Institute,not used,synthetic
+LEGACY-021,Navbharat Co-op Bank,Legacy Branch 21,ZNVB0000021,1550000.00,10/10/2025,10/10/2026,Aravali Demo Institute,not used,synthetic
+LEGACY-022,Gramin Savings Bank,Legacy Branch 22,ZGRB0000022,1600000.00,11/10/2025,11/10/2026,Kalinga Demo Institute,not used,synthetic
+LEGACY-023,Konkan Sahakari Bank,Legacy Branch 23,ZKSB0000023,1650000.00,12/10/2025,12/10/2026,Deccan Demo Institute,not used,synthetic
+LEGACY-024,Meridian Union Bank,Legacy Branch 24,ZMHB0000024,1700000.00,13/10/2025,13/10/2026,Sahyadri Demo Institute,not used,synthetic
+LEGACY-025,Zenith Trust Bank,Legacy Branch 25,ZTBL0000025,0.00,14/10/2025,14/10/2026,Dakshin Demo Institute,not used,synthetic
+LEGACY-026,Navbharat Co-op Bank,Legacy Branch 26,ZNVB0000026,1800000.00,15/10/2025,15/10/2026,Purvanchal Demo Institute,not used,synthetic
+LEGACY-027,Gramin Savings Bank,Legacy Branch 27,ZGRB0000027,1850000.00,16/10/2025,16/10/2026,Uttar Demo Institute,not used,synthetic
+LEGACY-028,Konkan Sahakari Bank,Legacy Branch 28,ZKSB0000028,1900000.00,17/10/2025,17/10/2026,Konkan Demo Institute,not used,synthetic
+LEGACY-029,Meridian Union Bank,Legacy Branch 29,ZMHB0000029,1950000.00,18/10/2025,18/10/2026,Vindhya Demo Institute,not used,synthetic
+LEGACY-030,,Legacy Branch 30,ZTBL0000030,500000.00,19/10/2025,19/10/2026,Nilgiri Demo Institute,not used,synthetic
+LEGACY-031,Navbharat Co-op Bank,Legacy Branch 31,ZNVB0000031,550000.00,20/10/2025,20/10/2026,Satpura Demo Institute,not used,synthetic
+LEGACY-032,Gramin Savings Bank,Legacy Branch 32,ZGRB0000032,600000.00,21/10/2025,21/10/2026,Malabar Demo Institute,not used,synthetic
+LEGACY-033,Konkan Sahakari Bank,Legacy Branch 33,ZKSB0000033,650000.00,22/10/2025,22/10/2026,Aravali Demo Institute,not used,synthetic
+LEGACY-034,Meridian Union Bank,Legacy Branch 34,ZMHB0000034,700000.00,23/10/2025,23/10/2026,Kalinga Demo Institute,not used,synthetic
+fdr 00123,Zenith Trust Bank,Central Branch,ZTBL0000451,500000.00,2026-09-29,2027-09-29,Sahyadri Institute,not used,synthetic
+LEGACY-036,Navbharat Co-op Bank,Legacy Branch 36,ZNVB0000036,800000.00,25/10/2025,25/10/2026,Sahyadri Demo Institute,not used,synthetic
+LEGACY-037,Gramin Savings Bank,Legacy Branch 37,ZGRB0000037,850000.00,26/10/2025,26/10/2026,Dakshin Demo Institute,not used,synthetic
+LEGACY-038,Konkan Sahakari Bank,Legacy Branch 38,ZKSB0000038,900000.00,27/10/2025,27/10/2026,Purvanchal Demo Institute,not used,synthetic
+LEGACY-038,Meridian Union Bank,Legacy Branch 39,ZMHB0000039,950000.00,28/10/2025,28/10/2026,Uttar Demo Institute,not used,synthetic
+LEGACY/040,Zenith Trust Bank,Legacy Branch 40,ZTBL0000040,1000000.00,29/10/2025,29/10/2026,Konkan Demo Institute,not used,synthetic

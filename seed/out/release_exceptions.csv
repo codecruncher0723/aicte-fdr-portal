@@ -1,0 +1,2 @@
+id,checklist_item_id,requested_by,approved_by,rationale,at,data_origin
+EX-02,CLI-RR-02-BANK_NO_DUES,USR-CLEARANCE-OFFICER-01,USR-APPROVER-02,Demo-only waiver illustration; distinct approver,2026-10-22T09:30:00Z,synthetic

@@ -1,0 +1,11 @@
+id,user_id,scope_type,institution_id,scope_value,data_origin
+SCOPE-01,USR-SUBMITTER-01,institution,INST-01,,synthetic
+SCOPE-02,USR-REVIEWER-01,bureau,,all,synthetic
+SCOPE-03,USR-VERIFICATION-OFFICER-01,bureau,,all,synthetic
+SCOPE-04,USR-CLEARANCE-OFFICER-01,bureau,,all,synthetic
+SCOPE-05,USR-AUTHORIZED-APPROVER-01,bureau,,all,synthetic
+SCOPE-06,USR-AUDITOR-01,bureau,,all,synthetic
+SCOPE-07,USR-SYSTEM-ADMIN-01,bureau,,all,synthetic
+SCOPE-08,USR-APPROVER-02,bureau,,all,synthetic
+SCOPE-09,USR-SUBMITTER-02,institution,INST-02,,synthetic
+SCOPE-10,USR-SUBMITTER-03,institution,INST-03,,synthetic

@@ -1,0 +1,6 @@
+id,instrument_id,request_type,state,reason,requested_by,prepared_by,template_id,template_version,requested_at,updated_at,data_origin
+RR-01,FDR-A20,release,checklist_pending,Synthetic release demo,USR-SUBMITTER-01,USR-CLEARANCE-OFFICER-01,RELEASE-DEMO,v1,2026-10-16T09:30:00Z,2026-10-23T09:30:00Z,synthetic
+RR-02,FDR-A21,release,ready_for_decision,Synthetic eligible exception demo,USR-SUBMITTER-01,USR-CLEARANCE-OFFICER-01,RELEASE-DEMO,v1,2026-10-12T09:30:00Z,2026-10-22T09:30:00Z,synthetic
+RR-03,FDR-A18,refund,ready_for_decision,Synthetic separation of duties demo,USR-SUBMITTER-01,USR-CLEARANCE-OFFICER-01,RELEASE-DEMO,v1,2026-10-19T09:30:00Z,2026-10-24T09:30:00Z,synthetic
+RR-C01,FDR-C01,release,confirmed,Synthetic completed release,USR-SUBMITTER-01,USR-CLEARANCE-OFFICER-01,RELEASE-DEMO,v1,2026-09-09T09:30:00Z,2026-09-19T09:30:00Z,synthetic
+RR-C02,FDR-C02,release,confirmed,Synthetic completed release,USR-SUBMITTER-01,USR-CLEARANCE-OFFICER-01,RELEASE-DEMO,v1,2026-09-24T09:30:00Z,2026-10-04T09:30:00Z,synthetic

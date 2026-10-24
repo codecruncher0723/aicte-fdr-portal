@@ -1,0 +1,224 @@
+{
+  "bank_requests": {
+    "accepted": [
+      "BANKREQ-ACCEPTED-01",
+      "BANKREQ-ACCEPTED-02",
+      "BANKREQ-ACCEPTED-03",
+      "BANKREQ-ACCEPTED-04"
+    ],
+    "awaiting_assessment": "BANKREQ-PENDING-ASSESSMENT",
+    "inconclusive": "BANKREQ-INCONCLUSIVE",
+    "overdue": "BANKREQ-OVERDUE",
+    "rejected": "BANKREQ-REJECTED"
+  },
+  "boundary_probes": {
+    "expected_states": {
+      "day_after": "matured",
+      "day_before": "expiring",
+      "day_of": "matured",
+      "grace_boundary": "lapsed"
+    },
+    "grace_boundary_rule": "M=t-G is lapsed because t >= M+G",
+    "probes": {
+      "day_after": "FDR-A16",
+      "day_before": "FDR-A09",
+      "day_of": "FDR-A15",
+      "grace_boundary": "FDR-A19"
+    }
+  },
+  "clock_jump_demo": {
+    "advance_days": 60,
+    "expected_after_advance": {
+      "FDR-A10": "matured, 15 days past maturity",
+      "FDR-A11": "lapsed, 40 days past maturity",
+      "FDR-A12": "expiring, 10 days to maturity"
+    },
+    "initial_days_to_maturity": {
+      "FDR-A10": 45,
+      "FDR-A11": 20,
+      "FDR-A12": 70
+    },
+    "instruments": [
+      "FDR-A12",
+      "FDR-A10",
+      "FDR-A11"
+    ],
+    "reminder_expectation": "one notification per instrument/rule/window; escalation for overdue actions"
+  },
+  "coverage_gap": {
+    "expected_gap_days": 15,
+    "predecessor_id": "FDR-P01",
+    "successor_id": "FDR-A01"
+  },
+  "duplicates": {
+    "exact": [
+      "FDR-A01",
+      "FDR-A02"
+    ],
+    "loose": [
+      "FDR-A01",
+      "FDR-A03"
+    ],
+    "same_institution_reupload": [
+      "FDR-A07",
+      "FDR-A07"
+    ]
+  },
+  "legacy_import": {
+    "csv": "legacy/legacy_fdr_register.csv",
+    "data_rows": 40,
+    "defective_rows": 8,
+    "expected": "legacy/expected_import_result.json",
+    "xlsx": "legacy/legacy_fdr_register.xlsx"
+  },
+  "live_submit": {
+    "blocking": [
+      "bad_maturity_date",
+      "bad_maturity_date_unparseable",
+      "bad_ifsc",
+      "zero_amount",
+      "missing_mandatory_field",
+      "missing_mandatory_document"
+    ],
+    "happy_path": "clean_submission",
+    "renewal": "renewal_submission"
+  },
+  "noc": {
+    "fixture": "extensions/noc.json",
+    "revoked": "NOC-REVOKED-01",
+    "valid": "NOC-VALID-01"
+  },
+  "ref_date": "2026-10-24",
+  "release_requests": {
+    "blocked": "RR-01",
+    "closed": [
+      "RR-C01",
+      "RR-C02"
+    ],
+    "ready_separation": "RR-03",
+    "waiver": "RR-02"
+  },
+  "risk_demo": {
+    "case_high": {
+      "case_id": "CASE-HIGH-01",
+      "expected_rank": 1,
+      "instrument_id": "FDR-A09",
+      "signals": [
+        "maturity_within_10_days",
+        "no_verified_successor",
+        "open_high_discrepancy",
+        "missing_document:bank_response",
+        "overdue_bank_request"
+      ]
+    },
+    "case_low": {
+      "expected_rank": 2,
+      "instrument_id": "FDR-A07",
+      "signals": [
+        "same_institution_reupload_informational_only"
+      ]
+    }
+  },
+  "rule_coverage": {
+    "amount_below_minimum": [
+      "FDR-A05"
+    ],
+    "amount_non_positive": [
+      "submit_payloads/zero_amount.json"
+    ],
+    "date_unparseable": [
+      "submit_payloads/bad_maturity_date_unparseable.json"
+    ],
+    "entered_differs_from_extracted": [
+      "FDR-A05"
+    ],
+    "exact_normalized_duplicate": [
+      "FDR-A01",
+      "FDR-A02"
+    ],
+    "holder_or_lien_inconsistent": [
+      "FDR-A06",
+      "FDR-A09"
+    ],
+    "identical_file_cross_institution": [
+      "FDR-A01",
+      "FDR-A02"
+    ],
+    "ifsc_malformed": [
+      "submit_payloads/bad_ifsc.json"
+    ],
+    "loose_duplicate": [
+      "FDR-A01",
+      "FDR-A03"
+    ],
+    "mandatory_document_missing": [
+      "submit_payloads/missing_mandatory_document.json"
+    ],
+    "mandatory_field_missing": [
+      "submit_payloads/missing_mandatory_field.json"
+    ],
+    "maturity_not_after_issue": [
+      "submit_payloads/bad_maturity_date.json"
+    ],
+    "no_signature": [
+      "FDR-A01"
+    ],
+    "pdf_modified_after_creation": [
+      "FDR-A11"
+    ],
+    "same_institution_identical_reupload": [
+      "FDR-A07",
+      "DOCVER-REUPLOAD-A07"
+    ],
+    "signature_integrity_invalid": [
+      "FDR-A09"
+    ],
+    "tenure_below_minimum": [
+      "FDR-A08"
+    ],
+    "unusual_pdf_producer": [
+      "FDR-A12"
+    ]
+  },
+  "scope_test": {
+    "denied_record": "FDR-A02",
+    "expected": "denied",
+    "institution_a": "INST-01",
+    "institution_b": "INST-02"
+  },
+  "signature_fixtures": {
+    "invalid_after_tampering": "signed_then_tampered.pdf",
+    "valid_negative_control": "signed_valid.pdf"
+  },
+  "validity_buckets": {
+    "active": [
+      "FDR-A01",
+      "FDR-A02",
+      "FDR-A03",
+      "FDR-A04",
+      "FDR-A05",
+      "FDR-A06",
+      "FDR-A07",
+      "FDR-A08"
+    ],
+    "expiring": [
+      "FDR-A09",
+      "FDR-A10",
+      "FDR-A11",
+      "FDR-A12",
+      "FDR-A13",
+      "FDR-A14"
+    ],
+    "lapsed": [
+      "FDR-A19",
+      "FDR-A20",
+      "FDR-A21"
+    ],
+    "matured": [
+      "FDR-A15",
+      "FDR-A16",
+      "FDR-A17",
+      "FDR-A18"
+    ]
+  }
+}

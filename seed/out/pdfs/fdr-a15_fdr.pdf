@@ -1,0 +1,126 @@
+%PDF-1.3
+%“Œ‹ž ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R /F3 4 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding /Name /F3 /Subtype /Type1 /Type /Font
+>>
+endobj
+5 0 obj
+<<
+/Contents 9 0 R /MediaBox [ 0 0 612 792 ] /Parent 8 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+6 0 obj
+<<
+/PageMode /UseNone /Pages 8 0 R /Type /Catalog
+>>
+endobj
+7 0 obj
+<<
+/Author (Synthetic Demo Generator) /CreationDate (D:20000101000000+00'00') /Creator (anonymous) /Keywords () /ModDate (D:20000101000000+00'00') /Producer (Synthetic FDR Demo Generator) 
+  /Subject (SYNTHETIC - DEMO ONLY) /Title (Synthetic Fixed Deposit Receipt) /Trapped /False
+>>
+endobj
+8 0 obj
+<<
+/Count 1 /Kids [ 5 0 R ] /Type /Pages
+>>
+endobj
+9 0 obj
+<<
+/Length 1643
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+BT /F2 18 Tf 21.6 TL ET
+BT 1 0 0 1 52 730 Tm (FIXED DEPOSIT RECEIPT) Tj T* ET
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 52 705 Tm (Meridian Union Bank) Tj T* ET
+BT /F1 9 Tf 10.8 TL ET
+BT 1 0 0 1 52 689 Tm (Fictional bank instrument - no financial value) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 647 Tm (FDR Number:) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 647 Tm (FDR00515) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 617 Tm (Branch:) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 617 Tm (Hillview Branch) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 587 Tm (IFSC:) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 587 Tm (ZMHB0000465) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 557 Tm (Amount \(INR\):) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 557 Tm (550000.00) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 527 Tm (Issue Date:) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 527 Tm (2025-10-24) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 497 Tm (Maturity Date:) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 497 Tm (2026-10-24) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 467 Tm (Tenure \(months\):) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 467 Tm (12) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 437 Tm (Holder:) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 437 Tm (Purvanchal Demo Technical Institute) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 407 Tm (Lien in favour of:) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 407 Tm (All India Council for Technical Education) Tj T* ET
+BT /F3 8 Tf 9.6 TL ET
+BT 1 0 0 1 50 30 Tm (SYNTHETIC - DEMO ONLY | Not a bank instrument) Tj T* ET
+ 
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000061 00000 n 
+0000000112 00000 n 
+0000000219 00000 n 
+0000000331 00000 n 
+0000000446 00000 n 
+0000000639 00000 n 
+0000000707 00000 n 
+0000001006 00000 n 
+0000001065 00000 n 
+trailer
+<<
+/ID 
+[<7c0a29e6208a2847aa157ee38c95c2d6><7c0a29e6208a2847aa157ee38c95c2d6>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 7 0 R
+/Root 6 0 R
+/Size 10
+>>
+startxref
+2759
+%%EOF

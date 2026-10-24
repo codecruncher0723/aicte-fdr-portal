@@ -1,0 +1,96 @@
+{
+  "config_version": "v1",
+  "header": "prototype defaults, not AICTE policy",
+  "rules": [
+    {
+      "class": "blocking",
+      "rule_id": "mandatory_field_missing",
+      "severity": null
+    },
+    {
+      "class": "blocking",
+      "rule_id": "mandatory_document_missing",
+      "severity": null
+    },
+    {
+      "class": "blocking",
+      "rule_id": "maturity_not_after_issue",
+      "severity": null
+    },
+    {
+      "class": "blocking",
+      "rule_id": "amount_non_positive",
+      "severity": null
+    },
+    {
+      "class": "blocking",
+      "rule_id": "ifsc_malformed",
+      "severity": null
+    },
+    {
+      "class": "blocking",
+      "rule_id": "date_unparseable",
+      "severity": null
+    },
+    {
+      "class": "review_required",
+      "rule_id": "entered_differs_from_extracted",
+      "severity": "medium"
+    },
+    {
+      "class": "review_required",
+      "rule_id": "holder_or_lien_inconsistent",
+      "severity": "high"
+    },
+    {
+      "class": "review_required",
+      "rule_id": "exact_normalized_duplicate",
+      "severity": "high"
+    },
+    {
+      "class": "review_required",
+      "rule_id": "loose_duplicate",
+      "severity": "medium"
+    },
+    {
+      "class": "review_required",
+      "rule_id": "amount_below_minimum",
+      "severity": "medium"
+    },
+    {
+      "class": "review_required",
+      "rule_id": "tenure_below_minimum",
+      "severity": "medium"
+    },
+    {
+      "class": "review_required",
+      "rule_id": "signature_integrity_invalid",
+      "severity": "medium"
+    },
+    {
+      "class": "review_required",
+      "rule_id": "identical_file_cross_institution",
+      "severity": "high"
+    },
+    {
+      "class": "informational",
+      "rule_id": "pdf_modified_after_creation",
+      "severity": null
+    },
+    {
+      "class": "informational",
+      "rule_id": "unusual_pdf_producer",
+      "severity": null
+    },
+    {
+      "class": "informational",
+      "rule_id": "no_signature",
+      "severity": null
+    },
+    {
+      "class": "informational",
+      "rule_id": "same_institution_identical_reupload",
+      "severity": null
+    }
+  ]
+}

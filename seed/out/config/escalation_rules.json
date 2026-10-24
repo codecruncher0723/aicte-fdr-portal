@@ -1,0 +1,14 @@
+{
+  "chain": [
+    "institution",
+    "verification_officer",
+    "bureau_head"
+  ],
+  "config_version": "v1",
+  "header": "prototype defaults, not AICTE policy",
+  "overdue_days": {
+    "bank_confirmation": 7,
+    "release": 15,
+    "verification": 10
+  }
+}

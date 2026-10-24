@@ -1,0 +1,11 @@
+id,email,full_name,role,is_active,data_origin
+USR-SUBMITTER-01,usr-submitter-01@demo.invalid,Demo User 01,institution_submitter,true,synthetic
+USR-REVIEWER-01,usr-reviewer-01@demo.invalid,Demo User 02,document_reviewer,true,synthetic
+USR-VERIFICATION-OFFICER-01,usr-verification-officer-01@demo.invalid,Demo User 03,verification_officer,true,synthetic
+USR-CLEARANCE-OFFICER-01,usr-clearance-officer-01@demo.invalid,Demo User 04,clearance_officer,true,synthetic
+USR-AUTHORIZED-APPROVER-01,usr-authorized-approver-01@demo.invalid,Demo User 05,authorized_approver,true,synthetic
+USR-AUDITOR-01,usr-auditor-01@demo.invalid,Demo User 06,auditor,true,synthetic
+USR-SYSTEM-ADMIN-01,usr-system-admin-01@demo.invalid,Demo User 07,system_admin,true,synthetic
+USR-APPROVER-02,usr-approver-02@demo.invalid,Demo User 08,authorized_approver,true,synthetic
+USR-SUBMITTER-02,usr-submitter-02@demo.invalid,Demo User 09,institution_submitter,true,synthetic
+USR-SUBMITTER-03,usr-submitter-03@demo.invalid,Demo User 10,institution_submitter,true,synthetic

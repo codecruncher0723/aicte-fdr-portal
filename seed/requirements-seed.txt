@@ -1,0 +1,6 @@
+# Optional fixture libraries. Core CSV/JSON generation uses only Python's standard library.
+reportlab>=4.0,<5.0       # permissive BSD license; selectable-text synthetic PDFs
+cryptography>=42.0        # Apache-2.0/BSD; local self-signed test certificate
+# Optional future dependencies, not needed by the current generator:
+# openpyxl>=3.1,<4.0      # MIT; use if the XLSX fixture needs rich workbook features
+# pyHanko>=0.25,<1.0      # BSD; use for embedded PDF signatures when available offline

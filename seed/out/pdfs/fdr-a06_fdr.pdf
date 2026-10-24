@@ -1,0 +1,129 @@
+%PDF-1.3
+%“Œ‹ž ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R /F3 4 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding /Name /F3 /Subtype /Type1 /Type /Font
+>>
+endobj
+5 0 obj
+<<
+/Contents 9 0 R /MediaBox [ 0 0 612 792 ] /Parent 8 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+6 0 obj
+<<
+/PageMode /UseNone /Pages 8 0 R /Type /Catalog
+>>
+endobj
+7 0 obj
+<<
+/Author (Synthetic Demo Generator) /CreationDate (D:20000101000000+00'00') /Creator (anonymous) /Keywords () /ModDate (D:20000101000000+00'00') /Producer (Synthetic FDR Demo Generator) 
+  /Subject (SYNTHETIC - DEMO ONLY) /Title (Synthetic Fixed Deposit Receipt) /Trapped /False
+>>
+endobj
+8 0 obj
+<<
+/Count 1 /Kids [ 5 0 R ] /Type /Pages
+>>
+endobj
+9 0 obj
+<<
+/Length 1663
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+.88 .92 .96 rg
+n 40 674 532 75 re f*
+0 0 0 rg
+BT /F2 17 Tf 20.4 TL ET
+BT 1 0 0 1 55 722 Tm (DEPOSIT CERTIFICATE) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 701 Tm (Zenith Trust Bank) Tj T* ET
+BT /F1 9 Tf 10.8 TL ET
+BT 1 0 0 1 55 685 Tm (Synthetic training document) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 642 Tm (FDR Number:) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 642 Tm (FDR00506) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 614 Tm (Branch:) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 614 Tm (Riverside Branch) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 586 Tm (IFSC:) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 586 Tm (ZTBL0000456) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 558 Tm (Amount \(INR\):) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 558 Tm (1000000.00) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 530 Tm (Issue Date:) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 530 Tm (2026-07-16) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 502 Tm (Maturity Date:) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 502 Tm (2027-07-16) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 474 Tm (Tenure \(months\):) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 474 Tm (12) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 446 Tm (Holder:) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 446 Tm (Vindhya Demo Technical Institute) Tj T* ET
+BT /F2 10 Tf 12 TL ET
+BT 1 0 0 1 55 418 Tm (Lien in favour of:) Tj T* ET
+BT /F1 10 Tf 12 TL ET
+BT 1 0 0 1 185 418 Tm (All India Council for Technical Education) Tj T* ET
+BT /F3 8 Tf 9.6 TL ET
+BT 1 0 0 1 50 30 Tm (SYNTHETIC - DEMO ONLY | Not a bank instrument) Tj T* ET
+ 
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000061 00000 n 
+0000000112 00000 n 
+0000000219 00000 n 
+0000000331 00000 n 
+0000000446 00000 n 
+0000000639 00000 n 
+0000000707 00000 n 
+0000001006 00000 n 
+0000001065 00000 n 
+trailer
+<<
+/ID 
+[<7c0a29e6208a2847aa157ee38c95c2d6><7c0a29e6208a2847aa157ee38c95c2d6>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 7 0 R
+/Root 6 0 R
+/Size 10
+>>
+startxref
+2779
+%%EOF

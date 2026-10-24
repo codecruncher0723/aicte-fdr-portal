@@ -1,0 +1,229 @@
+{
+  "counts": {
+    "duplicate_flagged": 2,
+    "error": 6,
+    "ok": 32
+  },
+  "data_origin": "synthetic",
+  "row_numbering": "1-based; header is row 1",
+  "rows": [
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 2
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 3
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 4
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 5
+    },
+    {
+      "outcome": "error",
+      "reason_codes": [
+        "UNPARSEABLE_ISSUE_DATE"
+      ],
+      "row_number": 6
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 7
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 8
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 9
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 10
+    },
+    {
+      "outcome": "error",
+      "reason_codes": [
+        "UNPARSEABLE_MATURITY_DATE"
+      ],
+      "row_number": 11
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 12
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 13
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 14
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 15
+    },
+    {
+      "outcome": "error",
+      "reason_codes": [
+        "MATURITY_NOT_AFTER_ISSUE"
+      ],
+      "row_number": 16
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 17
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 18
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 19
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 20
+    },
+    {
+      "outcome": "error",
+      "reason_codes": [
+        "MALFORMED_IFSC"
+      ],
+      "row_number": 21
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 22
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 23
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 24
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 25
+    },
+    {
+      "outcome": "error",
+      "reason_codes": [
+        "NON_POSITIVE_AMOUNT"
+      ],
+      "row_number": 26
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 27
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 28
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 29
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 30
+    },
+    {
+      "outcome": "error",
+      "reason_codes": [
+        "MISSING_BANK_NAME"
+      ],
+      "row_number": 31
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 32
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 33
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 34
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 35
+    },
+    {
+      "outcome": "duplicate_flagged",
+      "reason_codes": [
+        "DUPLICATE_OF_SEEDED_FDR:FDR-A01"
+      ],
+      "row_number": 36
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 37
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 38
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 39
+    },
+    {
+      "outcome": "duplicate_flagged",
+      "reason_codes": [
+        "DUPLICATE_OF_ROW:39"
+      ],
+      "row_number": 40
+    },
+    {
+      "outcome": "ok",
+      "reason_codes": [],
+      "row_number": 41
+    }
+  ],
+  "total_data_rows": 40,
+  "total_file_rows_including_header": 41
+}

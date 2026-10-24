@@ -1,0 +1,18 @@
+{
+  "amount": "1250000.00",
+  "auto_renewal": false,
+  "bank_name": "Zenith Trust Bank",
+  "branch": "Civic Branch",
+  "data_origin": "synthetic",
+  "document": null,
+  "fdr_number": "FDR-LIVE-NO-DOC",
+  "holder_name": "Demo Technical Institute",
+  "ifsc": "ZTBL0004512",
+  "institution_id": "INST-03",
+  "instrument_type": "fixed_deposit",
+  "issue_date": "2026-10-24",
+  "lien_in_favour_of": "All India Council for Technical Education",
+  "lien_status": "lien_marked",
+  "maturity_date": "2027-10-24",
+  "tenure_months": 12
+}

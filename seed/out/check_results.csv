@@ -1,0 +1,14 @@
+id,instrument_id,rule_id,config_version,class,outcome,severity,evidence,data_origin
+CHECK-AMOUNT-MISMATCH,FDR-A05,entered_differs_from_extracted,v1,review_required,flagged,medium,"{""entered"": ""450000.00"", ""extracted"": ""950000.00""}",synthetic
+CHECK-LIEN-A06,FDR-A06,holder_or_lien_inconsistent,v1,review_required,flagged,high,"{""extracted"": ""Synthetic Ministry of Demos"", ""field"": ""lien_in_favour_of""}",synthetic
+CHECK-EXACT-DUP,FDR-A02,exact_normalized_duplicate,v1,review_required,flagged,high,"{""matches"": ""FDR-A01""}",synthetic
+CHECK-LOOSE-DUP,FDR-A03,loose_duplicate,v1,review_required,flagged,medium,"{""matches"": ""FDR-A01""}",synthetic
+CHECK-LOW-AMOUNT,FDR-A05,amount_below_minimum,v1,review_required,flagged,medium,"{""minimum"": ""500000.00""}",synthetic
+CHECK-LOW-TENURE,FDR-A08,tenure_below_minimum,v1,review_required,flagged,medium,"{""minimum_months"": 12}",synthetic
+CHECK-BAD-SIGNATURE,FDR-A09,signature_integrity_invalid,v1,review_required,flagged,medium,"{""signature_fixture"": ""signed_then_tampered""}",synthetic
+CHECK-CROSS-FILE,FDR-A01,identical_file_cross_institution,v1,review_required,flagged,high,"{""matches"": ""FDR-A02""}",synthetic
+CHECK-LIEN-HIGH,FDR-A09,holder_or_lien_inconsistent,v1,review_required,flagged,high,"{""extracted"": ""Synthetic Ministry of Demos"", ""field"": ""lien_in_favour_of""}",synthetic
+CHECK-MODIFIED,FDR-A11,pdf_modified_after_creation,v1,informational,informational,,"{""document"": ""modified_after_creation.pdf""}",synthetic
+CHECK-PRODUCER,FDR-A12,unusual_pdf_producer,v1,informational,informational,,"{""producer"": ""Odd Software 0.0 (Synthetic Test)""}",synthetic
+CHECK-NO-SIGNATURE,FDR-A01,no_signature,v1,informational,informational,,"{""document"": ""unsigned""}",synthetic
+CHECK-REUPLOAD,FDR-A07,same_institution_identical_reupload,v1,informational,informational,,"{""document_version"": ""DOCVER-REUPLOAD-A07""}",synthetic

@@ -1,0 +1,13 @@
+{
+  "allowed_mime_types": [
+    "application/pdf",
+    "image/jpeg",
+    "image/png"
+  ],
+  "config_version": "v1",
+  "header": "prototype defaults, not AICTE policy",
+  "minimum_amount": "500000.00",
+  "minimum_tenure_months": 12,
+  "noc_verification_base_url": "https://demo.invalid/noc/",
+  "upload_size_limit_bytes": 5242880
+}

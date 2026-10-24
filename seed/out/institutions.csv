@@ -1,0 +1,13 @@
+id,aicte_id,name,state,region,status,data_origin
+INST-01,1-9000001,Sahyadri Demo Technical Institute,Himachal Pradesh,North,active,synthetic
+INST-02,1-9000002,Dakshin Demo Technical Institute,Punjab,North,active,synthetic
+INST-03,1-9000003,Purvanchal Demo Technical Institute,Uttarakhand,North,active,synthetic
+INST-04,1-9000004,Uttar Demo Technical Institute,Karnataka,South,active,synthetic
+INST-05,1-9000005,Konkan Demo Technical Institute,Tamil Nadu,South,active,synthetic
+INST-06,1-9000006,Vindhya Demo Technical Institute,Kerala,South,active,synthetic
+INST-07,1-9000007,Nilgiri Demo Technical Institute,Odisha,East,active,synthetic
+INST-08,1-9000008,Satpura Demo Technical Institute,Assam,East,active,synthetic
+INST-09,1-9000009,Malabar Demo Technical Institute,West Bengal,East,active,synthetic
+INST-10,1-9000010,Aravali Demo Technical Institute,Maharashtra,West,active,synthetic
+INST-11,1-9000011,Kalinga Demo Technical Institute,Gujarat,West,active,synthetic
+INST-12,1-9000012,Deccan Demo Technical Institute,Goa,West,active,synthetic

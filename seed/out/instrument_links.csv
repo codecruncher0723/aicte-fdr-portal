@@ -1,0 +1,4 @@
+id,predecessor_id,successor_id,link_type,accepted_by,accepted_at,data_origin
+LINK-01,FDR-P01,FDR-A01,renewal,USR-VERIFICATION-OFFICER-01,2026-10-20T09:30:00Z,synthetic
+LINK-02,FDR-P02,FDR-A06,replacement,USR-VERIFICATION-OFFICER-01,2026-10-21T09:30:00Z,synthetic
+LINK-03,FDR-P03,FDR-A08,renewal,USR-VERIFICATION-OFFICER-01,2026-10-22T09:30:00Z,synthetic
