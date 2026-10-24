@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useRole, ROLES } from '../../context/RoleContext';
+import { useTheme } from '../../context/ThemeContext';
 import NotificationPopover from './NotificationPopover';
 
 export default function Header() {
@@ -14,9 +15,10 @@ export default function Header() {
     setIsMobileSidebarOpen,
     isNotificationOpen,
     setIsNotificationOpen,
-    logout
+    logout,
   } = useRole();
 
+  const { isDark, toggleTheme } = useTheme();
   const searchInputRef = useRef(null);
 
   // Keyboard shortcut ⌘K / Ctrl+K
@@ -34,7 +36,7 @@ export default function Header() {
   const isInstitution = currentRole === ROLES.INSTITUTION_OFFICER;
 
   return (
-    <header className="fixed top-0 left-0 lg:left-64 xl:left-72 right-0 h-16 bg-surface-container-lowest/95 backdrop-blur-xl border-b border-surface-container-high shadow-xs z-30 px-4 sm:px-6 flex items-center justify-between">
+    <header className="fixed top-0 left-0 lg:left-64 xl:left-72 right-0 h-16 bg-surface-container-lowest/95 backdrop-blur-xl border-b border-surface-container-high shadow-xs z-30 px-4 sm:px-6 flex items-center justify-between transition-colors">
       {/* Left: Mobile Toggle & Search */}
       <div className="flex items-center gap-3 flex-1 max-w-xl">
         <button
@@ -57,7 +59,7 @@ export default function Header() {
               </span>
             </div>
             <span className="font-label-sm text-[11px] text-on-surface-variant truncate">
-              PID: 1-10928374 • WRO
+              PID: {currentUser?.aictePid || '1-10928374'} • WRO
             </span>
           </div>
         )}
@@ -77,7 +79,7 @@ export default function Header() {
                 ? 'Search FDR ref, bank, receipt... ⌘K'
                 : 'Search FDR by receipt no, institution code, or bank...'
             }
-            className="w-full h-9 pl-9 pr-14 bg-surface-container-low border border-surface-container-high rounded-xl font-body-sm text-xs text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white transition-colors"
+            className="w-full h-9 pl-9 pr-14 bg-surface-container-low border border-surface-container-high rounded-xl font-body-sm text-xs text-on-surface placeholder:text-outline focus:outline-none focus:ring-1 focus:ring-primary focus:bg-surface-container-lowest transition-colors"
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-1.5 py-0.5 bg-surface-container-high rounded font-data-mono text-on-surface-variant text-[10px]">
             <span>⌘K</span>
@@ -87,17 +89,6 @@ export default function Header() {
 
       {/* Right Controls */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-2">
-        {/* Quick Role Switcher Pill */}
-        <button
-          onClick={() => setIsRoleModalOpen(true)}
-          className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold hover:bg-teal-100 transition-colors shadow-xs"
-          title="Click to Switch Role"
-        >
-          <span className="material-symbols-outlined text-[16px] text-teal-700">switch_account</span>
-          <span className="truncate max-w-[120px]">{currentUser?.roleLabel || 'Official'}</span>
-          <span className="material-symbols-outlined text-[14px]">arrow_drop_down</span>
-        </button>
-
         {/* FY Selector */}
         <div className="hidden md:flex items-center gap-1 px-2.5 py-1 bg-surface-container-low border border-surface-container-high rounded-xl text-xs">
           <span className="material-symbols-outlined text-primary text-[15px]">calendar_today</span>
@@ -107,9 +98,9 @@ export default function Header() {
             onChange={(e) => setFiscalYear(e.target.value)}
             className="bg-transparent font-semibold text-on-surface focus:outline-none cursor-pointer pr-1"
           >
-            <option>2024 - 2025</option>
-            <option>2023 - 2024</option>
-            <option>2022 - 2023</option>
+            <option className="bg-surface-container-lowest text-on-surface">2024 - 2025</option>
+            <option className="bg-surface-container-lowest text-on-surface">2023 - 2024</option>
+            <option className="bg-surface-container-lowest text-on-surface">2022 - 2023</option>
           </select>
         </div>
 
@@ -122,7 +113,7 @@ export default function Header() {
             type="button"
           >
             <span className="material-symbols-outlined text-[18px]">notifications</span>
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full ring-2 ring-white"></span>
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full ring-2 ring-surface-container-lowest"></span>
           </button>
           <NotificationPopover
             isOpen={isNotificationOpen}
@@ -130,30 +121,38 @@ export default function Header() {
           />
         </div>
 
-        {/* Portal Settings Button */}
+        {/* Dark Mode Toggle Button (to the left of profile menu) */}
         <button
-          onClick={() => setIsRoleModalOpen(true)}
-          className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-xl border border-surface-container-high transition-colors hidden sm:block"
-          title="Role Switcher & Portal Settings"
+          onClick={toggleTheme}
+          aria-label={isDark ? 'Light mode' : 'Dark mode'}
+          title={isDark ? 'Light mode' : 'Dark mode'}
+          className="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container rounded-xl border border-surface-container-high transition-colors"
           type="button"
         >
-          <span className="material-symbols-outlined text-[18px]">tune</span>
+          <span className="material-symbols-outlined text-[18px]">
+            {isDark ? 'light_mode' : 'dark_mode'}
+          </span>
         </button>
 
         <div className="h-5 w-px bg-surface-container-high hidden sm:block"></div>
 
-        {/* Profile Info */}
+        {/* Control #2: Profile Menu / Role Switcher (top-right of top bar) */}
         <div
           onClick={() => setIsRoleModalOpen(true)}
           className="flex items-center gap-2 cursor-pointer p-1 rounded-xl hover:bg-surface-container transition-colors"
-          title="Click to Switch User"
+          title="Switch Account Role"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') setIsRoleModalOpen(true);
+          }}
         >
           <div className="flex flex-col text-right hidden sm:flex">
             <span className="text-xs font-semibold text-on-surface leading-tight truncate max-w-[130px]">
               {currentUser?.name || 'Authorized User'}
             </span>
             <span className="text-[10px] text-on-surface-variant leading-tight truncate max-w-[130px]">
-              {isInstitution ? (currentUser?.institution || 'Institution') : (currentUser?.location || 'New Delhi')}
+              {currentUser?.roleLabel || 'Official'}
             </span>
           </div>
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-xs shrink-0 shadow-xs ring-1 ring-surface-container-highest">
@@ -164,7 +163,7 @@ export default function Header() {
         {/* Quick Logout Button */}
         <button
           onClick={logout}
-          className="p-2 text-on-surface-variant hover:text-red-700 hover:bg-red-50 rounded-xl border border-surface-container-high transition-colors"
+          className="p-2 text-on-surface-variant hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl border border-surface-container-high transition-colors"
           title="Sign Out of Session"
           type="button"
         >

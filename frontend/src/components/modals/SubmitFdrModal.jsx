@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { apiClient } from '../../api/client';
 import { FDR_STATUSES } from '../../data/mockData';
-import { fdrsApi, documentsApi } from '../../api/client';
 
 export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
   const [step, setStep] = useState(1);
@@ -26,14 +25,9 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
     fileName: null
   });
 
-<<<<<<< HEAD
-  const [uploadedFile, setUploadedFile] = useState(null);
-=======
   const [selectedFile, setSelectedFile] = useState(null);
   const [submitError, setSubmitError] = useState(null);
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
   const [errors, setErrors] = useState({});
-  const [apiError, setApiError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -44,7 +38,6 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: null }));
     }
-    if (apiError) setApiError(null);
   };
 
   const validateStep1 = () => {
@@ -78,44 +71,8 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
     e.preventDefault();
     setSubmitError(null);
     setIsSubmitting(true);
-    setApiError(null);
 
     try {
-<<<<<<< HEAD
-      // 1. Create FDR record in backend
-      const created = await fdrsApi.create({
-        fdr_number: formData.fdrNumber.trim().toUpperCase(),
-        cert_number: formData.certNumber.trim().toUpperCase(),
-        tripartite_ref: `TPR-2024-${Math.floor(100 + Math.random() * 900)} / AICTE-WRO-1092`,
-        bank_name: formData.bank,
-        branch: formData.branch,
-        ifsc: formData.ifsc.toUpperCase(),
-        amount: Number(formData.amount),
-        interest_rate: formData.interestRate,
-        issue_date: formData.issueDate,
-        maturity_date: formData.maturityDate,
-        tenure_years: Number(formData.tenureYears),
-        mandate_clause: formData.mandateClause,
-        auto_rollover: true,
-        notes: 'Submitted via Institutional Registration Wizard.',
-      });
-
-      // 2. Upload primary document if provided
-      if (uploadedFile && created?.id) {
-        const docForm = new FormData();
-        docForm.append('file', uploadedFile);
-        docForm.append('document_type', 'FDR_CERTIFICATE');
-        docForm.append('remarks', 'Initial FDR certificate bond scan');
-        try {
-          await documentsApi.uploadFdrDocument(created.id, docForm);
-        } catch (docErr) {
-          console.warn('Document attachment warning:', docErr);
-        }
-      }
-
-      // 3. Transition from DRAFT to SUBMITTED
-      const submitted = await fdrsApi.submit(created.id);
-=======
       const payload = {
         fdr_number: formData.fdrNumber.trim().toUpperCase(),
         cert_number: formData.certNumber.trim().toUpperCase(),
@@ -131,7 +88,6 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
         lien_status: formData.mandateClause || 'Statutory Lien Registered',
         notes: formData.jointAccountHolder || null,
       };
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
 
       // 1. Create FDR in real database
       const createdFdr = await apiClient.createFdr(payload);
@@ -148,27 +104,17 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
 
       setIsSuccess(true);
       setTimeout(() => {
-<<<<<<< HEAD
-        if (onSubmitSuccess) onSubmitSuccess(submitted || created);
-=======
         if (onSubmitSuccess) onSubmitSuccess(createdFdr);
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
         setIsSuccess(false);
         setStep(1);
         setSelectedFile(null);
         onClose();
       }, 1200);
     } catch (err) {
-<<<<<<< HEAD
-      console.error('Error submitting FDR to backend:', err);
-      setIsSubmitting(false);
-      setApiError(err.message || 'Submission failed. Please check field validation.');
-=======
       console.error('Error creating FDR:', err);
       setSubmitError(err.message || 'Failed to submit FDR record to regulatory database.');
     } finally {
       setIsSubmitting(false);
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
     }
   };
 
@@ -461,10 +407,6 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
                           className="hidden"
                           onChange={(e) => {
                             if (e.target.files && e.target.files[0]) {
-<<<<<<< HEAD
-                              setUploadedFile(e.target.files[0]);
-                              handleChange('fileName', e.target.files[0].name);
-=======
                               const file = e.target.files[0];
                               if (file.size > 10 * 1024 * 1024) {
                                 setSubmitError(`Selected file exceeds regulatory 10 MB limit (${(file.size / (1024 * 1024)).toFixed(2)} MB).`);
@@ -475,7 +417,6 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
                               setSubmitError(null);
                               setSelectedFile(file);
                               handleChange('fileName', `${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
                             }
                           }}
                         />
@@ -485,11 +426,6 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
                       <div className="mt-2 text-xs font-semibold text-emerald-700 flex items-center justify-center gap-1">
                         <span className="material-symbols-outlined text-[16px]">check_circle</span>
                         <span>Attached: {formData.fileName}</span>
-                      </div>
-                    )}
-                    {apiError && (
-                      <div className="mt-3 p-3 rounded-xl bg-error/10 border border-error/30 text-error text-xs">
-                        {apiError}
                       </div>
                     )}
                   </div>

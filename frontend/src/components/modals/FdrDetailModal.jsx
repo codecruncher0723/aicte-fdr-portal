@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FDR_STATUSES } from '../../data/mockData';
 import { apiClient } from '../../api/client';
+import { useRole, ROLES } from '../../context/RoleContext';
 
 export default function FdrDetailModal({ isOpen, onClose, fdr, onNavigateAudit }) {
+  const { currentRole } = useRole();
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'documents' | 'audit'
   const [documents, setDocuments] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
@@ -428,16 +430,22 @@ export default function FdrDetailModal({ isOpen, onClose, fdr, onNavigateAudit }
             Close
           </button>
 
-          <button
-            onClick={() => {
-              onClose();
-              if (onNavigateAudit) onNavigateAudit(fdr);
-            }}
-            className="px-4 py-2 rounded-xl bg-primary text-on-primary text-xs font-semibold hover:bg-primary-container transition-colors shadow-xs inline-flex items-center gap-1.5"
-          >
-            <span className="material-symbols-outlined text-[16px]">verified</span>
-            <span>Open in Verification Workspace</span>
-          </button>
+          {currentRole !== ROLES.INSTITUTION_OFFICER && (
+            <button
+              onClick={() => {
+                onClose();
+                if (onNavigateAudit) onNavigateAudit(fdr);
+              }}
+              className="px-4 py-2 rounded-xl bg-primary text-on-primary text-xs font-semibold hover:bg-primary-container transition-colors shadow-xs inline-flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-[16px]">
+                {currentRole === ROLES.APPROVING_AUTHORITY ? 'gavel' : 'verified'}
+              </span>
+              <span>
+                {currentRole === ROLES.APPROVING_AUTHORITY ? 'Open in Approval Workspace' : 'Open in Verification Workspace'}
+              </span>
+            </button>
+          )}
         </div>
       </div>
     </div>

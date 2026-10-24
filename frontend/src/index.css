@@ -2,6 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --surface: #f8f9ff;
+  --surface-dim: #cbdbf5;
+  --surface-bright: #f8f9ff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #eff4ff;
+  --surface-container: #e5eeff;
+  --surface-container-high: #dce9ff;
+  --surface-container-highest: #d3e4fe;
+  --on-surface: #0b1c30;
+  --on-surface-variant: #3d4947;
+  --inverse-surface: #213145;
+  --inverse-on-surface: #eaf1ff;
+  --outline: #6d7a77;
+  --outline-variant: #bcc9c6;
+  --secondary: #565e74;
+  --secondary-container: #dae2fd;
+  --on-secondary-container: #5c647a;
+}
+
+.dark {
+  --surface: #0b121e;
+  --surface-dim: #070c14;
+  --surface-bright: #121c2e;
+  --surface-container-lowest: #0f1726;
+  --surface-container-low: #141f33;
+  --surface-container: #1a273f;
+  --surface-container-high: #21324f;
+  --surface-container-highest: #2a3e62;
+  --on-surface: #f3f6fc;
+  --on-surface-variant: #94a3b8;
+  --inverse-surface: #f3f6fc;
+  --inverse-on-surface: #0b121e;
+  --outline: #64748b;
+  --outline-variant: #334155;
+  --secondary: #94a3b8;
+  --secondary-container: #1e293b;
+  --on-secondary-container: #cbd5e1;
+}
+
 @layer base {
   html, body {
     margin: 0;

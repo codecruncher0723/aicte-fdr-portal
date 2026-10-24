@@ -1,19 +1,12 @@
-<<<<<<< HEAD
-import React, { useState, useMemo, useEffect } from 'react';
-import { exportToCSV, AUDIT_LOGS } from '../data/mockData';
-import { dashboardApi } from '../api/client';
-=======
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiClient } from '../api/client';
 import { exportToCSV } from '../data/mockData';
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
 
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [actionFilter, setActionFilter] = useState('all');
@@ -68,35 +61,6 @@ export default function AuditLogsPage() {
     }, 15000); // 15 seconds
     return () => clearInterval(interval);
   }, [isLiveActive, loadAuditLogs]);
-
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchLogs() {
-      try {
-        setLoading(true);
-        const res = await dashboardApi.listAuditLogs();
-        if (isMounted && Array.isArray(res) && res.length > 0) {
-          const formatted = res.map((item, idx) => ({
-            id: item.id || `live_${idx}`,
-            timestamp: item.timestamp ? new Date(item.timestamp).toLocaleString('en-IN') : 'Just now',
-            actor: item.actor || 'System',
-            role: item.role || 'System',
-            action: item.action || 'Audit Record',
-            target: item.target || 'FDR System',
-            details: item.details || '',
-            hash: item.hash || `sha256:log_${item.id || idx}`
-          }));
-          setLogs(formatted);
-        }
-      } catch (err) {
-        console.warn('Could not fetch audit logs from backend, keeping local data:', err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-    fetchLogs();
-    return () => { isMounted = false; };
-  }, []);
 
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {

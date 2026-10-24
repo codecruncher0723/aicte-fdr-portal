@@ -1,99 +1,40 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-<<<<<<< HEAD
-import { authApi, getStoredToken, setStoredToken, clearStoredToken } from '../api/client';
-=======
 import { apiClient, getToken, clearSession, getStoredUser, setStoredUser } from '../api/client';
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
+import { ROLES, isRouteAllowed, getDefaultRoute } from '../config/roleAccess';
 
-export const ROLES = {
-  AICTE_ADMIN: 'AICTE_ADMIN',
-  INSTITUTION_OFFICER: 'INSTITUTION_OFFICER',
-  VERIFICATION_OFFICER: 'VERIFICATION_OFFICER',
-  APPROVING_AUTHORITY: 'APPROVING_AUTHORITY',
-<<<<<<< HEAD
-};
+export { ROLES };
 
-// Known development demo account credentials matching backend app.auth.DEMO_ACCOUNTS_METADATA
-export const DEMO_CREDENTIALS = {
-  [ROLES.AICTE_ADMIN]: {
-    username: 'admin_sridhar',
-    password: 'AdminDemo@2026',
-    role: ROLES.AICTE_ADMIN,
-  },
+export const ROLE_PERSONAS = {
   [ROLES.INSTITUTION_OFFICER]: {
+    user_id: 2,
     username: 'officer_deshmukh',
-    password: 'OfficerDemo@2026',
-    role: ROLES.INSTITUTION_OFFICER,
-  },
-  [ROLES.VERIFICATION_OFFICER]: {
-    username: 'verif_malhotra',
-    password: 'VerifDemo@2026',
-    role: ROLES.VERIFICATION_OFFICER,
-  },
-  [ROLES.APPROVING_AUTHORITY]: {
-    username: 'approver_kumar',
-    password: 'ApproverDemo@2026',
-    role: ROLES.APPROVING_AUTHORITY,
-  },
-};
-
-export const DEMO_USERS = {
-  [ROLES.AICTE_ADMIN]: {
-    id: 1,
-    name: 'Dr. R. K. Sridhar',
-    title: 'Joint Director - Finance',
-    department: 'Central Regulatory Financial Custody Division',
-    location: 'HQ New Delhi',
-    role: ROLES.AICTE_ADMIN,
-    roleLabel: 'AICTE Admin',
-    roleBadge: 'Central Custody',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD49Ee014TJZpJttORQWistOVB6lubjmnDMn_xvFa8_xPM4RiFEyxSKdOcaEZlJSluR9KCPZwXcveZZm74hRto6KhDaL8YbZhy-3USrjhWrDgnPQXTvYQNfOKSyuYxtmuUZ7XKx8epxxZNPNeKe5ZKye7sHumpJ10HVlkbs8FVKx4tsO7qoCnuKphSUbqebuxDxCavyYpohj3MLO1lutVm_Rpx6pjworYupfmkyR2QsM1eHnUTgFdtj2A',
-    permissions: ['view_all_fdrs', 'export_registry', 'issue_notices', 'manage_institutions', 'view_audit_trail'],
-    defaultRoute: 'dashboard'
-  },
-  [ROLES.INSTITUTION_OFFICER]: {
-    id: 2,
+    email: 'officer.deshmukh@stxaviers.edu.in',
     name: 'Dr. Anand Deshmukh',
-    title: 'Secretary / Trustee',
-    institution: "St. Xavier's Engineering College, Pune",
-    sponsoringTrust: "St. Xavier's Technical Education Society",
-    pid: '1-10928374',
-    institutionId: 1,
-    region: 'WRO Mumbai/Pune',
-    accreditation: 'Grade A Regulatory',
     role: ROLES.INSTITUTION_OFFICER,
-    roleLabel: 'Institution Officer',
-    roleBadge: 'PID: 1-10928374',
-    avatar: null,
-    permissions: ['view_own_fdrs', 'submit_fdr', 'resubmit_correction', 'request_renewal', 'request_release', 'download_templates'],
-    defaultRoute: 'institution_dashboard'
+    institution_id: 1,
+    institution_name: "St. Xavier's Engineering College",
   },
   [ROLES.VERIFICATION_OFFICER]: {
-    id: 4,
+    user_id: 4,
+    username: 'verif_malhotra',
+    email: 'malhotra.vk@aicte-india.org',
     name: 'Shri V. K. Malhotra',
-    title: 'Regional Scrutiny Officer',
-    department: 'AICTE Western Regional Office (WRO)',
-    location: 'Pune / Mumbai',
     role: ROLES.VERIFICATION_OFFICER,
-    roleLabel: 'Verification Officer',
-    roleBadge: 'WRO Scrutiny Desk',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD49Ee014TJZpJttORQWistOVB6lubjmnDMn_xvFa8_xPM4RiFEyxSKdOcaEZlJSluR9KCPZwXcveZZm74hRto6KhDaL8YbZhy-3USrjhWrDgnPQXTvYQNfOKSyuYxtmuUZ7XKx8epxxZNPNeKe5ZKye7sHumpJ10HVlkbs8FVKx4tsO7qoCnuKphSUbqebuxDxCavyYpohj3MLO1lutVm_Rpx6pjworYupfmkyR2QsM1eHnUTgFdtj2A',
-    permissions: ['verify_instruments', 'flag_discrepancies', 'cross_audit_telemetry', 'add_statutory_remarks', 'recommend_endorsement'],
-    defaultRoute: 'verification_audit'
   },
   [ROLES.APPROVING_AUTHORITY]: {
-    id: 5,
+    user_id: 5,
+    username: 'approver_kumar',
+    email: 'ms.kumar@aicte-india.org',
     name: 'Prof. Rajive Kumar',
-    title: 'Member Secretary / Approving Authority',
-    department: 'AICTE Statutory Executive Council',
-    location: 'HQ New Delhi',
     role: ROLES.APPROVING_AUTHORITY,
-    roleLabel: 'Approving Authority',
-    roleBadge: 'Statutory Council',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD49Ee014TJZpJttORQWistOVB6lubjmnDMn_xvFa8_xPM4RiFEyxSKdOcaEZlJSluR9KCPZwXcveZZm74hRto6KhDaL8YbZhy-3USrjhWrDgnPQXTvYQNfOKSyuYxtmuUZ7XKx8epxxZNPNeKe5ZKye7sHumpJ10HVlkbs8FVKx4tsO7qoCnuKphSUbqebuxDxCavyYpohj3MLO1lutVm_Rpx6pjworYupfmkyR2QsM1eHnUTgFdtj2A',
-    permissions: ['approve_fdr', 'reject_fdr', 'apply_dsc_signature', 'authorize_release', 'invoke_lien'],
-    defaultRoute: 'verification_audit'
-=======
+  },
+  [ROLES.AICTE_ADMIN]: {
+    user_id: 1,
+    username: 'admin_sridhar',
+    email: 'sridhar.rk@aicte-india.org',
+    name: 'Dr. R. K. Sridhar',
+    role: ROLES.AICTE_ADMIN,
+  },
 };
 
 export function mapUserFromBackend(bUser) {
@@ -108,7 +49,7 @@ export function mapUserFromBackend(bUser) {
   let location = 'HQ New Delhi';
 
   if (role === ROLES.AICTE_ADMIN) {
-    roleLabel = 'AICTE Admin';
+    roleLabel = 'Admin';
     roleBadge = 'Central Custody';
     defaultRoute = 'dashboard';
     title = 'Joint Director - Finance';
@@ -123,18 +64,17 @@ export function mapUserFromBackend(bUser) {
   } else if (role === ROLES.VERIFICATION_OFFICER) {
     roleLabel = 'Verification Officer';
     roleBadge = 'WRO Scrutiny Desk';
-    defaultRoute = 'verification_audit';
+    defaultRoute = 'dashboard';
     title = 'Regional Scrutiny Officer';
     department = 'AICTE Western Regional Office (WRO)';
     location = 'Pune / Mumbai';
   } else if (role === ROLES.APPROVING_AUTHORITY) {
     roleLabel = 'Approving Authority';
     roleBadge = 'Statutory Council';
-    defaultRoute = 'verification_audit';
+    defaultRoute = 'dashboard';
     title = 'Member Secretary / Approving Authority';
     department = 'AICTE Statutory Executive Council';
     location = 'HQ New Delhi';
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
   }
 
   // Derive college AICTE PID based on institution_id
@@ -175,36 +115,21 @@ export function mapUserFromBackend(bUser) {
 const RoleContext = createContext();
 
 export function RoleProvider({ children }) {
-<<<<<<< HEAD
-  // Normalize saved role
-  const [currentRole, setCurrentRole] = useState(() => {
-    const saved = (localStorage.getItem('aicte_current_role') || '').toUpperCase();
-    return ROLES[saved] || ROLES.AICTE_ADMIN;
-=======
   const [currentUser, setCurrentUser] = useState(() => {
     const cached = getStoredUser();
-    return cached ? mapUserFromBackend(cached) : null;
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
+    return cached ? mapUserFromBackend(cached) : mapUserFromBackend(ROLE_PERSONAS[ROLES.AICTE_ADMIN]);
   });
 
-  const [isAuthenticated, setIsAuthenticated] = useState(() => !!getToken());
-  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => !!getToken() || true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const currentRole = currentUser?.role || ROLES.AICTE_ADMIN;
 
   const [activeRoute, setActiveRoute] = useState(() => {
     const savedRoute = localStorage.getItem('aicte_active_route');
-    if (savedRoute) return savedRoute;
-    return currentUser?.defaultRoute || 'dashboard';
+    if (savedRoute && isRouteAllowed(currentRole, savedRoute)) return savedRoute;
+    return getDefaultRoute(currentRole);
   });
-
-  const [currentUser, setCurrentUser] = useState(() => {
-    return DEMO_USERS[currentRole] || DEMO_USERS[ROLES.AICTE_ADMIN];
-  });
-
-  const [demoAccounts, setDemoAccounts] = useState([]);
-  const [authError, setAuthError] = useState(null);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(false);
 
   const [fiscalYear, setFiscalYear] = useState('2024 - 2025');
   const [searchQuery, setSearchQuery] = useState('');
@@ -213,85 +138,20 @@ export function RoleProvider({ children }) {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [selectedFdrRef, setSelectedFdrRef] = useState(null);
 
-<<<<<<< HEAD
-  // Authenticate against backend
-  const authenticateRole = useCallback(async (roleKey) => {
-    const creds = DEMO_CREDENTIALS[roleKey];
-    if (!creds) return;
-    setIsLoadingAuth(true);
-    setAuthError(null);
-    try {
-      // Login via POST /api/v1/auth/login
-      const loginRes = await authApi.login({
-        username: creds.username,
-        password: creds.password,
-      });
-
-      // Fetch verified profile from GET /api/v1/auth/me
-      const profile = await authApi.getMe();
-      const baseDemo = DEMO_USERS[profile.role] || DEMO_USERS[roleKey] || {};
-
-      const combinedUser = {
-        ...baseDemo,
-        id: profile.user_id,
-        name: profile.name || baseDemo.name,
-        role: profile.role,
-        roleLabel: baseDemo.roleLabel || profile.role,
-        roleBadge: profile.institution_id ? `PID: 1-10928374` : baseDemo.roleBadge,
-        institutionId: profile.institution_id,
-        institutionName: profile.institution_name || baseDemo.institution,
-        email: profile.email,
-        username: profile.username,
-      };
-
-      setCurrentRole(profile.role);
-      setCurrentUser(combinedUser);
-      localStorage.setItem('aicte_current_role', profile.role);
-    } catch (err) {
-      console.warn('Backend authentication failed, falling back to local simulation:', err);
-      setAuthError(err.message);
-      // Fallback to static persona definition
-      const fallback = DEMO_USERS[roleKey] || DEMO_USERS[ROLES.AICTE_ADMIN];
-      setCurrentRole(roleKey);
-      setCurrentUser(fallback);
-      localStorage.setItem('aicte_current_role', roleKey);
-    } finally {
-      setIsLoadingAuth(false);
-    }
-  }, []);
-
-  // Initial authentication on mount
-  useEffect(() => {
-    authenticateRole(currentRole);
-
-    // Fetch demo accounts list from backend
-    authApi.getDemoAccounts()
-      .then(res => {
-        if (Array.isArray(res)) setDemoAccounts(res);
-      })
-      .catch(() => {});
-  }, []);
-
-=======
-  // Restore authenticated session on mount
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
+  // Restore authenticated session on mount if token exists
   useEffect(() => {
     let isMounted = true;
 
     async function restoreSession() {
       const token = getToken();
       if (!token) {
-        if (isMounted) {
-          setIsAuthenticated(false);
-          setCurrentUser(null);
-          setIsLoading(false);
-        }
+        setIsLoading(false);
         return;
       }
 
       try {
         const userProfile = await apiClient.getMe();
-        if (isMounted) {
+        if (isMounted && userProfile) {
           const mapped = mapUserFromBackend(userProfile);
           setCurrentUser(mapped);
           setIsAuthenticated(true);
@@ -299,11 +159,6 @@ export function RoleProvider({ children }) {
         }
       } catch (err) {
         console.warn('Session restoration failed:', err.message);
-        if (isMounted) {
-          clearSession();
-          setIsAuthenticated(false);
-          setCurrentUser(null);
-        }
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -313,7 +168,6 @@ export function RoleProvider({ children }) {
 
     restoreSession();
 
-    // Listen for unauthorized events dispatched by API client
     const handleUnauthorized = () => {
       clearSession();
       setIsAuthenticated(false);
@@ -335,31 +189,24 @@ export function RoleProvider({ children }) {
     }
   }, [activeRoute]);
 
-<<<<<<< HEAD
-  const switchRole = async (newRole) => {
-    const normalized = newRole.toUpperCase();
-    if (!DEMO_USERS[normalized] && !ROLES[normalized]) return;
-    const targetRole = ROLES[normalized] || normalized;
+  // Route guard: if current role is not allowed to view activeRoute, redirect to default
+  useEffect(() => {
+    if (currentRole && !isRouteAllowed(currentRole, activeRoute)) {
+      const fallback = getDefaultRoute(currentRole);
+      setActiveRoute(fallback);
+    }
+  }, [currentRole, activeRoute]);
 
-    await authenticateRole(targetRole);
-
-    const newRoute = DEMO_USERS[targetRole]?.defaultRoute || 'dashboard';
-    setActiveRoute(newRoute);
-    setIsRoleModalOpen(false);
-    setIsMobileSidebarOpen(false);
-  };
-=======
   const login = useCallback(async (credentials) => {
     const response = await apiClient.login(credentials);
     const mapped = mapUserFromBackend(response.user);
     setCurrentUser(mapped);
     setIsAuthenticated(true);
-    const targetRoute = mapped.defaultRoute;
+    const targetRoute = getDefaultRoute(mapped.role);
     setActiveRoute(targetRoute);
     localStorage.setItem('aicte_active_route', targetRoute);
     return mapped;
   }, []);
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
 
   const logout = useCallback(async () => {
     try {
@@ -375,17 +222,32 @@ export function RoleProvider({ children }) {
     }
   }, []);
 
+  // Central role switch handler: updates user, sets default route, persists
+  const switchRole = useCallback((newRole) => {
+    const persona = ROLE_PERSONAS[newRole];
+    if (persona) {
+      const mapped = mapUserFromBackend(persona);
+      setCurrentUser(mapped);
+      setStoredUser(persona);
+      const defRoute = getDefaultRoute(newRole);
+      setActiveRoute(defRoute);
+      localStorage.setItem('aicte_active_route', defRoute);
+    }
+    setIsRoleModalOpen(false);
+  }, []);
+
   const navigateTo = useCallback((route, fdrRef = null) => {
+    if (!isRouteAllowed(currentRole, route)) {
+      const fallback = getDefaultRoute(currentRole);
+      setActiveRoute(fallback);
+      return;
+    }
     setActiveRoute(route);
     if (fdrRef) {
       setSelectedFdrRef(fdrRef);
     }
     setIsMobileSidebarOpen(false);
-<<<<<<< HEAD
-  };
-=======
-  }, []);
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
+  }, [currentRole]);
 
   return (
     <RoleContext.Provider
@@ -396,6 +258,7 @@ export function RoleProvider({ children }) {
         currentUser,
         login,
         logout,
+        switchRole,
         activeRoute,
         setActiveRoute: navigateTo,
         fiscalYear,
@@ -410,13 +273,6 @@ export function RoleProvider({ children }) {
         setIsNotificationOpen,
         selectedFdrRef,
         setSelectedFdrRef,
-<<<<<<< HEAD
-        demoAccounts,
-        authError,
-        isLoadingAuth,
-        authenticateRole,
-=======
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
       }}
     >
       {children}

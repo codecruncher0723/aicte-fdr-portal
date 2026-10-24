@@ -1,87 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { RoleProvider, useRole, ROLES } from './context/RoleContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { isRouteAllowed, getDefaultRoute } from './config/roleAccess';
 import AppLayout from './components/layout/AppLayout';
-<<<<<<< HEAD
-import { fdrsApi, workflowApi, documentsApi } from './api/client';
-
-// Mock Data (used as seamless initial seed / offline fallback)
-=======
 import { apiClient } from './api/client';
 import AicteLogo from './components/common/AicteLogo';
 
 // Mock Data (Initial fallbacks)
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
 import { INITIAL_FDRS, FDR_STATUSES, INITIAL_RELEASE_REQUESTS } from './data/mockData';
-
-// Normalizers for full resilience and backwards compatibility
-function normalizeFdr(raw) {
-  if (!raw) return raw;
-  const numAmount = typeof raw.amount === 'number' ? raw.amount : parseFloat(raw.amount_decimal || raw.amount || raw.deposit_amount || 0);
-  const formatted = raw.amountFormatted || (numAmount ? `₹${Number(numAmount).toLocaleString('en-IN')}` : '₹0.00');
-  return {
-    ...raw,
-    id: raw.id ?? raw.fdr_id,
-    fdrId: raw.id ?? raw.fdr_id,
-    fdrNumber: raw.fdrNumber || raw.fdr_number || `FDR-${raw.id}`,
-    certNumber: raw.certNumber || raw.cert_number || `CERT-${raw.id}`,
-    tripartiteRef: raw.tripartiteRef || raw.tripartite_ref || '',
-    institutionId: raw.institutionId || raw.institution_id || '',
-    institutionName: raw.institutionName || raw.institution_name || raw.institution?.name || "St. Xavier's Engineering College",
-    aictePid: raw.aictePid || raw.aicte_pid || raw.institution?.aicte_pid || '1-10928374',
-    region: raw.region || (raw.institution?.region ? raw.institution.region.toLowerCase() : 'wro'),
-    regionLabel: raw.regionLabel || (raw.institution?.region ? `${raw.institution.region} Region` : 'Western (WRO)'),
-    bank: raw.bank || raw.bank_name || raw.issuing_bank || 'State Bank of India',
-    bankName: raw.bank_name || raw.bank || 'State Bank of India',
-    bankCode: raw.bankCode || (raw.bank_name || raw.bank || 'sbi').toLowerCase().slice(0, 3),
-    branch: raw.branch || raw.branch_name || 'Main Treasury Branch',
-    ifsc: raw.ifsc || 'SBIN0000300',
-    amount: numAmount,
-    amountFormatted: formatted,
-    amountWords: raw.amountWords || `Rupees ${numAmount} Only`,
-    interestRate: raw.interestRate || (raw.interest_rate ? `${raw.interest_rate}%` : '7.20% p.a.'),
-    issueDate: raw.issueDate || raw.issue_date || '2022-01-01',
-    maturityDate: raw.maturityDate || raw.maturity_date || '2027-01-01',
-    tenureYears: raw.tenureYears || raw.tenure_years || 5,
-    status: raw.status || FDR_STATUSES.SUBMITTED,
-    lienStatus: raw.lienStatus || raw.lien_status || 'Statutory Lien Registered',
-    autoRollover: raw.autoRollover ?? raw.auto_rollover ?? true,
-    discrepancyNote: raw.discrepancyNote || raw.discrepancy_note || null,
-    notes: raw.notes || ''
-  };
-}
-
-function normalizeReleaseRequest(raw) {
-  if (!raw) return raw;
-  const numAmount = typeof raw.amount === 'number' ? raw.amount : parseFloat(raw.amount_decimal || raw.amount || 0);
-  const formatted = raw.amountFormatted || (numAmount ? `₹${Number(numAmount).toLocaleString('en-IN')}` : '₹0.00');
-  return {
-    ...raw,
-    id: raw.id ?? raw.request_id,
-    requestId: raw.id ?? raw.request_id,
-    fdrId: raw.fdrId ?? raw.fdr_id,
-    fdrNumber: raw.fdrNumber || raw.fdr_number || `FDR-${raw.fdr_id}`,
-    institutionName: raw.institutionName || raw.institution_name || "St. Xavier's Engineering College",
-    aictePid: raw.aictePid || raw.aicte_pid || '1-10928374',
-    bank: raw.bank || raw.bank_name || 'State Bank of India',
-    amount: numAmount,
-    amountFormatted: formatted,
-    requestType: raw.requestType || raw.request_type || 'Release / Refund Request',
-    submittedDate: raw.submittedDate || raw.submitted_date || raw.submitted_at?.split('T')[0] || raw.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-    status: raw.status || 'REQUESTED',
-    councilOrderRef: raw.councilOrderRef || raw.council_order_ref || null,
-    approvalDate: raw.approvalDate || raw.approval_date || null,
-    readinessRemarks: raw.readinessRemarks || raw.readiness_remarks || null,
-    confirmationRef: raw.confirmationRef || raw.confirmation_ref || null,
-    confirmationVoucher: raw.confirmationVoucher || raw.confirmation_voucher || null,
-    notes: raw.notes || raw.remarks || ''
-  };
-}
 
 // Pages
 import LoginPage from './pages/LoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import MasterRegistry from './pages/MasterRegistry';
-import VerificationAuditWorkspace from './pages/VerificationAuditWorkspace';
+import VerificationPage from './pages/VerificationPage';
+import ApprovalPage from './pages/ApprovalPage';
 import MaturityRenewalsPage from './pages/MaturityRenewalsPage';
 import ReleaseRequestsPage from './pages/ReleaseRequestsPage';
 import ReportsPage from './pages/ReportsPage';
@@ -188,43 +121,6 @@ function MainRouter() {
   const [scrutinyTargetFdr, setScrutinyTargetFdr] = useState(null);
   const [detailTargetFdr, setDetailTargetFdr] = useState(null);
 
-<<<<<<< HEAD
-  // Data synchronization with backend API
-  const fetchAllData = useCallback(async () => {
-    try {
-      const [fdrsRes, reqsRes] = await Promise.allSettled([
-        fdrsApi.list({ limit: 100 }),
-        workflowApi.listRequests({ limit: 100 })
-      ]);
-
-      if (fdrsRes.status === 'fulfilled' && fdrsRes.value?.items && Array.isArray(fdrsRes.value.items)) {
-        if (fdrsRes.value.items.length > 0) {
-          const liveFdrs = fdrsRes.value.items.map(normalizeFdr);
-          setFdrs(liveFdrs);
-          if (selectedFdrRef) {
-            const found = liveFdrs.find(f => f.fdrNumber === selectedFdrRef);
-            if (found) setSelectedFdr(found);
-          }
-        }
-      }
-
-      if (reqsRes.status === 'fulfilled' && reqsRes.value?.items && Array.isArray(reqsRes.value.items)) {
-        if (reqsRes.value.items.length > 0) {
-          const liveReqs = reqsRes.value.items.map(normalizeReleaseRequest);
-          setReleaseRequests(liveReqs);
-        }
-      }
-    } catch (err) {
-      console.warn('Backend sync failed, maintaining current state:', err);
-    }
-  }, [selectedFdrRef]);
-
-  useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData, currentUser]);
-
-  // Select FDR and sync ref
-=======
   // Load FDRs from backend API
   const loadFdrs = useCallback(async () => {
     try {
@@ -268,7 +164,6 @@ function MainRouter() {
     }
   }, [selectedFdrRef, fdrs]);
 
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
   const handleSelectFdr = (fdr) => {
     setSelectedFdr(fdr);
     setSelectedFdrRef(fdr.fdrNumber);
@@ -284,15 +179,7 @@ function MainRouter() {
     setIsScrutinyModalOpen(true);
   };
 
-<<<<<<< HEAD
-  // Status transitions
-  const handleUpdateFdrStatus = async (fdrId, newStatus, remarks) => {
-    setFdrs(prev =>
-      prev.map(item => {
-        if (item.id === fdrId) {
-=======
-  const handleAddFdr = async (createdOrNewFdr) => {
-    // Reload freshly from backend to ensure database persistence
+  const handleAddFdr = async () => {
     await loadFdrs();
   };
 
@@ -300,118 +187,18 @@ function MainRouter() {
     setFdrs(prevFdrs =>
       prevFdrs.map(fdr => {
         if (fdr.id === fdrId) {
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
           return {
             ...fdr,
             status: newStatus,
             lastAuditDate: new Date().toISOString().split('T')[0],
-            statusRemarks: remarks || fdr.statusRemarks
+            statusRemarks: remarks || fdr.statusRemarks,
           };
         }
-<<<<<<< HEAD
-        return item;
-      })
-    );
-
-    // Update active selectedFdr if matched
-    if (selectedFdr && selectedFdr.id === fdrId) {
-      setSelectedFdr(prev => ({
-        ...prev,
-        status: newStatus,
-        notes: remarks ? remarks : prev.notes,
-        lastAuditDate: new Date().toISOString().split('T')[0]
-      }));
-    }
-
-    try {
-      if (newStatus === FDR_STATUSES.UNDER_VERIFICATION) {
-        await fdrsApi.startVerification(fdrId);
-      } else if (newStatus === FDR_STATUSES.VERIFIED) {
-        await workflowApi.verifyFdr(fdrId, remarks);
-      } else if (newStatus === FDR_STATUSES.ACTIVE) {
-        await workflowApi.approveFdr(fdrId, remarks);
-      } else if (newStatus === FDR_STATUSES.SUBMITTED) {
-        await fdrsApi.submit(fdrId);
-      } else if (newStatus === FDR_STATUSES.CORRECTION_REQUIRED) {
-        await fdrsApi.patch(fdrId, { status: 'CORRECTION_REQUIRED', notes: remarks });
-      }
-      await fetchAllData();
-    } catch (err) {
-      console.warn('Backend status transition failed, kept optimistic state:', err);
-    }
-  };
-
-  // Add new submitted FDR
-  const handleAddFdr = async (newFdr) => {
-    const norm = normalizeFdr(newFdr);
-    setFdrs(prev => [norm, ...prev]);
-    setSelectedFdr(norm);
-    setSelectedFdrRef(norm.fdrNumber);
-    await fetchAllData();
-  };
-
-  // Correction Resubmission
-  const handleResubmitCorrection = async (fdrId, remarks, fileName) => {
-    setFdrs(prev =>
-      prev.map(item => {
-        if (item.id === fdrId) {
-          return {
-            ...item,
-            status: FDR_STATUSES.SUBMITTED,
-            discrepancyNote: null,
-            notes: `Amended document (${fileName}) resubmitted. ${remarks}`,
-            lastAuditDate: new Date().toISOString().split('T')[0]
-          };
-        }
-        return item;
-=======
         return fdr;
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
       })
     );
-    try {
-      await fdrsApi.patch(fdrId, { notes: `Amended document (${fileName}) resubmitted. ${remarks}` });
-      await fdrsApi.submit(fdrId);
-      await fetchAllData();
-    } catch (err) {
-      console.warn('Backend resubmission failed, kept optimistic state:', err);
-    }
   };
 
-<<<<<<< HEAD
-  // Release request status transition handler
-  const handleUpdateReleaseRequest = async (requestId, transitionType, payload = {}) => {
-    const today = new Date().toISOString().split('T')[0];
-    setReleaseRequests(prev =>
-      prev.map(req => {
-        if (req.id !== requestId) return req;
-        switch (transitionType) {
-          case 'START_VERIFICATION':
-            return { ...req, status: 'UNDER_VERIFICATION' };
-          case 'VERIFY_APPROVE':
-            return { ...req, status: 'PENDING_APPROVAL', notes: payload.remarks || req.notes };
-          case 'REQUEST_CORRECTION':
-            return { ...req, status: 'CORRECTION_REQUIRED', notes: payload.remarks || req.notes };
-          case 'RESUBMIT':
-            return { ...req, status: 'REQUESTED', notes: payload.remarks || req.notes };
-          case 'APPROVE':
-            return { ...req, status: 'RELEASE_APPROVED', councilOrderRef: payload.orderRef, approvalDate: today };
-          case 'REJECT':
-            return { ...req, status: 'REJECTED', notes: payload.reason || req.notes };
-          case 'CONFIRM_READINESS':
-            return { ...req, status: 'AWAITING_CONFIRMATION', readinessRemarks: payload.remarks };
-          case 'CONFIRM_RELEASE':
-            return {
-              ...req,
-              status: 'RELEASED_REFUNDED',
-              confirmationRef: payload.confirmationRef,
-              confirmationVoucher: payload.voucherFile
-            };
-          case 'CANCEL':
-            return { ...req, status: 'CANCELLED', notes: payload.reason || req.notes };
-          default:
-            return req;
-=======
   const handleResubmitCorrection = (fdrId, remarks) => {
     handleUpdateFdrStatus(fdrId, FDR_STATUSES.SUBMITTED, remarks);
     setIsScrutinyModalOpen(false);
@@ -426,59 +213,96 @@ function MainRouter() {
             ...req,
             status: newStatus,
             councilRemarks: remarks || req.councilRemarks,
-            approvedAt: newStatus.includes('Approved') ? new Date().toISOString() : req.approvedAt
+            approvedAt: newStatus.includes('Approved') ? new Date().toISOString() : req.approvedAt,
           };
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
         }
         return req;
       })
     );
-<<<<<<< HEAD
-
-    try {
-      await workflowApi.transitionRequest(requestId, {
-        transition_type: transitionType,
-        ...payload
-      });
-      await fetchAllData();
-    } catch (err) {
-      console.warn('Backend release request transition failed, kept optimistic state:', err);
-    }
-
-    // Synchronize underlying FDR status if release confirmed
-    if (transitionType === 'CONFIRM_RELEASE') {
-      const targetReq = releaseRequests.find(r => r.id === requestId);
-      if (targetReq) {
-        handleUpdateFdrStatus(targetReq.fdrId, FDR_STATUSES.RELEASED_REFUNDED);
-      }
-    }
-    return { success: true };
-  };
-
-  // Add new release request
-  const handleCreateReleaseRequest = async (newReq) => {
-    const norm = normalizeReleaseRequest(newReq);
-    setReleaseRequests(prev => [norm, ...prev]);
-    try {
-      await workflowApi.createRelease(newReq.fdrId, {
-        request_type: newReq.requestType,
-        notes: newReq.notes
-      });
-      await fetchAllData();
-    } catch (err) {
-      console.warn('Backend create release failed, kept optimistic state:', err);
-    }
-=======
   };
 
   const handleCreateReleaseRequest = (newRequest) => {
     setReleaseRequests(prev => [newRequest, ...prev]);
->>>>>>> a6e3dba0f8f7bc49c3623616b53ee7a0547665a4
   };
 
-  // Route Rendering
+  // Scoped datasets: Institution Officer must ONLY see FDRs and requests belonging to their own institute
+  const isInstitutionOfficer = currentRole === ROLES.INSTITUTION_OFFICER;
+  const scopedFdrs = useMemo(() => {
+    if (!isInstitutionOfficer) return fdrs;
+    const userInstId = currentUser?.institutionId || currentUser?.institution_id;
+    const userPid = currentUser?.aictePid || currentUser?.pid;
+    const userInstName = (currentUser?.institutionName || currentUser?.institution || '').toLowerCase();
+
+    return fdrs.filter((f) => {
+      const fInstId = f.institutionId || f.institution_id;
+      if (userInstId && fInstId) {
+        return String(fInstId) === String(userInstId);
+      }
+      if (userPid && f.aictePid) {
+        return f.aictePid === userPid;
+      }
+      if (userInstName && f.institutionName) {
+        return f.institutionName.toLowerCase().includes(userInstName);
+      }
+      if (!userInstId && !userPid && !userInstName) {
+        return f.aictePid === '1-10928374' || (f.institutionName && f.institutionName.includes("St. Xavier's"));
+      }
+      return false;
+    });
+  }, [fdrs, isInstitutionOfficer, currentUser]);
+
+  const scopedReleaseRequests = useMemo(() => {
+    if (!isInstitutionOfficer) return releaseRequests;
+    const userInstId = currentUser?.institutionId || currentUser?.institution_id;
+    const userPid = currentUser?.aictePid || currentUser?.pid;
+    const userInstName = (currentUser?.institutionName || currentUser?.institution || '').toLowerCase();
+
+    return releaseRequests.filter((r) => {
+      const rInstId = r.institutionId || r.institution_id;
+      if (userInstId && rInstId) {
+        return String(rInstId) === String(userInstId);
+      }
+      if (userPid && r.aictePid) {
+        return r.aictePid === userPid;
+      }
+      if (userInstName && r.institutionName) {
+        return r.institutionName.toLowerCase().includes(userInstName);
+      }
+      if (!userInstId && !userPid && !userInstName) {
+        return r.aictePid === '1-10928374' || (r.institutionName && r.institutionName.includes("St. Xavier's"));
+      }
+      return false;
+    });
+  }, [releaseRequests, isInstitutionOfficer, currentUser]);
+
+  // Route Rendering with Central RBAC Route Guard
   const renderCurrentRoute = () => {
-    const isInst = currentRole === ROLES.INSTITUTION_OFFICER || currentRole === 'INSTITUTION_OFFICER';
+    // If route is forbidden for current role, redirect cleanly to default
+    if (!isRouteAllowed(currentRole, activeRoute)) {
+      const fallback = getDefaultRoute(currentRole);
+      if (fallback === 'institution_dashboard') {
+        return (
+          <InstitutionDashboard
+            fdrs={scopedFdrs}
+            onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
+            onOpenScrutinyModal={handleOpenScrutinyModal}
+            onSelectFdr={(fdr) => {
+              handleSelectFdr(fdr);
+              handleOpenDetailModal(fdr);
+            }}
+          />
+        );
+      }
+      return (
+        <AdminDashboard
+          fdrs={fdrs}
+          releaseRequests={releaseRequests}
+          onSelectFdr={handleSelectFdr}
+          onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
+          onOpenDetailModal={handleOpenDetailModal}
+        />
+      );
+    }
 
     if (activeRoute === 'dashboard') {
       return (
@@ -505,10 +329,23 @@ function MainRouter() {
       );
     }
 
-    if (activeRoute === 'verification_audit') {
+    // Section 3: Verification Officer Page
+    if (activeRoute === 'verification') {
       return (
-        <VerificationAuditWorkspace
-          fdr={selectedFdr}
+        <VerificationPage
+          fdrs={fdrs}
+          onUpdateFdrStatus={handleUpdateFdrStatus}
+        />
+      );
+    }
+
+    // Section 4: Approving Authority Page
+    if (activeRoute === 'approval') {
+      return (
+        <ApprovalPage
+          releaseRequests={releaseRequests}
+          fdrs={fdrs}
+          onUpdateReleaseRequest={handleUpdateReleaseRequest}
           onUpdateFdrStatus={handleUpdateFdrStatus}
         />
       );
@@ -576,7 +413,7 @@ function MainRouter() {
     if (activeRoute === 'institution_dashboard') {
       return (
         <InstitutionDashboard
-          fdrs={fdrs}
+          fdrs={scopedFdrs}
           onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
           onOpenScrutinyModal={handleOpenScrutinyModal}
           onSelectFdr={(fdr) => {
@@ -588,10 +425,9 @@ function MainRouter() {
     }
 
     if (activeRoute === 'my_fdrs') {
-      // In the real backend, list_fdrs is already scoped server-side to the institution!
       return (
         <MasterRegistry
-          fdrs={fdrs}
+          fdrs={scopedFdrs}
           onSelectFdr={(fdr) => {
             handleSelectFdr(fdr);
             handleOpenDetailModal(fdr);
@@ -603,10 +439,10 @@ function MainRouter() {
 
     if (activeRoute === 'submit_new_fdr') {
       return (
-        <div className="w-full flex-1 p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-[1200px] mx-auto">
+        <div className="w-full flex-1 p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-[1200px] mx-auto text-on-surface">
           <div className="bg-surface-container-lowest p-6 rounded-2xl border border-surface-container shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h1 className="font-headline-lg text-xl sm:text-2xl text-on-surface font-bold tracking-tight">
+              <h1 className="font-headline-lg text-xl sm:text-2xl font-bold tracking-tight text-on-surface">
                 Submit New Fixed Deposit Receipt
               </h1>
               <p className="text-xs text-secondary mt-1">
@@ -615,7 +451,7 @@ function MainRouter() {
             </div>
             <button
               onClick={() => setIsSubmitModalOpen(true)}
-              className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-white text-xs font-semibold shadow-sm inline-flex items-center gap-1.5"
+              className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-container text-on-primary text-xs font-semibold shadow-sm inline-flex items-center gap-1.5"
             >
               <span className="material-symbols-outlined text-[18px]">add_circle</span>
               <span>Open Registration Wizard</span>
@@ -654,7 +490,7 @@ function MainRouter() {
     if (activeRoute === 'renewals') {
       return (
         <MaturityRenewalsPage
-          fdrs={fdrs}
+          fdrs={scopedFdrs}
           onSelectFdr={(fdr) => {
             handleSelectFdr(fdr);
             handleOpenDetailModal(fdr);
@@ -666,8 +502,8 @@ function MainRouter() {
     if (activeRoute === 'release_refund_requests') {
       return (
         <ReleaseRequestsPage
-          fdrs={fdrs}
-          releaseRequests={releaseRequests}
+          fdrs={scopedFdrs}
+          releaseRequests={scopedReleaseRequests}
           onUpdateReleaseRequest={handleUpdateReleaseRequest}
           onCreateReleaseRequest={handleCreateReleaseRequest}
           onUpdateFdrStatus={handleUpdateFdrStatus}
@@ -688,25 +524,17 @@ function MainRouter() {
     }
 
     // Default Fallback based on Role
-    if (isInst) {
+    const defaultRoute = getDefaultRoute(currentRole);
+    if (defaultRoute === 'institution_dashboard') {
       return (
         <InstitutionDashboard
-          fdrs={fdrs}
+          fdrs={scopedFdrs}
           onOpenSubmitModal={() => setIsSubmitModalOpen(true)}
           onOpenScrutinyModal={handleOpenScrutinyModal}
           onSelectFdr={(fdr) => {
             handleSelectFdr(fdr);
             handleOpenDetailModal(fdr);
           }}
-        />
-      );
-    }
-
-    if (currentRole === ROLES.VERIFICATION_OFFICER || currentRole === ROLES.APPROVING_AUTHORITY) {
-      return (
-        <VerificationAuditWorkspace
-          fdr={selectedFdr}
-          onUpdateFdrStatus={handleUpdateFdrStatus}
         />
       );
     }
@@ -754,7 +582,7 @@ function MainRouter() {
         fdr={detailTargetFdr || selectedFdr}
         onNavigateAudit={(fdr) => {
           handleSelectFdr(fdr);
-          setActiveRoute('verification_audit');
+          setActiveRoute(currentRole === ROLES.APPROVING_AUTHORITY ? 'approval' : 'verification');
         }}
       />
     </>
@@ -766,11 +594,11 @@ function AppContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-4">
         <AicteLogo className="w-16 h-16 animate-pulse mb-4" />
-        <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-        <p className="text-xs font-semibold text-slate-700">Restoring AICTE Regulatory Session...</p>
-        <p className="text-[11px] text-slate-400 mt-0.5">Verifying cryptographic bearer tokens against core authority</p>
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mb-3"></div>
+        <p className="text-xs font-semibold text-on-surface">Restoring AICTE Regulatory Session...</p>
+        <p className="text-[11px] text-secondary mt-0.5">Verifying cryptographic bearer tokens against core authority</p>
       </div>
     );
   }
@@ -788,8 +616,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <RoleProvider>
-      <AppContent />
-    </RoleProvider>
+    <ThemeProvider>
+      <RoleProvider>
+        <AppContent />
+      </RoleProvider>
+    </ThemeProvider>
   );
 }

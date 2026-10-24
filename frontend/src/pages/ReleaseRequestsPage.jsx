@@ -165,6 +165,18 @@ export default function ReleaseRequestsPage({
   // Filter requests matching search and role scope
   const filteredRequests = useMemo(() => {
     return mappedRequests.filter(req => {
+      // Role scope: Institution only sees own requests
+      if (isInstitution) {
+        const userPid = currentUser?.aictePid || currentUser?.pid;
+        const userInst = (currentUser?.institutionName || currentUser?.institution || '').toLowerCase();
+        const matchesPid = userPid && req.aictePid === userPid;
+        const matchesInst = userInst && req.institutionName && req.institutionName.toLowerCase().includes(userInst);
+        const matchesFallback = req.aictePid === '1-10928374' || (req.institutionName && req.institutionName.includes("St. Xavier's"));
+        if (!matchesPid && !matchesInst && !matchesFallback) {
+          return false;
+        }
+      }
+
       const s = (searchTerm || '').toLowerCase().trim();
       const matchesSearch =
         !s ||
