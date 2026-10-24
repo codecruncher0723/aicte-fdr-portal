@@ -24,9 +24,23 @@ if DATABASE_URL.startswith("sqlite"):
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+from contextlib import contextmanager
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+@contextmanager
+def get_db_context():
+    session = SessionLocal()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()

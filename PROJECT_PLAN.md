@@ -136,15 +136,15 @@ Execution notes:
 - [x] **M** Add append-only verification/approval history and auditable status history sufficient to retain old FDR values/documents on renewal.
 - [x] **M** Preserve provenance for critical FDR fields where practical: source category, actor, timestamp, previous/new value, and reason for changes. Never label data `BANK_CONFIRMED` without an actual authoritative bank confirmation.
 - [x] **M** Model document uploads as immutable versions with SHA-256, size, detected media type, uploader, timestamp, and private storage reference; replacement creates a new version rather than overwriting old evidence.
-- [ ] **M** Implement migrations using the detected migration mechanism and deterministic seed/demo data for all four roles and at least two institutions.
-- [ ] **O** Add notification persistence if time permits; if deferred, document the exact limitation and ensure the core dashboard/reminder path still works.
+- [x] **M** Implement migrations using the detected migration mechanism and deterministic seed/demo data for all four roles and at least two institutions.
+- [x] **O** Add notification persistence if time permits; if deferred, document the exact limitation and ensure the core dashboard/reminder path still works.
 
 ### Definition of Done
-- [ ] A fresh database can be created entirely from migrations and seed commands.
-- [ ] Relationships and constraints reject invalid references/invalid amounts/dates.
-- [ ] Seed data contains isolated institutions and test accounts for all four roles.
-- [ ] Re-running setup is safe and does not duplicate seed records unexpectedly.
-- [ ] A database test confirms approval records cannot reference both/neither FDR and request.
+- [x] A fresh database can be created entirely from migrations and seed commands.
+- [x] Relationships and constraints reject invalid references/invalid amounts/dates.
+- [x] Seed data contains isolated institutions and test accounts for all four roles.
+- [x] Re-running setup is safe and does not duplicate seed records unexpectedly.
+- [x] A database test confirms approval records cannot reference both/neither FDR and request.
 
 ### Verification commands / procedures
 Use the migration and seed commands discovered in Phase 1. Verify from a clean test database: drop/recreate **test DB only**, run migrations, seed, and run the model/constraint test suite. Confirm schema/table list with the detected DB CLI or ORM inspection. Create one valid FDR, attempt zero/negative amount and maturity-before-issue records, and assert they are rejected. Verify both a renewal and a release request can link to the same FDR without replacing its canonical FDR status.
@@ -192,6 +192,19 @@ Execution notes (Phase 2 Tasks 1-3):
   - Enforced database-level immutability for `DocumentVersion` via SQLAlchemy event listeners (`before_update`, `before_delete`) in `backend/app/history.py`, blocking any in-place mutation or deletion.
   - Added focused test suite in `backend/tests/test_document_versioning.py` (9 tests) covering metadata accuracy, replacement preserving old versions, ordered retrieval, cross-institution rejection, valid role/same-institution access, unauthorized uploads, DB immutability, and rejection of invalid/oversized files without affecting existing versions.
   - All 52 backend tests pass in 1.48s. Frontend production build verified clean (`vite build` in 2.86s, exit code 0).
+- **Database Migrations & Deterministic Demo Data**:
+  - Investigated migration mechanisms: Alembic is not installed in the local Python environment. Implemented a lightweight, dependency-free migration runner in `backend/app/migrations/runner.py` with deterministic version tracking in `schema_migrations` table (`version`, `description`, `applied_at`).
+  - Added initial schema migration in `backend/app/migrations/versions/v001_initial_schema.py` covering all 12 core tables, foreign keys, and check constraints.
+  - Implemented cryptographic password utilities in `backend/app/security.py` with salted PBKDF2-HMAC-SHA256 hashing (100,000 iterations) and constant-time comparison, ensuring plaintext passwords are never stored.
+  - Created deterministic and idempotent seed data in `backend/app/seeds.py` covering:
+    - All 4 canonical roles (`AICTE_ADMIN`, `INSTITUTION_OFFICER`, `VERIFICATION_OFFICER`, `APPROVING_AUTHORITY`) matching `RoleContext.jsx` with hashed passwords.
+    - Multiple isolated institutions (`St. Xavier's Engineering College`, `BMS College of Architecture`, `Delhi Technical Campus`).
+    - Realistic FDR records across statuses, banks, amounts, tenures, and check constraints.
+    - Sample immutable document versions, workflow requests, notifications, and initial field provenance records.
+    - Idempotency guarantees: matched on natural keys; re-running seeding never duplicates rows.
+  - Created management CLI in `backend/manage.py` and `backend/app/cli.py` with commands: `migrate`, `seed`, `status`, and `setup`.
+  - Added test suite in `backend/tests/test_migrations_and_seeds.py` (8 tests) verifying version tracking, migration idempotency, role coverage, multi-institution isolation, repeatable seeding idempotency, fresh database creation, check constraint enforcement, and exclusive approval targets.
+  - All 60 backend tests pass in 4.93s. Frontend production build verified clean (`vite build` in 3.04s, exit code 0).
 
 ---
 
