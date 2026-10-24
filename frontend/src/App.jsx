@@ -3,7 +3,7 @@ import { RoleProvider, useRole, ROLES } from './context/RoleContext';
 import AppLayout from './components/layout/AppLayout';
 
 // Mock Data
-import { INITIAL_FDRS, FDR_STATUSES } from './data/mockData';
+import { INITIAL_FDRS, FDR_STATUSES, INITIAL_RELEASE_REQUESTS } from './data/mockData';
 
 // Pages
 import AdminDashboard from './pages/AdminDashboard';

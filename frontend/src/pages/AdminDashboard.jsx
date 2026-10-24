@@ -42,7 +42,9 @@ export default function AdminDashboard({
     const pendingReviews = fdrs.filter(f => f.status === FDR_STATUSES.SUBMITTED || f.status === FDR_STATUSES.UNDER_VERIFICATION).length;
     const correctionsRequired = fdrs.filter(f => f.status === FDR_STATUSES.CORRECTION_REQUIRED).length;
     const renewalsDue = fdrs.filter(f => f.status === FDR_STATUSES.MATURING_SOON || f.status === FDR_STATUSES.RENEWAL_REQUESTED).length;
-    const releasePending = fdrs.filter(f => f.status === FDR_STATUSES.RELEASE_REQUESTED || f.status === FDR_STATUSES.RELEASE_APPROVED).length;
+    const releasePending = (releaseRequests && releaseRequests.length > 0)
+      ? releaseRequests.filter(r => ['REQUESTED', 'UNDER_VERIFICATION', 'PENDING_APPROVAL', 'RELEASE_APPROVED', 'AWAITING_CONFIRMATION'].includes(r.status)).length
+      : fdrs.filter(f => f.status === FDR_STATUSES.RELEASE_REQUESTED || f.status === FDR_STATUSES.RELEASE_APPROVED).length;
 
     return [
       {

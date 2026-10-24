@@ -110,6 +110,16 @@ Execution notes:
   - Dev server: Verified active and running smoothly (`npm run dev`).
 - **Existing User Changes**: Preserved cleanly; untracked additions (`REQUIREMENTS_UPDATED.md`, `PROJECT_PLAN .md`) noted.
 - **Architecture File**: `ARCHITECTURE.md` does not exist. Requirements governed by `REQUIREMENTS_UPDATED.md`.
+- **Frontend UI Simplification & Audit Progress**:
+  - **Admin & Institution Dashboards**: Simplified layout with compact header, single primary action ("Register New FDR" / "+ Submit New FDR"), 4 clean KPIs, compact clickable "Action Required" counts, and responsive Recent Activity ledger.
+  - **Master Registry**: Redundant dashboard duplicate metric cards removed; filter console and master table front and center.
+  - **Maturity & Renewal Surveillance (`MaturityRenewalsPage.jsx`)**: Replaced 4 static decorative KPI cards with dynamic count badges integrated directly into horizon filter tabs ('All Horizons', 'Matured Overdue', '< 30 Days', '31–60 Days', '61–90 Days'). Counts dynamically update with search queries and category filters.
+  - **Release & Refund Requests (`ReleaseRequestsPage.jsx`)**:
+    - Implemented canonical status sequence: `REQUESTED → UNDER_VERIFICATION → CORRECTION_REQUIRED or PENDING_APPROVAL → RELEASE_APPROVED or REJECTED → AWAITING_CONFIRMATION → RELEASED_REFUNDED`.
+    - Enforced invariant: Direct transition from `RELEASE_APPROVED` to `RELEASED_REFUNDED` is strictly forbidden; readiness must be confirmed first (`CONFIRM_READINESS` → `AWAITING_CONFIRMATION`). Final completion requires simulated bank UTR and credit advice voucher (`CONFIRM_RELEASE` → `RELEASED_REFUNDED`).
+    - Enforced invariant: Rejection sets request to `REJECTED` while preserving the underlying FDR in `ACTIVE` state (rejection does not reject underlying FDR). Cancellation returns FDR to `ACTIVE`.
+    - Connected release request state to shared master store in `App.jsx`, synchronizing `AdminDashboard` action counters, `ReleaseRequestsPage`, and underlying `fdrs`.
+  - **Build Verification**: Verified `npm --prefix frontend run build` passed cleanly with exit code 0 (53 modules transformed in 3.02s).
 - **Blockers for Phase 2**: None. Ready to proceed to Phase 2 (Database models and migrations).
 
 ---

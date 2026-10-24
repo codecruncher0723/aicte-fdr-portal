@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useRole } from '../context/RoleContext';
 import { FDR_STATUSES, exportToCSV } from '../data/mockData';
 
-export default function MaturityRenewalsPage({ fdrs, onSelectFdr }) {
+export default function MaturityRenewalsPage({ fdrs = [], onSelectFdr }) {
   const { setActiveRoute, setSelectedFdrRef } = useRole();
   const [horizonFilter, setHorizonFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -10,7 +10,7 @@ export default function MaturityRenewalsPage({ fdrs, onSelectFdr }) {
 
   // Calculate maturity days remaining
   const recordsWithMaturity = useMemo(() => {
-    return fdrs.map(f => {
+    return (fdrs || []).map(f => {
       const matDate = new Date(f.maturityDate);
       const now = new Date('2024-11-15'); // Current simulation epoch
       const diffTime = matDate - now;
@@ -26,16 +26,32 @@ export default function MaturityRenewalsPage({ fdrs, onSelectFdr }) {
     });
   }, [fdrs]);
 
+  // Filter records matching the current search query
+  const searchMatchedRecords = useMemo(() => {
+    if (!search.trim()) return recordsWithMaturity;
+    const s = search.toLowerCase().trim();
+    return recordsWithMaturity.filter(
+      item =>
+        item.fdrNumber.toLowerCase().includes(s) ||
+        item.institutionName.toLowerCase().includes(s) ||
+        item.bank.toLowerCase().includes(s)
+    );
+  }, [recordsWithMaturity, search]);
+
+  // Dynamic counts for each horizon filter tab based on searchMatchedRecords
+  const counts = useMemo(() => {
+    return {
+      all: searchMatchedRecords.length,
+      overdue: searchMatchedRecords.filter(r => r.isOverdue).length,
+      '30days': searchMatchedRecords.filter(r => r.isWithin30).length,
+      '60days': searchMatchedRecords.filter(r => r.isWithin60).length,
+      '90days': searchMatchedRecords.filter(r => r.isWithin90).length,
+    };
+  }, [searchMatchedRecords]);
+
+  // Apply horizon filter on top of search
   const filtered = useMemo(() => {
-    return recordsWithMaturity.filter(item => {
-      const matchesSearch =
-        !search ||
-        item.fdrNumber.toLowerCase().includes(search.toLowerCase()) ||
-        item.institutionName.toLowerCase().includes(search.toLowerCase()) ||
-        item.bank.toLowerCase().includes(search.toLowerCase());
-
-      if (!matchesSearch) return false;
-
+    return searchMatchedRecords.filter(item => {
       if (horizonFilter === 'overdue') return item.isOverdue;
       if (horizonFilter === '30days') return item.isWithin30;
       if (horizonFilter === '60days') return item.isWithin60;
@@ -43,7 +59,7 @@ export default function MaturityRenewalsPage({ fdrs, onSelectFdr }) {
       if (horizonFilter === 'upcoming') return item.daysRemaining <= 180;
       return true;
     }).sort((a, b) => a.daysRemaining - b.daysRemaining);
-  }, [recordsWithMaturity, search, horizonFilter]);
+  }, [searchMatchedRecords, horizonFilter]);
 
   const handleDispatchNotice = (fdrNumber) => {
     setDispatchedNotices(prev => [...prev, fdrNumber]);
@@ -102,85 +118,109 @@ export default function MaturityRenewalsPage({ fdrs, onSelectFdr }) {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
-          <span className="font-label-sm text-[11px] text-secondary uppercase font-semibold">Total Maturing (Next 6 Mo)</span>
-          <div className="font-headline-xl text-2xl font-bold text-on-surface mt-2 font-data-mono">₹226.40 Cr</div>
-          <span className="text-xs text-secondary mt-1">418 Pledged Instruments</span>
-        </div>
-
-        <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
-          <span className="font-label-sm text-[11px] text-error uppercase font-semibold">Matured & Overdue</span>
-          <div className="font-headline-xl text-2xl font-bold text-error mt-2 font-data-mono">14 Instruments</div>
-          <span className="text-xs text-error font-medium mt-1">Notice Form D-3 Active</span>
-        </div>
-
-        <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
-          <span className="font-label-sm text-[11px] text-tertiary uppercase font-semibold">Within 30 Days</span>
-          <div className="font-headline-xl text-2xl font-bold text-tertiary mt-2 font-data-mono">42 Instruments</div>
-          <span className="text-xs text-secondary mt-1">Nodal Bank Alerts Dispatched</span>
-        </div>
-
-        <div className="bg-surface-container-lowest p-5 rounded-2xl border border-surface-container shadow-xs flex flex-col justify-between">
-          <span className="font-label-sm text-[11px] text-emerald-700 uppercase font-semibold">Auto-Rollover Warranted</span>
-          <div className="font-headline-xl text-2xl font-bold text-emerald-800 mt-2 font-data-mono">88.5%</div>
-          <span className="text-xs text-secondary mt-1">Finacle Standing Mandate</span>
-        </div>
-      </div>
-
       {/* Filter Tabs & Search */}
       <div className="bg-surface-container-lowest rounded-2xl p-4 border border-surface-container shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 overflow-x-auto text-xs pb-1 sm:pb-0">
           <button
             onClick={() => setHorizonFilter('all')}
-            className={`px-3 py-1.5 rounded-lg font-label-sm text-xs font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-lg font-label-sm text-xs font-semibold transition-all inline-flex items-center gap-2 ${
               horizonFilter === 'all'
                 ? 'bg-primary text-on-primary shadow-xs'
                 : 'bg-surface-container-low text-secondary hover:text-on-surface'
             }`}
           >
-            All Horisons
+            <span>All Horizons</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold font-data-mono ${
+                horizonFilter === 'all'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-surface-container text-secondary'
+              }`}
+            >
+              {counts.all}
+            </span>
           </button>
+
           <button
             onClick={() => setHorizonFilter('overdue')}
-            className={`px-3 py-1.5 rounded-lg font-label-sm text-xs font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-lg font-label-sm text-xs font-semibold transition-all inline-flex items-center gap-2 ${
               horizonFilter === 'overdue'
                 ? 'bg-error text-on-error shadow-xs'
                 : 'bg-surface-container-low text-secondary hover:text-on-surface'
             }`}
           >
-            Matured Overdue
+            <span>Matured Overdue</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold font-data-mono ${
+                horizonFilter === 'overdue'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-error-container text-error'
+              }`}
+            >
+              {counts.overdue}
+            </span>
           </button>
+
           <button
             onClick={() => setHorizonFilter('30days')}
-            className={`px-3 py-1.5 rounded-lg font-label-sm text-xs font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-lg font-label-sm text-xs font-semibold transition-all inline-flex items-center gap-2 ${
               horizonFilter === '30days'
                 ? 'bg-primary text-on-primary shadow-xs'
                 : 'bg-surface-container-low text-secondary hover:text-on-surface'
             }`}
           >
-            &lt; 30 Days
+            <span>&lt; 30 Days</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold font-data-mono ${
+                horizonFilter === '30days'
+                  ? 'bg-white/20 text-white'
+                  : counts['30days'] > 0
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-surface-container text-secondary'
+              }`}
+            >
+              {counts['30days']}
+            </span>
           </button>
+
           <button
             onClick={() => setHorizonFilter('60days')}
-            className={`px-3 py-1.5 rounded-lg font-label-sm text-xs font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-lg font-label-sm text-xs font-semibold transition-all inline-flex items-center gap-2 ${
               horizonFilter === '60days'
                 ? 'bg-primary text-on-primary shadow-xs'
                 : 'bg-surface-container-low text-secondary hover:text-on-surface'
             }`}
           >
-            31–60 Days
+            <span>31–60 Days</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold font-data-mono ${
+                horizonFilter === '60days'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-surface-container text-secondary'
+              }`}
+            >
+              {counts['60days']}
+            </span>
           </button>
+
           <button
             onClick={() => setHorizonFilter('90days')}
-            className={`px-3 py-1.5 rounded-lg font-label-sm text-xs font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-lg font-label-sm text-xs font-semibold transition-all inline-flex items-center gap-2 ${
               horizonFilter === '90days'
                 ? 'bg-primary text-on-primary shadow-xs'
                 : 'bg-surface-container-low text-secondary hover:text-on-surface'
             }`}
           >
-            61–90 Days
+            <span>61–90 Days</span>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold font-data-mono ${
+                horizonFilter === '90days'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-surface-container text-secondary'
+              }`}
+            >
+              {counts['90days']}
+            </span>
           </button>
         </div>
 
@@ -215,71 +255,83 @@ export default function MaturityRenewalsPage({ fdrs, onSelectFdr }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-container font-body-sm text-on-surface">
-              {filtered.map(item => (
-                <tr key={item.id} className="hover:bg-surface-container-low/60 transition-colors">
-                  <td className="py-3 px-4">
-                    <span className="font-data-mono font-bold text-on-surface block">{item.fdrNumber}</span>
-                    <span className="text-[10px] text-secondary">{item.tripartiteRef.split(' / ')[0]}</span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="font-semibold text-on-surface block">{item.institutionName}</span>
-                    <span className="text-[10px] text-secondary">PID: {item.aictePid} • {item.regionLabel}</span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="font-medium text-on-surface block">{item.bank}</span>
-                    <span className="text-[10px] text-secondary">{item.branch}</span>
-                  </td>
-                  <td className="py-3 px-4 text-right font-data-mono font-bold text-on-surface text-[13px]">
-                    {item.amountFormatted}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="font-data-mono font-medium block">{item.maturityDate}</span>
-                    <span className="text-[10px] text-secondary">{item.autoRollover ? 'Auto-Rollover' : 'Manual Renewal'}</span>
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    {item.isOverdue ? (
-                      <span className="inline-flex items-center gap-1 font-mono font-bold text-[11px] text-error bg-error-container px-2 py-0.5 rounded">
-                        {Math.abs(item.daysRemaining)}d OVERDUE
-                      </span>
-                    ) : item.daysRemaining <= 30 ? (
-                      <span className="inline-flex items-center gap-1 font-mono font-bold text-[11px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
-                        {item.daysRemaining}d Left
-                      </span>
-                    ) : (
-                      <span className="font-mono text-secondary text-[11px]">
-                        {item.daysRemaining}d Left
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-surface-container text-on-surface">
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="py-3 pr-4 pl-2 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => handleDispatchNotice(item.fdrNumber)}
-                        className={`h-7 px-2.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 ${
-                          dispatchedNotices.includes(item.fdrNumber)
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-primary hover:bg-primary-container text-on-primary'
-                        }`}
-                      >
-                        <span className="material-symbols-outlined text-[14px]">outgoing_mail</span>
-                        <span>{dispatchedNotices.includes(item.fdrNumber) ? 'Sent' : 'Notice'}</span>
-                      </button>
-                      <button
-                        onClick={() => handleInspect(item)}
-                        className="p-1 rounded text-secondary hover:text-on-surface hover:bg-surface-container"
-                        title="View Telemetry"
-                      >
-                        <span className="material-symbols-outlined text-[16px]">visibility</span>
-                      </button>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="py-8 text-center text-secondary">
+                    <div className="flex flex-col items-center justify-center gap-1.5">
+                      <span className="material-symbols-outlined text-[28px] text-secondary/60">search_off</span>
+                      <span className="font-semibold text-xs">No maturity records found</span>
+                      <span className="text-[11px] text-secondary">Try adjusting your horizon filter or search query</span>
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                filtered.map(item => (
+                  <tr key={item.id} className="hover:bg-surface-container-low/60 transition-colors">
+                    <td className="py-3 px-4">
+                      <span className="font-data-mono font-bold text-on-surface block">{item.fdrNumber}</span>
+                      <span className="text-[10px] text-secondary">{item.tripartiteRef?.split(' / ')[0]}</span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="font-semibold text-on-surface block">{item.institutionName}</span>
+                      <span className="text-[10px] text-secondary">PID: {item.aictePid} • {item.regionLabel}</span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="font-medium text-on-surface block">{item.bank}</span>
+                      <span className="text-[10px] text-secondary">{item.branch}</span>
+                    </td>
+                    <td className="py-3 px-4 text-right font-data-mono font-bold text-on-surface text-[13px]">
+                      {item.amountFormatted}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className="font-data-mono font-medium block">{item.maturityDate}</span>
+                      <span className="text-[10px] text-secondary">{item.autoRollover ? 'Auto-Rollover' : 'Manual Renewal'}</span>
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      {item.isOverdue ? (
+                        <span className="inline-flex items-center gap-1 font-mono font-bold text-[11px] text-error bg-error-container px-2 py-0.5 rounded">
+                          {Math.abs(item.daysRemaining)}d OVERDUE
+                        </span>
+                      ) : item.daysRemaining <= 30 ? (
+                        <span className="inline-flex items-center gap-1 font-mono font-bold text-[11px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
+                          {item.daysRemaining}d Left
+                        </span>
+                      ) : (
+                        <span className="font-mono text-secondary text-[11px]">
+                          {item.daysRemaining}d Left
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-surface-container text-on-surface">
+                        {item.status}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-4 pl-2 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleDispatchNotice(item.fdrNumber)}
+                          className={`h-7 px-2.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 ${
+                            dispatchedNotices.includes(item.fdrNumber)
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-primary hover:bg-primary-container text-on-primary'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[14px]">outgoing_mail</span>
+                          <span>{dispatchedNotices.includes(item.fdrNumber) ? 'Sent' : 'Notice'}</span>
+                        </button>
+                        <button
+                          onClick={() => handleInspect(item)}
+                          className="p-1 rounded text-secondary hover:text-on-surface hover:bg-surface-container"
+                          title="View Telemetry"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">visibility</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

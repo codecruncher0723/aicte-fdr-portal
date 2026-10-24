@@ -14,6 +14,7 @@ export const FDR_STATUSES = {
   RENEWAL_REQUESTED: 'Renewal Requested',
   RELEASE_REQUESTED: 'Release Requested',
   RELEASE_APPROVED: 'Release Approved',
+  AWAITING_CONFIRMATION: 'Awaiting Release Confirmation',
   RELEASED_REFUNDED: 'Released/Refunded',
   REJECTED: 'Rejected',
 };
@@ -704,3 +705,114 @@ export function exportToCSV(filename, rows) {
     document.body.removeChild(link);
   }
 }
+
+
+export const RELEASE_REQUEST_STATUSES = {
+  REQUESTED: 'REQUESTED',
+  UNDER_VERIFICATION: 'UNDER_VERIFICATION',
+  CORRECTION_REQUIRED: 'CORRECTION_REQUIRED',
+  PENDING_APPROVAL: 'PENDING_APPROVAL',
+  RELEASE_APPROVED: 'RELEASE_APPROVED',
+  REJECTED: 'REJECTED',
+  AWAITING_CONFIRMATION: 'AWAITING_CONFIRMATION',
+  RELEASED_REFUNDED: 'RELEASED_REFUNDED',
+  CANCELLED: 'CANCELLED'
+};
+
+export const INITIAL_RELEASE_REQUESTS = [
+  {
+    id: 'rel_01',
+    fdrId: 'fdr_10',
+    fdrNumber: 'FDR-UBI-994411',
+    institutionName: 'Amity Technical Campus',
+    aictePid: '1-99881233',
+    bank: 'Union Bank of India',
+    amount: 10000000,
+    amountFormatted: '₹1,00,00,000',
+    requestType: 'Program Discontinuation',
+    submittedDate: '2024-10-18',
+    status: 'RELEASE_APPROVED',
+    councilOrderRef: 'AICTE/FIN/REL/2024/918',
+    approvalDate: '2024-11-05',
+    readinessRemarks: null,
+    confirmationRef: null,
+    confirmationVoucher: null,
+    notes: 'Council Committee Order 918 ratified. Next step: confirm readiness before bank voucher confirmation.'
+  },
+  {
+    id: 'rel_02',
+    fdrId: 'fdr_08',
+    fdrNumber: 'FDR-SBI-772091',
+    institutionName: 'Vellore Educational Foundation',
+    aictePid: '1-66554411',
+    bank: 'State Bank of India',
+    amount: 6000000,
+    amountFormatted: '₹60,00,00,000',
+    requestType: 'Excess Collateral Refund',
+    submittedDate: '2024-11-02',
+    status: 'REQUESTED',
+    councilOrderRef: null,
+    approvalDate: null,
+    readinessRemarks: null,
+    confirmationRef: null,
+    confirmationVoucher: null,
+    notes: 'Autonomous status granted. Request submitted under Regulation 14(C) for surplus deposit return.'
+  },
+  {
+    id: 'rel_03',
+    fdrId: 'fdr_04',
+    fdrNumber: 'FDR-CAN-551982',
+    institutionName: 'K.R. College of Engineering',
+    aictePid: '1-44556677',
+    bank: 'Canara Bank',
+    amount: 5000000,
+    amountFormatted: '₹50,00,000',
+    requestType: 'Surplus Reserve Release',
+    submittedDate: '2024-09-14',
+    status: 'RELEASED_REFUNDED',
+    councilOrderRef: 'AICTE/FIN/REL/2024/842',
+    approvalDate: '2024-10-01',
+    readinessRemarks: 'Statutory NOC issued and communicated to Canara Bank treasury.',
+    confirmationRef: 'UTR-CAN-2024-881920',
+    confirmationVoucher: 'CANARA_REFUND_ADV_88192.pdf',
+    notes: 'Released and refunded. Bank UTR transaction verified and ledger account closed.'
+  },
+  {
+    id: 'rel_04',
+    fdrId: 'fdr_02',
+    fdrNumber: 'FDR-SBI-440192',
+    institutionName: "St. Xavier's Engineering College",
+    aictePid: '1-10928374',
+    bank: 'State Bank of India',
+    amount: 5000000,
+    amountFormatted: '₹50,00,000',
+    requestType: 'Surplus Collateral Refund',
+    submittedDate: '2024-11-08',
+    status: 'UNDER_VERIFICATION',
+    councilOrderRef: null,
+    approvalDate: null,
+    readinessRemarks: null,
+    confirmationRef: null,
+    confirmationVoucher: null,
+    notes: 'Verification Officer checking PG Tech course completion and zero penalty clearance.'
+  },
+  {
+    id: 'rel_05',
+    fdrId: 'fdr_05',
+    fdrNumber: 'FDR-HDFC-991024',
+    institutionName: 'Delhi Technical Campus',
+    aictePid: '1-33445566',
+    bank: 'HDFC Bank',
+    amount: 8000000,
+    amountFormatted: '₹80,00,000',
+    requestType: 'Program Closure',
+    submittedDate: '2024-10-12',
+    status: 'AWAITING_CONFIRMATION',
+    councilOrderRef: 'AICTE/FIN/REL/2024/761',
+    approvalDate: '2024-10-28',
+    readinessRemarks: 'Readiness confirmed by Finance Officer. NOC issued to Sol Manager. Awaiting final credit voucher.',
+    confirmationRef: null,
+    confirmationVoucher: null,
+    notes: 'Ready for bank confirmation. Sponsoring trust advised to provide credit receipt.'
+  }
+];
