@@ -41,6 +41,10 @@ class FDR(Base):
     documents = relationship("DocumentVersion", back_populates="fdr", cascade="all, delete-orphan")
     requests = relationship("WorkflowRequest", back_populates="fdr", cascade="all, delete-orphan")
     provenance_records = relationship("FieldProvenance", back_populates="fdr", cascade="all, delete-orphan")
+    verifications = relationship("VerificationRecord", back_populates="fdr", cascade="all, delete-orphan")
+    approvals = relationship("ApprovalRecord", back_populates="fdr", cascade="all, delete-orphan")
+    status_history = relationship("StatusTransitionHistory", back_populates="fdr", cascade="all, delete-orphan", order_by="StatusTransitionHistory.created_at.asc()")
+    renewal_history = relationship("FDRRenewalHistory", back_populates="fdr", cascade="all, delete-orphan", order_by="FDRRenewalHistory.created_at.asc()")
 
 class FieldProvenance(Base):
     __tablename__ = "field_provenance"
@@ -56,3 +60,33 @@ class FieldProvenance(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     fdr = relationship("FDR", back_populates="provenance_records")
+
+class FDRRenewalHistory(Base):
+    __tablename__ = "fdr_renewal_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    fdr_id = Column(Integer, ForeignKey("fdrs.id", ondelete="CASCADE"), nullable=False)
+    request_id = Column(Integer, ForeignKey("workflow_requests.id", ondelete="SET NULL"), nullable=True)
+    actor_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    
+    # Historical values prior to renewal
+    previous_fdr_number = Column(String(100), nullable=False)
+    previous_amount = Column(Numeric(14, 2), nullable=False)
+    previous_issue_date = Column(Date, nullable=False)
+    previous_maturity_date = Column(Date, nullable=False)
+    previous_bank_name = Column(String(150), nullable=False)
+    previous_branch = Column(String(150), nullable=False)
+    previous_interest_rate = Column(String(50), nullable=True)
+    
+    # Renewed values
+    renewed_fdr_number = Column(String(100), nullable=False)
+    renewed_maturity_date = Column(Date, nullable=False)
+    renewed_interest_rate = Column(String(50), nullable=True)
+    renewal_document_id = Column(Integer, ForeignKey("document_versions.id", ondelete="SET NULL"), nullable=True)
+    
+    remarks = Column(String(1000), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    fdr = relationship("FDR", back_populates="renewal_history")
+    renewal_document = relationship("DocumentVersion")
+    actor = relationship("User")

@@ -132,8 +132,8 @@ Execution notes:
 - [x] **M** Reuse the existing relational database/ORM if present; choose SQLite only if it fits the existing stack and local demo constraints. Do not switch database technology without a concrete blocker.
 - [x] **M** Model institutions, users, roles, FDR records, documents, verification records, workflow requests, approval records, audit logs, and notifications if feasible. Keep request type (`RENEWAL`, `RELEASE_REFUND`) and request status separate from FDR status.
 - [x] **M** Add keys/relationships and constraints: exactly one of `fdr_id` or `request_id` per approval record; required fields; positive deposit amount; maturity date not earlier than issue date; foreign keys; timestamps.
-- [ ] **M** Store document metadata, relative private-storage reference, and SHA-256 hash; never store public URLs or expose raw storage paths through APIs.
-- [ ] **M** Add append-only verification/approval history and auditable status history sufficient to retain old FDR values/documents on renewal.
+- [x] **M** Store document metadata, relative private-storage reference, and SHA-256 hash; never store public URLs or expose raw storage paths through APIs.
+- [x] **M** Add append-only verification/approval history and auditable status history sufficient to retain old FDR values/documents on renewal.
 - [ ] **M** Preserve provenance for critical FDR fields where practical: source category, actor, timestamp, previous/new value, and reason for changes. Never label data `BANK_CONFIRMED` without an actual authoritative bank confirmation.
 - [ ] **M** Model document uploads as immutable versions with SHA-256, size, detected media type, uploader, timestamp, and private storage reference; replacement creates a new version rather than overwriting old evidence.
 - [ ] **M** Implement migrations using the detected migration mechanism and deterministic seed/demo data for all four roles and at least two institutions.
@@ -161,6 +161,23 @@ Execution notes (Phase 2 Tasks 1-3):
 - **Canonical Enums**: Defined `UserRole` (4 roles), `FDRStatus` (14 statuses), `RequestType` (RENEWAL, RELEASE_REFUND), `RenewalStatus` (8 statuses), `ReleaseStatus` (9 statuses), `DiscrepancySeverity`, and `ProvenanceSource`.
 - **Relational Integrity & Check Constraints**: Enforced `amount > 0` (`chk_fdr_amount_positive`), `maturity_date >= issue_date` (`chk_fdr_maturity_after_issue`), `length(sha256_hash) == 64` (`chk_doc_hash_length`), `file_size > 0` (`chk_doc_size_positive`), and exclusive target check on approval records (`chk_approval_target_exclusive`). Foreign keys enforced via SQLite connection event.
 - **Verification Suite**: Created `backend/tests/test_models.py`. Ran pytest: 10/10 passed in 0.83s. Verified invalid amounts, reversed maturity dates, non-existent foreign keys, invalid document hashes, and dual/null approval targets are strictly rejected. Verified renewal and release requests coexist while preserving distinct FDR status. Frontend build passes (`npm run build` exit code 0).
+- **Secure Document Storage & Metadata Service**:
+  - Created `backend/app/storage.py` enforcing private storage management outside public web root (`backend/storage/documents/`).
+  - Enforced 10 MB file size limit and strict format whitelist: PDF, JPEG, PNG, WEBP.
+  - Implemented binary magic byte signature verification (`%PDF-`, `\xFF\xD8\xFF`, PNG 8-byte header, RIFF/WEBP); rejected mismatches, empty files, and corrupted/truncated uploads.
+  - Enforced safe relative storage keys (`{category}/{entity_id}/{year}/{month}/{uuid}_{safe_name}`) and blocked all path traversal attempts (absolute paths, leading slashes, drive specifiers, null bytes, parent traversal `..`).
+  - Implemented SHA-256 hash calculation and constant-time integrity verification (`verify_file_integrity`).
+  - Integrated immutable `DocumentVersion` database persistence with automatic version incrementing for replacement/correction uploads.
+  - Implemented `format_document_response` ensuring raw filesystem paths, internal storage keys, and public file URLs are never exposed through APIs.
+  - Created comprehensive test suite in `backend/tests/test_storage.py` (13 tests). All 23 backend tests passed in 0.78s. Frontend build verified clean (`vite build` in 11.99s, exit code 0).
+- **Append-Only History & Separation of Duties**:
+  - Implemented `backend/app/history.py` with atomic history recording, strict role checks, and separation of duties enforcement.
+  - Added `StatusTransitionHistory` and `FDRRenewalHistory` models in `backend/app/models/`. Added `previous_status` and `new_status` columns to `VerificationRecord` and `ApprovalRecord`.
+  - Implemented `record_status_transition`, `record_verification_decision`, and `record_approval_decision`.
+  - Enforced separation of duties: submitters CANNOT approve or verify their own submissions (`SeparationOfDutiesError`). Enforced role permissions: only `VERIFICATION_OFFICER`/`AICTE_ADMIN` can verify, only `APPROVING_AUTHORITY`/`AICTE_ADMIN` can approve (`UnauthorizedRoleError`).
+  - Implemented `complete_fdr_renewal`: captures historical FDR values in `FDRRenewalHistory`, records field-level audit provenance in `FieldProvenance`, leaves previous document versions intact and immutable, and preserves distinct FDR lifecycle state.
+  - Enforced database-level immutability using SQLAlchemy event listeners (`before_update`, `before_delete`) on `VerificationRecord`, `ApprovalRecord`, `StatusTransitionHistory`, and `FDRRenewalHistory`, raising `ImmutableRecordError` on any attempted mutation or deletion.
+  - Created `backend/tests/test_history.py` (11 test cases). All 34 backend tests pass in 1.09s. Frontend production build verified clean (`vite build` in 3.26s, exit code 0).
 
 ---
 

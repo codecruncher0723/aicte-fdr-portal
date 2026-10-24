@@ -40,6 +40,8 @@ class VerificationRecord(Base):
     
     officer_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     decision = Column(String(50), nullable=False)  # VERIFIED, CORRECTION_REQUIRED, REJECTED
+    previous_status = Column(String(50), nullable=True)
+    new_status = Column(String(50), nullable=True)
     remarks = Column(String(1000), nullable=True)
     
     discrepancy_code = Column(String(50), nullable=True)
@@ -49,6 +51,8 @@ class VerificationRecord(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     request = relationship("WorkflowRequest", back_populates="verifications")
+    fdr = relationship("FDR", back_populates="verifications")
+    officer = relationship("User")
 
 class ApprovalRecord(Base):
     __tablename__ = "approval_records"
@@ -59,6 +63,8 @@ class ApprovalRecord(Base):
     
     approver_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     decision = Column(String(50), nullable=False)  # APPROVED, REJECTED, RELEASE_APPROVED
+    previous_status = Column(String(50), nullable=True)
+    new_status = Column(String(50), nullable=True)
     council_order_ref = Column(String(100), nullable=True)
     reason = Column(String(1000), nullable=True)
     
@@ -72,3 +78,23 @@ class ApprovalRecord(Base):
     )
 
     request = relationship("WorkflowRequest", back_populates="approvals")
+    fdr = relationship("FDR", back_populates="approvals")
+    approver = relationship("User")
+
+class StatusTransitionHistory(Base):
+    __tablename__ = "status_transition_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    fdr_id = Column(Integer, ForeignKey("fdrs.id", ondelete="CASCADE"), nullable=False)
+    request_id = Column(Integer, ForeignKey("workflow_requests.id", ondelete="SET NULL"), nullable=True)
+    actor_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
+    
+    from_status = Column(String(50), nullable=False)
+    to_status = Column(String(50), nullable=False)
+    transition_type = Column(String(50), default="FDR_LIFECYCLE", nullable=False)  # FDR_LIFECYCLE, RENEWAL, RELEASE
+    reason = Column(String(1000), nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    fdr = relationship("FDR", back_populates="status_history")
+    request = relationship("WorkflowRequest")
+    actor = relationship("User")
