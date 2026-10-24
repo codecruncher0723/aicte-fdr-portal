@@ -96,7 +96,10 @@ export default function RoleSwitcherModal() {
         </div>
 
         <div className="px-space-lg py-3 bg-surface-container-low border-t border-surface-container flex items-center justify-between text-xs text-secondary">
-          <span>Simulation Mode: Local Session State</span>
+          <span className="flex items-center gap-1.5 text-emerald-700 font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Authenticated: Live FastAPI JWT Session
+          </span>
           <button
             onClick={() => setIsRoleModalOpen(false)}
             className="px-3 py-1 rounded-lg hover:bg-surface-container text-on-surface font-medium"

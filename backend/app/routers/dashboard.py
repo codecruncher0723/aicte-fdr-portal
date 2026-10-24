@@ -3,15 +3,16 @@ Dashboard & Summary API Router (/api/v1/dashboard).
 Implements Section 8.7 of REQUIREMENTS_UPDATED.md with server-side role and institution scoping.
 """
 
+from decimal import Decimal
 from typing import Dict, Any, List
-from pydantic import BaseModel
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import desc
 
 from app.database import get_db
 from app.models.enums import UserRole, FDRStatus
 from app.models.fdr import FDR
+from app.models.audit import AuditLog
 from app.models.user import User
 from app.auth import get_current_user
 
@@ -34,7 +35,7 @@ def get_dashboard_summary(
 
     all_fdrs = query.all()
     total_fdrs = len(all_fdrs)
-    total_amount = sum(float(f.amount) for f in all_fdrs)
+    total_amount = sum((Decimal(str(f.amount)) for f in all_fdrs), Decimal("0.00"))
 
     by_status: Dict[str, int] = {}
     for f in all_fdrs:
@@ -48,7 +49,7 @@ def get_dashboard_summary(
         "by_status": by_status,
         "pending_fdr_verification": pending_verif,
         "pending_fdr_approval": pending_appr,
-        "total_deposit_amount_inr": total_amount,
+        "total_deposit_amount_inr": format(total_amount.quantize(Decimal("0.01")), "f"),
         "institution_scope": current_user.institution_id if current_user.role == UserRole.INSTITUTION_OFFICER.value else "ALL",
     }
 
@@ -76,10 +77,41 @@ def get_maturity_horizon(
             "institution_id": f.institution_id,
             "institution_name": f.institution.name if f.institution else None,
             "bank_name": f.bank_name,
-            "amount": float(f.amount),
+            "amount": format(Decimal(str(f.amount)).quantize(Decimal("0.01")), "f"),
             "maturity_date": f.maturity_date,
             "status": f.status,
             "auto_rollover": f.auto_rollover,
         }
         for f in items
+    ]
+
+
+@router.get("/audit-logs", summary="List audit events scoped by role")
+def list_audit_logs(
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_db),
+):
+    query = session.query(AuditLog)
+    if current_user.role == UserRole.INSTITUTION_OFFICER.value:
+        fdr_ids = [
+            str(row.id)
+            for row in session.query(FDR.id).filter(FDR.institution_id == current_user.institution_id).all()
+        ]
+        query = query.filter(
+            (AuditLog.actor_id == current_user.id)
+            | ((AuditLog.target_type == "FDR") & (AuditLog.target_id.in_(fdr_ids or ["-1"])))
+        )
+    logs = query.order_by(desc(AuditLog.created_at)).limit(500).all()
+    return [
+        {
+            "id": log.id,
+            "timestamp": log.created_at.isoformat() if log.created_at else None,
+            "actor": log.actor_name,
+            "role": log.actor_role,
+            "action": log.action,
+            "target": f"{log.target_type}:{log.target_id}",
+            "details": log.details,
+            "hash": None,
+        }
+        for log in logs
     ]

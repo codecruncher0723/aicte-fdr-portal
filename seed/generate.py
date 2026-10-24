@@ -274,8 +274,8 @@ def make_config(out: Path) -> None:
 def generate_core(out: Path, seed: int, ref: date, bulk: int = 0) -> None:
     rng = random.Random(seed)
     if out.exists():
-        shutil.rmtree(out)
-    out.mkdir(parents=True)
+        shutil.rmtree(out, ignore_errors=True)
+    out.mkdir(parents=True, exist_ok=True)
     institutions = build_institutions()
     users, scopes, creds = build_users()
     instruments, bucket_info = create_instruments(ref, rng)

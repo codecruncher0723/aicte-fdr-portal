@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useRole } from '../context/RoleContext';
 import { exportToCSV } from '../data/mockData';
+import { reportsApi } from '../api/client';
 
 export default function ReportsPage({ fdrs }) {
   const { fiscalYear } = useRole();
@@ -35,10 +36,24 @@ export default function ReportsPage({ fdrs }) {
     showNotice('Bank Collateral Concentration report exported successfully.');
   };
 
-  const handleExportMasterAuditReport = () => {
-    if (fdrs && fdrs.length) {
-      exportToCSV('AICTE_Master_Audited_FDR_Portfolio.csv', fdrs);
-      showNotice('Full Audited Master Registry exported.');
+  const handleExportMasterAuditReport = async () => {
+    try {
+      const blob = await reportsApi.downloadFdrsCsv();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `AICTE_Audited_FDR_Portfolio_${selectedFy}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      showNotice('Certified Master FDR Portfolio exported directly from regulatory ledger.');
+    } catch (err) {
+      console.warn('Backend CSV download failed, falling back to client-side export:', err);
+      if (fdrs && fdrs.length) {
+        exportToCSV('AICTE_Master_Audited_FDR_Portfolio.csv', fdrs);
+        showNotice('Full Audited Master Registry exported.');
+      }
     }
   };
 

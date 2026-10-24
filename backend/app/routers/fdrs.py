@@ -6,6 +6,8 @@ Implements Section 8.3 of REQUIREMENTS_UPDATED.md with strict server-side RBAC a
 from typing import List, Optional, Dict, Any, Union
 from datetime import date
 from decimal import Decimal
+
+from app.storage import format_document_response
 from pydantic import BaseModel, Field, ConfigDict
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -217,6 +219,7 @@ def list_fdrs(
                 "branch_name": f.branch,
                 "ifsc": f.ifsc,
                 "amount": float(f.amount),
+                "amount_decimal": format(Decimal(str(f.amount)).quantize(Decimal("0.01")), "f"),
                 "deposit_amount": float(f.amount),
                 "interest_rate": f.interest_rate,
                 "issue_date": f.issue_date.isoformat() if isinstance(f.issue_date, date) else str(f.issue_date),
@@ -311,6 +314,7 @@ def get_fdr(
         "branch_name": fdr.branch,
         "ifsc": fdr.ifsc,
         "amount": float(fdr.amount),
+        "amount_decimal": format(Decimal(str(fdr.amount)).quantize(Decimal("0.01")), "f"),
         "deposit_amount": float(fdr.amount),
         "interest_rate": fdr.interest_rate,
         "issue_date": fdr.issue_date.isoformat() if isinstance(fdr.issue_date, date) else str(fdr.issue_date),
@@ -323,6 +327,31 @@ def get_fdr(
         "notes": fdr.notes,
         "created_by_id": fdr.created_by_id,
         "created_at": fdr.created_at.isoformat() if fdr.created_at else None,
+        "documents": [format_document_response(d) for d in (fdr.documents or [])],
+        "provenance": [
+            {
+                "field_name": p.field_name,
+                "old_value": p.old_value,
+                "new_value": p.new_value,
+                "source_category": p.source_category,
+                "actor_id": p.actor_id,
+                "reason": p.reason,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+            }
+            for p in (fdr.provenance_records or [])
+        ],
+        "verifications": [
+            {
+                "id": v.id,
+                "decision": v.decision,
+                "discrepancy_code": v.discrepancy_code,
+                "discrepancy_severity": v.discrepancy_severity,
+                "discrepancy_note": v.discrepancy_note,
+                "remarks": v.remarks,
+                "created_at": v.created_at.isoformat() if v.created_at else None,
+            }
+            for v in (fdr.verifications or [])
+        ],
     }
 
 

@@ -5,14 +5,14 @@ Main FastAPI Application for AICTE Fixed Deposit Receipt (FDR) Portal.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers.auth import router as auth_router
-from app.routers.institutions import router as institutions_router
-from app.routers.workflow import router as workflow_router
-from app.routers.fdrs import router as fdrs_router
-from app.routers.documents import router as documents_router
-from app.routers.dashboard import router as dashboard_router
-from app.routers.reports import router as reports_router
-from app.routers.notifications import router as notifications_router
+from .routers.auth import router as auth_router
+from .routers.institutions import router as institutions_router
+from .routers.workflow import router as workflow_router
+from .routers.fdrs import router as fdrs_router
+from .routers.documents import router as documents_router
+from .routers.dashboard import router as dashboard_router
+from .routers.reports import router as reports_router
+from .routers.notifications import router as notifications_router
 
 app = FastAPI(
     title="AICTE FDR Management Portal API",

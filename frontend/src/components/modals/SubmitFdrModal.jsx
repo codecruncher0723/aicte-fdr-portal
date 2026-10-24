@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FDR_STATUSES } from '../../data/mockData';
+import { fdrsApi, documentsApi } from '../../api/client';
 
 export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
   const [step, setStep] = useState(1);
@@ -24,7 +25,9 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
     fileName: null
   });
 
+  const [uploadedFile, setUploadedFile] = useState(null);
   const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -35,6 +38,7 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: null }));
     }
+    if (apiError) setApiError(null);
   };
 
   const validateStep1 = () => {
@@ -64,60 +68,60 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setApiError(null);
 
-    setTimeout(() => {
-      const newFdr = {
-        id: `fdr_${Date.now()}`,
-        fdrNumber: formData.fdrNumber.toUpperCase(),
-        certNumber: formData.certNumber.toUpperCase(),
-        tripartiteRef: `TPR-2024-${Math.floor(100 + Math.random() * 900)} / AICTE-WRO-1092`,
-        institutionId: 'inst_01',
-        institutionName: formData.institutionName,
-        aictePid: formData.aictePid,
-        region: formData.region,
-        regionLabel: 'Western (WRO)',
-        city: 'Pune',
-        state: 'Maharashtra',
-        sponsoringTrust: "St. Xavier's Technical Education Society",
-        programme: formData.programme,
-        courseDetails: 'New Program Approval • 4-Year B.Tech',
-        bank: formData.bank,
-        bankCode: formData.bankCode,
+    try {
+      // 1. Create FDR record in backend
+      const created = await fdrsApi.create({
+        fdr_number: formData.fdrNumber.trim().toUpperCase(),
+        cert_number: formData.certNumber.trim().toUpperCase(),
+        tripartite_ref: `TPR-2024-${Math.floor(100 + Math.random() * 900)} / AICTE-WRO-1092`,
+        bank_name: formData.bank,
         branch: formData.branch,
-        ifsc: formData.ifsc,
-        solId: '1290',
+        ifsc: formData.ifsc.toUpperCase(),
         amount: Number(formData.amount),
-        amountFormatted: `₹${(Number(formData.amount) / 100000).toLocaleString('en-IN')} Lakhs`,
-        amountWords: 'Statutory Deposit under Reg 14(B)',
-        interestRate: formData.interestRate,
-        issueDate: formData.issueDate,
-        maturityDate: formData.maturityDate,
-        tenureYears: Number(formData.tenureYears),
-        status: FDR_STATUSES.SUBMITTED,
-        lienStatus: 'Lien Endorsed - Awaiting Scrutiny',
-        mandateClause: formData.mandateClause,
-        ocrConfidence: 'Simulated 99.4%',
-        discrepancyNote: null,
-        statutoryMinimum: Number(formData.amount),
-        statutoryMetPercent: 100,
-        autoRollover: true,
-        lastAuditDate: new Date().toISOString().split('T')[0],
-        notes: 'Submitted via Institutional FDR Portal. Ready for WRO Desk Scrutiny.'
-      };
+        interest_rate: formData.interestRate,
+        issue_date: formData.issueDate,
+        maturity_date: formData.maturityDate,
+        tenure_years: Number(formData.tenureYears),
+        mandate_clause: formData.mandateClause,
+        auto_rollover: true,
+        notes: 'Submitted via Institutional Registration Wizard.',
+      });
+
+      // 2. Upload primary document if provided
+      if (uploadedFile && created?.id) {
+        const docForm = new FormData();
+        docForm.append('file', uploadedFile);
+        docForm.append('document_type', 'FDR_CERTIFICATE');
+        docForm.append('remarks', 'Initial FDR certificate bond scan');
+        try {
+          await documentsApi.uploadFdrDocument(created.id, docForm);
+        } catch (docErr) {
+          console.warn('Document attachment warning:', docErr);
+        }
+      }
+
+      // 3. Transition from DRAFT to SUBMITTED
+      const submitted = await fdrsApi.submit(created.id);
 
       setIsSubmitting(false);
       setIsSuccess(true);
 
       setTimeout(() => {
-        if (onSubmitSuccess) onSubmitSuccess(newFdr);
+        if (onSubmitSuccess) onSubmitSuccess(submitted || created);
         setIsSuccess(false);
         setStep(1);
         onClose();
-      }, 1500);
-    }, 1000);
+      }, 1200);
+    } catch (err) {
+      console.error('Error submitting FDR to backend:', err);
+      setIsSubmitting(false);
+      setApiError(err.message || 'Submission failed. Please check field validation.');
+    }
   };
 
   return (
@@ -408,6 +412,7 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
                           className="hidden"
                           onChange={(e) => {
                             if (e.target.files && e.target.files[0]) {
+                              setUploadedFile(e.target.files[0]);
                               handleChange('fileName', e.target.files[0].name);
                             }
                           }}
@@ -418,6 +423,11 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
                       <div className="mt-2 text-xs font-semibold text-emerald-700 flex items-center justify-center gap-1">
                         <span className="material-symbols-outlined text-[16px]">check_circle</span>
                         <span>Attached: {formData.fileName}</span>
+                      </div>
+                    )}
+                    {apiError && (
+                      <div className="mt-3 p-3 rounded-xl bg-error/10 border border-error/30 text-error text-xs">
+                        {apiError}
                       </div>
                     )}
                   </div>

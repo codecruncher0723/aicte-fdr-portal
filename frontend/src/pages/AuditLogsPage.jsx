@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { exportToCSV, AUDIT_LOGS } from '../data/mockData';
+import { dashboardApi } from '../api/client';
 
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState([
@@ -36,11 +37,41 @@ export default function AuditLogsPage() {
     }
   ]);
 
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [actionFilter, setActionFilter] = useState('all');
   const [selectedLog, setSelectedLog] = useState(null);
   const [isLiveActive, setIsLiveActive] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchLogs() {
+      try {
+        setLoading(true);
+        const res = await dashboardApi.listAuditLogs();
+        if (isMounted && Array.isArray(res) && res.length > 0) {
+          const formatted = res.map((item, idx) => ({
+            id: item.id || `live_${idx}`,
+            timestamp: item.timestamp ? new Date(item.timestamp).toLocaleString('en-IN') : 'Just now',
+            actor: item.actor || 'System',
+            role: item.role || 'System',
+            action: item.action || 'Audit Record',
+            target: item.target || 'FDR System',
+            details: item.details || '',
+            hash: item.hash || `sha256:log_${item.id || idx}`
+          }));
+          setLogs(formatted);
+        }
+      } catch (err) {
+        console.warn('Could not fetch audit logs from backend, keeping local data:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    fetchLogs();
+    return () => { isMounted = false; };
+  }, []);
 
   const filteredLogs = useMemo(() => {
     return logs.filter(log => {

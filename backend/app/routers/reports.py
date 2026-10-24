@@ -8,6 +8,7 @@ Implements Section 5.3 & 8.7 of REQUIREMENTS_UPDATED.md:
 
 import csv
 import io
+from decimal import Decimal
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
@@ -84,7 +85,7 @@ def export_fdrs_csv(
             f.bank_name,
             f.branch,
             f.ifsc,
-            float(f.amount),
+            format(Decimal(str(f.amount)).quantize(Decimal("0.01")), "f"),
             f.interest_rate or "",
             f.issue_date.isoformat() if f.issue_date else "",
             f.maturity_date.isoformat() if f.maturity_date else "",

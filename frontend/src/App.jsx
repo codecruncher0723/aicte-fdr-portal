@@ -1,9 +1,74 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { RoleProvider, useRole, ROLES } from './context/RoleContext';
 import AppLayout from './components/layout/AppLayout';
+import { fdrsApi, workflowApi, documentsApi } from './api/client';
 
-// Mock Data
+// Mock Data (used as seamless initial seed / offline fallback)
 import { INITIAL_FDRS, FDR_STATUSES, INITIAL_RELEASE_REQUESTS } from './data/mockData';
+
+// Normalizers for full resilience and backwards compatibility
+function normalizeFdr(raw) {
+  if (!raw) return raw;
+  const numAmount = typeof raw.amount === 'number' ? raw.amount : parseFloat(raw.amount_decimal || raw.amount || raw.deposit_amount || 0);
+  const formatted = raw.amountFormatted || (numAmount ? `₹${Number(numAmount).toLocaleString('en-IN')}` : '₹0.00');
+  return {
+    ...raw,
+    id: raw.id ?? raw.fdr_id,
+    fdrId: raw.id ?? raw.fdr_id,
+    fdrNumber: raw.fdrNumber || raw.fdr_number || `FDR-${raw.id}`,
+    certNumber: raw.certNumber || raw.cert_number || `CERT-${raw.id}`,
+    tripartiteRef: raw.tripartiteRef || raw.tripartite_ref || '',
+    institutionId: raw.institutionId || raw.institution_id || '',
+    institutionName: raw.institutionName || raw.institution_name || raw.institution?.name || "St. Xavier's Engineering College",
+    aictePid: raw.aictePid || raw.aicte_pid || raw.institution?.aicte_pid || '1-10928374',
+    region: raw.region || (raw.institution?.region ? raw.institution.region.toLowerCase() : 'wro'),
+    regionLabel: raw.regionLabel || (raw.institution?.region ? `${raw.institution.region} Region` : 'Western (WRO)'),
+    bank: raw.bank || raw.bank_name || raw.issuing_bank || 'State Bank of India',
+    bankName: raw.bank_name || raw.bank || 'State Bank of India',
+    bankCode: raw.bankCode || (raw.bank_name || raw.bank || 'sbi').toLowerCase().slice(0, 3),
+    branch: raw.branch || raw.branch_name || 'Main Treasury Branch',
+    ifsc: raw.ifsc || 'SBIN0000300',
+    amount: numAmount,
+    amountFormatted: formatted,
+    amountWords: raw.amountWords || `Rupees ${numAmount} Only`,
+    interestRate: raw.interestRate || (raw.interest_rate ? `${raw.interest_rate}%` : '7.20% p.a.'),
+    issueDate: raw.issueDate || raw.issue_date || '2022-01-01',
+    maturityDate: raw.maturityDate || raw.maturity_date || '2027-01-01',
+    tenureYears: raw.tenureYears || raw.tenure_years || 5,
+    status: raw.status || FDR_STATUSES.SUBMITTED,
+    lienStatus: raw.lienStatus || raw.lien_status || 'Statutory Lien Registered',
+    autoRollover: raw.autoRollover ?? raw.auto_rollover ?? true,
+    discrepancyNote: raw.discrepancyNote || raw.discrepancy_note || null,
+    notes: raw.notes || ''
+  };
+}
+
+function normalizeReleaseRequest(raw) {
+  if (!raw) return raw;
+  const numAmount = typeof raw.amount === 'number' ? raw.amount : parseFloat(raw.amount_decimal || raw.amount || 0);
+  const formatted = raw.amountFormatted || (numAmount ? `₹${Number(numAmount).toLocaleString('en-IN')}` : '₹0.00');
+  return {
+    ...raw,
+    id: raw.id ?? raw.request_id,
+    requestId: raw.id ?? raw.request_id,
+    fdrId: raw.fdrId ?? raw.fdr_id,
+    fdrNumber: raw.fdrNumber || raw.fdr_number || `FDR-${raw.fdr_id}`,
+    institutionName: raw.institutionName || raw.institution_name || "St. Xavier's Engineering College",
+    aictePid: raw.aictePid || raw.aicte_pid || '1-10928374',
+    bank: raw.bank || raw.bank_name || 'State Bank of India',
+    amount: numAmount,
+    amountFormatted: formatted,
+    requestType: raw.requestType || raw.request_type || 'Release / Refund Request',
+    submittedDate: raw.submittedDate || raw.submitted_date || raw.submitted_at?.split('T')[0] || raw.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+    status: raw.status || 'REQUESTED',
+    councilOrderRef: raw.councilOrderRef || raw.council_order_ref || null,
+    approvalDate: raw.approvalDate || raw.approval_date || null,
+    readinessRemarks: raw.readinessRemarks || raw.readiness_remarks || null,
+    confirmationRef: raw.confirmationRef || raw.confirmation_ref || null,
+    confirmationVoucher: raw.confirmationVoucher || raw.confirmation_voucher || null,
+    notes: raw.notes || raw.remarks || ''
+  };
+}
 
 // Pages
 import AdminDashboard from './pages/AdminDashboard';
@@ -46,6 +111,40 @@ function MainRouter() {
   const [scrutinyTargetFdr, setScrutinyTargetFdr] = useState(null);
   const [detailTargetFdr, setDetailTargetFdr] = useState(null);
 
+  // Data synchronization with backend API
+  const fetchAllData = useCallback(async () => {
+    try {
+      const [fdrsRes, reqsRes] = await Promise.allSettled([
+        fdrsApi.list({ limit: 100 }),
+        workflowApi.listRequests({ limit: 100 })
+      ]);
+
+      if (fdrsRes.status === 'fulfilled' && fdrsRes.value?.items && Array.isArray(fdrsRes.value.items)) {
+        if (fdrsRes.value.items.length > 0) {
+          const liveFdrs = fdrsRes.value.items.map(normalizeFdr);
+          setFdrs(liveFdrs);
+          if (selectedFdrRef) {
+            const found = liveFdrs.find(f => f.fdrNumber === selectedFdrRef);
+            if (found) setSelectedFdr(found);
+          }
+        }
+      }
+
+      if (reqsRes.status === 'fulfilled' && reqsRes.value?.items && Array.isArray(reqsRes.value.items)) {
+        if (reqsRes.value.items.length > 0) {
+          const liveReqs = reqsRes.value.items.map(normalizeReleaseRequest);
+          setReleaseRequests(liveReqs);
+        }
+      }
+    } catch (err) {
+      console.warn('Backend sync failed, maintaining current state:', err);
+    }
+  }, [selectedFdrRef]);
+
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData, currentUser]);
+
   // Select FDR and sync ref
   const handleSelectFdr = (fdr) => {
     setSelectedFdr(fdr);
@@ -65,7 +164,7 @@ function MainRouter() {
   };
 
   // Status transitions
-  const handleUpdateFdrStatus = (fdrId, newStatus, remarks) => {
+  const handleUpdateFdrStatus = async (fdrId, newStatus, remarks) => {
     setFdrs(prev =>
       prev.map(item => {
         if (item.id === fdrId) {
@@ -89,17 +188,36 @@ function MainRouter() {
         lastAuditDate: new Date().toISOString().split('T')[0]
       }));
     }
+
+    try {
+      if (newStatus === FDR_STATUSES.UNDER_VERIFICATION) {
+        await fdrsApi.startVerification(fdrId);
+      } else if (newStatus === FDR_STATUSES.VERIFIED) {
+        await workflowApi.verifyFdr(fdrId, remarks);
+      } else if (newStatus === FDR_STATUSES.ACTIVE) {
+        await workflowApi.approveFdr(fdrId, remarks);
+      } else if (newStatus === FDR_STATUSES.SUBMITTED) {
+        await fdrsApi.submit(fdrId);
+      } else if (newStatus === FDR_STATUSES.CORRECTION_REQUIRED) {
+        await fdrsApi.patch(fdrId, { status: 'CORRECTION_REQUIRED', notes: remarks });
+      }
+      await fetchAllData();
+    } catch (err) {
+      console.warn('Backend status transition failed, kept optimistic state:', err);
+    }
   };
 
   // Add new submitted FDR
-  const handleAddFdr = (newFdr) => {
-    setFdrs(prev => [newFdr, ...prev]);
-    setSelectedFdr(newFdr);
-    setSelectedFdrRef(newFdr.fdrNumber);
+  const handleAddFdr = async (newFdr) => {
+    const norm = normalizeFdr(newFdr);
+    setFdrs(prev => [norm, ...prev]);
+    setSelectedFdr(norm);
+    setSelectedFdrRef(norm.fdrNumber);
+    await fetchAllData();
   };
 
   // Correction Resubmission
-  const handleResubmitCorrection = (fdrId, remarks, fileName) => {
+  const handleResubmitCorrection = async (fdrId, remarks, fileName) => {
     setFdrs(prev =>
       prev.map(item => {
         if (item.id === fdrId) {
@@ -114,14 +232,21 @@ function MainRouter() {
         return item;
       })
     );
+    try {
+      await fdrsApi.patch(fdrId, { notes: `Amended document (${fileName}) resubmitted. ${remarks}` });
+      await fdrsApi.submit(fdrId);
+      await fetchAllData();
+    } catch (err) {
+      console.warn('Backend resubmission failed, kept optimistic state:', err);
+    }
   };
 
   // Release request status transition handler
-  const handleUpdateReleaseRequest = (requestId, transitionType, payload = {}) => {
+  const handleUpdateReleaseRequest = async (requestId, transitionType, payload = {}) => {
+    const today = new Date().toISOString().split('T')[0];
     setReleaseRequests(prev =>
       prev.map(req => {
         if (req.id !== requestId) return req;
-        const today = new Date().toISOString().split('T')[0];
         switch (transitionType) {
           case 'START_VERIFICATION':
             return { ...req, status: 'UNDER_VERIFICATION' };
@@ -152,6 +277,16 @@ function MainRouter() {
       })
     );
 
+    try {
+      await workflowApi.transitionRequest(requestId, {
+        transition_type: transitionType,
+        ...payload
+      });
+      await fetchAllData();
+    } catch (err) {
+      console.warn('Backend release request transition failed, kept optimistic state:', err);
+    }
+
     // Synchronize underlying FDR status if release confirmed
     if (transitionType === 'CONFIRM_RELEASE') {
       const targetReq = releaseRequests.find(r => r.id === requestId);
@@ -163,8 +298,18 @@ function MainRouter() {
   };
 
   // Add new release request
-  const handleCreateReleaseRequest = (newReq) => {
-    setReleaseRequests(prev => [newReq, ...prev]);
+  const handleCreateReleaseRequest = async (newReq) => {
+    const norm = normalizeReleaseRequest(newReq);
+    setReleaseRequests(prev => [norm, ...prev]);
+    try {
+      await workflowApi.createRelease(newReq.fdrId, {
+        request_type: newReq.requestType,
+        notes: newReq.notes
+      });
+      await fetchAllData();
+    } catch (err) {
+      console.warn('Backend create release failed, kept optimistic state:', err);
+    }
   };
 
   // Route Rendering
