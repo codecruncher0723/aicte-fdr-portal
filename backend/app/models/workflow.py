@@ -37,7 +37,7 @@ class VerificationRecord(Base):
     id = Column(Integer, primary_key=True, index=True)
     fdr_id = Column(Integer, ForeignKey("fdrs.id", ondelete="CASCADE"), nullable=True)
     request_id = Column(Integer, ForeignKey("workflow_requests.id", ondelete="CASCADE"), nullable=True)
-    
+    document_version_id = Column(Integer, ForeignKey("document_versions.id", ondelete="SET NULL"), nullable=True)
     officer_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     decision = Column(String(50), nullable=False)  # VERIFIED, CORRECTION_REQUIRED, REJECTED
     previous_status = Column(String(50), nullable=True)
@@ -53,6 +53,7 @@ class VerificationRecord(Base):
     request = relationship("WorkflowRequest", back_populates="verifications")
     fdr = relationship("FDR", back_populates="verifications")
     officer = relationship("User")
+    document_version = relationship("DocumentVersion")
 
 class ApprovalRecord(Base):
     __tablename__ = "approval_records"
@@ -60,7 +61,7 @@ class ApprovalRecord(Base):
     id = Column(Integer, primary_key=True, index=True)
     fdr_id = Column(Integer, ForeignKey("fdrs.id", ondelete="CASCADE"), nullable=True)
     request_id = Column(Integer, ForeignKey("workflow_requests.id", ondelete="CASCADE"), nullable=True)
-    
+    document_version_id = Column(Integer, ForeignKey("document_versions.id", ondelete="SET NULL"), nullable=True)
     approver_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False)
     decision = Column(String(50), nullable=False)  # APPROVED, REJECTED, RELEASE_APPROVED
     previous_status = Column(String(50), nullable=True)
@@ -80,6 +81,7 @@ class ApprovalRecord(Base):
     request = relationship("WorkflowRequest", back_populates="approvals")
     fdr = relationship("FDR", back_populates="approvals")
     approver = relationship("User")
+    document_version = relationship("DocumentVersion")
 
 class StatusTransitionHistory(Base):
     __tablename__ = "status_transition_history"

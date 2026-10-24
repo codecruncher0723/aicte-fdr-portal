@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiClient } from '../../api/client';
 import { FDR_STATUSES } from '../../data/mockData';
 
 export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
@@ -24,6 +25,8 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
     fileName: null
   });
 
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [submitError, setSubmitError] = useState(null);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -64,60 +67,55 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitError(null);
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const newFdr = {
-        id: `fdr_${Date.now()}`,
-        fdrNumber: formData.fdrNumber.toUpperCase(),
-        certNumber: formData.certNumber.toUpperCase(),
-        tripartiteRef: `TPR-2024-${Math.floor(100 + Math.random() * 900)} / AICTE-WRO-1092`,
-        institutionId: 'inst_01',
-        institutionName: formData.institutionName,
-        aictePid: formData.aictePid,
-        region: formData.region,
-        regionLabel: 'Western (WRO)',
-        city: 'Pune',
-        state: 'Maharashtra',
-        sponsoringTrust: "St. Xavier's Technical Education Society",
-        programme: formData.programme,
-        courseDetails: 'New Program Approval • 4-Year B.Tech',
-        bank: formData.bank,
-        bankCode: formData.bankCode,
-        branch: formData.branch,
-        ifsc: formData.ifsc,
-        solId: '1290',
+    try {
+      const payload = {
+        fdr_number: formData.fdrNumber.trim().toUpperCase(),
+        cert_number: formData.certNumber.trim().toUpperCase(),
+        bank_name: formData.bank.trim(),
+        branch: formData.branch.trim(),
+        ifsc: formData.ifsc.trim() || 'N/A',
         amount: Number(formData.amount),
-        amountFormatted: `₹${(Number(formData.amount) / 100000).toLocaleString('en-IN')} Lakhs`,
-        amountWords: 'Statutory Deposit under Reg 14(B)',
-        interestRate: formData.interestRate,
-        issueDate: formData.issueDate,
-        maturityDate: formData.maturityDate,
-        tenureYears: Number(formData.tenureYears),
-        status: FDR_STATUSES.SUBMITTED,
-        lienStatus: 'Lien Endorsed - Awaiting Scrutiny',
-        mandateClause: formData.mandateClause,
-        ocrConfidence: 'Simulated 99.4%',
-        discrepancyNote: null,
-        statutoryMinimum: Number(formData.amount),
-        statutoryMetPercent: 100,
-        autoRollover: true,
-        lastAuditDate: new Date().toISOString().split('T')[0],
-        notes: 'Submitted via Institutional FDR Portal. Ready for WRO Desk Scrutiny.'
+        interest_rate: formData.interestRate || '7.25% p.a.',
+        issue_date: formData.issueDate,
+        maturity_date: formData.maturityDate,
+        tenure_years: Number(formData.tenureYears) || 5,
+        auto_rollover: true,
+        lien_status: formData.mandateClause || 'Statutory Lien Registered',
+        notes: formData.jointAccountHolder || null,
       };
 
-      setIsSubmitting(false);
-      setIsSuccess(true);
+      // 1. Create FDR in real database
+      const createdFdr = await apiClient.createFdr(payload);
+      const createdId = createdFdr.id || createdFdr.fdr_id;
 
+      // 2. Upload document if attached
+      if (selectedFile && createdId) {
+        try {
+          await apiClient.uploadDocument(createdId, selectedFile);
+        } catch (docErr) {
+          throw new Error(`FDR record created, but document upload failed: ${docErr.message}`);
+        }
+      }
+
+      setIsSuccess(true);
       setTimeout(() => {
-        if (onSubmitSuccess) onSubmitSuccess(newFdr);
+        if (onSubmitSuccess) onSubmitSuccess(createdFdr);
         setIsSuccess(false);
         setStep(1);
+        setSelectedFile(null);
         onClose();
-      }, 1500);
-    }, 1000);
+      }, 1200);
+    } catch (err) {
+      console.error('Error creating FDR:', err);
+      setSubmitError(err.message || 'Failed to submit FDR record to regulatory database.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -405,10 +403,20 @@ export default function SubmitFdrModal({ isOpen, onClose, onSubmitSuccess }) {
                         Browse Certificate File
                         <input
                           type="file"
+                          accept=".pdf,.jpg,.jpeg,.png,.webp"
                           className="hidden"
                           onChange={(e) => {
                             if (e.target.files && e.target.files[0]) {
-                              handleChange('fileName', e.target.files[0].name);
+                              const file = e.target.files[0];
+                              if (file.size > 10 * 1024 * 1024) {
+                                setSubmitError(`Selected file exceeds regulatory 10 MB limit (${(file.size / (1024 * 1024)).toFixed(2)} MB).`);
+                                setSelectedFile(null);
+                                handleChange('fileName', '');
+                                return;
+                              }
+                              setSubmitError(null);
+                              setSelectedFile(file);
+                              handleChange('fileName', `${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
                             }
                           }}
                         />

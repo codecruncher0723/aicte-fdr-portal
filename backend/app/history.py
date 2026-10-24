@@ -132,6 +132,7 @@ def record_verification_decision(
     discrepancy_code: Optional[str] = None,
     discrepancy_severity: Optional[str] = None,
     discrepancy_note: Optional[str] = None,
+    document_version_id: Optional[int] = None,
 ) -> VerificationRecord:
     """
     Records a verification decision with separation of duties enforcement
@@ -153,6 +154,20 @@ def record_verification_decision(
         raise UnauthorizedRoleError(
             f"User with role '{officer.role}' is not authorized to verify submissions."
         )
+
+    # Resolve approved document version evidence if not explicitly passed
+    if document_version_id is None:
+        from app.models.document import DocumentVersion
+        target_fdr_id = fdr.id if fdr else (request.fdr_id if request else None)
+        target_req_id = request.id if request else None
+        doc_q = session.query(DocumentVersion)
+        if target_fdr_id is not None:
+            doc_q = doc_q.filter(DocumentVersion.fdr_id == target_fdr_id)
+        elif target_req_id is not None:
+            doc_q = doc_q.filter(DocumentVersion.request_id == target_req_id)
+        latest_doc = doc_q.order_by(DocumentVersion.version.desc()).first()
+        if latest_doc:
+            document_version_id = latest_doc.id
 
     previous_status = target.status
     if decision not in ("VERIFIED", "CORRECTION_REQUIRED", "REJECTED"):
@@ -198,6 +213,20 @@ def record_verification_decision(
         )
         session.add(audit)
 
+    # Resolve reviewed document version evidence if not explicitly passed
+    if document_version_id is None:
+        from app.models.document import DocumentVersion
+        target_fdr_id = fdr.id if fdr else (request.fdr_id if request else None)
+        target_req_id = request.id if request else None
+        doc_q = session.query(DocumentVersion)
+        if target_fdr_id is not None:
+            doc_q = doc_q.filter(DocumentVersion.fdr_id == target_fdr_id)
+        elif target_req_id is not None:
+            doc_q = doc_q.filter(DocumentVersion.request_id == target_req_id)
+        latest_doc = doc_q.order_by(DocumentVersion.version.desc()).first()
+        if latest_doc:
+            document_version_id = latest_doc.id
+
     # 4. Create immutable VerificationRecord
     v_rec = VerificationRecord(
         fdr_id=fdr.id if fdr else (request.fdr_id if request else None),
@@ -210,6 +239,7 @@ def record_verification_decision(
         discrepancy_code=discrepancy_code,
         discrepancy_severity=discrepancy_severity,
         discrepancy_note=discrepancy_note,
+        document_version_id=document_version_id,
     )
     session.add(v_rec)
     session.flush()
@@ -224,6 +254,7 @@ def record_approval_decision(
     request: Optional[WorkflowRequest] = None,
     council_order_ref: Optional[str] = None,
     reason: Optional[str] = None,
+    document_version_id: Optional[int] = None,
 ) -> ApprovalRecord:
     """
     Records an approval or rejection decision.
@@ -248,6 +279,20 @@ def record_approval_decision(
         raise UnauthorizedRoleError(
             f"User with role '{approver.role}' is not authorized to approve submissions."
         )
+
+    # Resolve reviewed/approved document version evidence if not explicitly passed
+    if document_version_id is None:
+        from app.models.document import DocumentVersion
+        target_fdr_id = fdr.id if fdr else (request.fdr_id if request else None)
+        target_req_id = request.id if request else None
+        doc_q = session.query(DocumentVersion)
+        if target_fdr_id is not None:
+            doc_q = doc_q.filter(DocumentVersion.fdr_id == target_fdr_id)
+        elif target_req_id is not None:
+            doc_q = doc_q.filter(DocumentVersion.request_id == target_req_id)
+        latest_doc = doc_q.order_by(DocumentVersion.version.desc()).first()
+        if latest_doc:
+            document_version_id = latest_doc.id
 
     previous_status = target.status
 
@@ -277,6 +322,7 @@ def record_approval_decision(
             new_status=new_status,
             council_order_ref=council_order_ref,
             reason=reason,
+            document_version_id=document_version_id,
         )
     elif request is not None:
         if request.request_type == RequestType.RENEWAL.value:
@@ -321,6 +367,7 @@ def record_approval_decision(
             new_status=new_status,
             council_order_ref=council_order_ref,
             reason=reason,
+            document_version_id=document_version_id,
         )
 
         audit = AuditLog(

@@ -1,31 +1,85 @@
 import React, { useState } from 'react';
-import { FDR_STATUSES } from '../../data/mockData';
+import { apiClient } from '../../api/client';
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.webp'];
 
 export default function ScrutinyRemarksModal({ isOpen, onClose, fdr, onResubmitSuccess }) {
   const [remarks, setRemarks] = useState(
     'Amended Form L-1 uploaded with explicit regional office descriptor (AICTE Western Regional Office, Mumbai/Pune) and certified by Branch Manager with bank seal.'
   );
-  const [fileName, setFileName] = useState('Form_L1_Signed_Endorsement_Amended.pdf');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileError, setFileError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   if (!isOpen || !fdr) return null;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setFileError(null);
+    setErrorMessage(null);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
+
+    // 1. File size validation
+    if (file.size > MAX_FILE_SIZE) {
+      setFileError(`File size exceeds regulatory 10 MB limit (${(file.size / (1024 * 1024)).toFixed(2)} MB).`);
+      setSelectedFile(null);
+      return;
+    }
+
+    // 2. File extension validation
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      setFileError(`Invalid file format '${ext}'. Allowed: PDF, JPEG, PNG, WEBP.`);
+      setSelectedFile(null);
+      return;
+    }
+
+    setSelectedFile(file);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!remarks.trim()) {
+      setErrorMessage('Correction notes are required by AICTE regulations.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      const fdrId = fdr.id || fdr.fdr_id;
+
+      // 1. Upload new document version if selected
+      if (selectedFile) {
+        await apiClient.uploadDocument(fdrId, selectedFile, 'FDR_RECEIPT');
+      }
+
+      // 2. Call backend submit endpoint to transition CORRECTION_REQUIRED -> SUBMITTED
+      await apiClient.submitFdr(fdrId, { remarks });
+
       setIsSuccess(true);
       setTimeout(() => {
         if (onResubmitSuccess) {
-          onResubmitSuccess(fdr.id, remarks, fileName);
+          onResubmitSuccess(fdrId, remarks);
         }
         setIsSuccess(false);
+        setSelectedFile(null);
         onClose();
-      }, 1400);
-    }, 900);
+      }, 1500);
+    } catch (err) {
+      console.error('Correction resubmission failed:', err);
+      setErrorMessage(err.message || 'Failed to resubmit FDR corrections to backend.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -48,7 +102,8 @@ export default function ScrutinyRemarksModal({ isOpen, onClose, fdr, onResubmitS
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-secondary hover:text-on-surface hover:bg-surface-container transition-colors"
+            disabled={isSubmitting}
+            className="p-1 rounded-lg text-secondary hover:text-on-surface hover:bg-surface-container transition-colors disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
@@ -63,29 +118,40 @@ export default function ScrutinyRemarksModal({ isOpen, onClose, fdr, onResubmitS
               </div>
               <h3 className="text-base font-bold text-on-surface">Corrections Resubmitted</h3>
               <p className="text-xs text-secondary max-w-xs mt-1">
-                FDR status transitioned to <strong className="text-teal-700">SUBMITTED</strong>. The WRO desk has been notified for re-verification.
+                FDR status transitioned to <strong className="text-teal-700">SUBMITTED</strong>. The regional scrutiny desk has been notified for re-verification.
               </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Error Message Alert */}
+              {errorMessage && (
+                <div className="p-3.5 bg-red-50 rounded-xl border border-red-200 text-xs text-red-900 flex items-start gap-2.5">
+                  <span className="material-symbols-outlined text-red-600 text-[18px] shrink-0 mt-0.5">error</span>
+                  <div>
+                    <strong className="block font-semibold">Resubmission Error:</strong>
+                    <span>{errorMessage}</span>
+                  </div>
+                </div>
+              )}
+
               {/* Deficiency Notice Card */}
               <div className="p-4 bg-amber-50 rounded-xl border border-amber-200/80">
                 <div className="flex items-center justify-between mb-1.5">
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-amber-700 text-[18px]">warning</span>
                     <span className="text-xs font-bold text-amber-900 uppercase tracking-wider">
-                      Flagged Discrepancy by WRO Desk
+                      Flagged Discrepancy by Verification Desk
                     </span>
                   </div>
-                  <span className="text-[11px] font-medium text-amber-700">12 Nov 2024</span>
+                  <span className="text-[11px] font-medium text-amber-700">Audit Status</span>
                 </div>
                 <p className="text-xs text-amber-900 leading-relaxed">
-                  {fdr.discrepancyNote ||
+                  {fdr.statusRemarks || fdr.discrepancyNote ||
                     'Joint Account Mandate text omits regional office descriptor (AICTE Western Regional Office, Pune/Mumbai). Form L-1 amendment required.'}
                 </p>
                 <div className="mt-2.5 pt-2 border-t border-amber-200/60 flex items-center justify-between text-[11px] text-amber-800">
-                  <span>Assigned Officer: Shri V. K. Malhotra (WRO)</span>
-                  <span className="font-semibold">Remedy: Amend Form L-1</span>
+                  <span>Current Status: <strong>{fdr.status}</strong></span>
+                  <span className="font-semibold">Action: Amend & Resubmit</span>
                 </div>
               </div>
 
@@ -98,60 +164,80 @@ export default function ScrutinyRemarksModal({ isOpen, onClose, fdr, onResubmitS
                   rows={3}
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
-                  placeholder="Detail how the discrepancy was rectified with the bank branch..."
-                  className="w-full text-xs rounded-xl border border-surface-container-high bg-surface-container-lowest p-3 text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="Detail the corrections made per AICTE Approval Process Handbook..."
+                  className="w-full p-3 text-xs rounded-xl border border-surface-container-high bg-surface-container-lowest text-on-surface focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
                   required
                 />
               </div>
 
-              {/* File Re-upload */}
+              {/* Replacement Document Upload */}
               <div>
                 <label className="block text-xs font-semibold text-on-surface mb-1">
-                  Attach Corrected Document (Amended Form L-1 / Endorsement)
+                  Attach Corrected Supporting Document (Optional replacement)
                 </label>
-                <div className="flex items-center justify-between p-3 rounded-xl border border-surface-container bg-surface-container-low">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="material-symbols-outlined text-primary text-[20px] shrink-0">description</span>
-                    <span className="text-xs font-medium text-on-surface truncate">{fileName}</span>
+                <div className="border border-dashed border-surface-container-high rounded-xl p-3 bg-surface-container-low/40 flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="cursor-pointer px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface text-xs font-medium inline-flex items-center gap-1.5 transition-colors">
+                      <span className="material-symbols-outlined text-[16px] text-primary">upload_file</span>
+                      <span>{selectedFile ? 'Change File' : 'Choose File'}</span>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png,.webp"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                    <span className="text-[11px] text-secondary truncate max-w-xs font-mono">
+                      {selectedFile ? selectedFile.name : 'Retain existing document version'}
+                    </span>
                   </div>
-                  <label className="cursor-pointer text-xs font-semibold text-primary hover:underline shrink-0">
-                    Replace
-                    <input
-                      type="file"
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          setFileName(e.target.files[0].name);
-                        }
-                      }}
-                    />
-                  </label>
+
+                  {selectedFile && (
+                    <div className="flex items-center justify-between text-[11px] text-teal-800 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200">
+                      <span>Ready to upload: {(selectedFile.size / 1024).toFixed(1)} KB</span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFile(null)}
+                        className="text-red-600 hover:text-red-800 font-semibold"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+
+                  {fileError && (
+                    <span className="text-[11px] text-red-600 font-medium">{fileError}</span>
+                  )}
+                  <span className="text-[10px] text-secondary">
+                    Max size: 10 MB. Supported: PDF, JPEG, PNG, WEBP. Immutably hashed via SHA-256 upon upload.
+                  </span>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="pt-3 border-t border-surface-container flex items-center justify-end gap-2.5">
+              <div className="pt-2 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-secondary hover:text-on-surface hover:bg-surface-container transition-colors"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl text-secondary hover:text-on-surface hover:bg-surface-container transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-primary text-on-primary text-xs font-semibold hover:bg-primary-container transition-colors shadow-sm inline-flex items-center gap-1.5"
+                  disabled={isSubmitting || !!fileError}
+                  className="px-5 py-2 text-xs font-semibold rounded-xl bg-primary hover:bg-primary-container text-on-primary transition-colors shadow-xs inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <>
-                      <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                      <span>Submitting...</span>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Submitting to WRO...</span>
                     </>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined text-[16px]">sync</span>
-                      <span>Resubmit Correction</span>
+                      <span className="material-symbols-outlined text-[16px]">send</span>
+                      <span>Resubmit for Verification</span>
                     </>
                   )}
                 </button>
