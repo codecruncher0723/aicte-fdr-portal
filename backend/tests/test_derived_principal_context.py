@@ -365,7 +365,13 @@ def test_valid_submissions_by_officers_from_different_institutions(client, setup
     )
     assert res_cross_b.status_code == 403
 
-    # 6. Valid submissions by owning officers
+    # 6. Attach supporting documents and valid submissions by owning officers
+    client.post(
+        f"/api/v1/fdrs/{fdr_a_id}/documents",
+        files={"file": ("receipt_a.pdf", VALID_PDF_BYTES, "application/pdf")},
+        data={"document_type": "ORIGINAL_FDR"},
+        headers={"Authorization": f"Bearer {token_for(officer_a)}"},
+    )
     res_sub_a = client.post(
         f"/api/v1/fdrs/{fdr_a_id}/submit",
         headers={"Authorization": f"Bearer {token_for(officer_a)}"},
@@ -374,6 +380,12 @@ def test_valid_submissions_by_officers_from_different_institutions(client, setup
     assert res_sub_a.status_code == 200
     assert res_sub_a.json()["status"] == FDRStatus.SUBMITTED.value
 
+    client.post(
+        f"/api/v1/fdrs/{fdr_b_id}/documents",
+        files={"file": ("receipt_b.pdf", VALID_PDF_BYTES, "application/pdf")},
+        data={"document_type": "ORIGINAL_FDR"},
+        headers={"Authorization": f"Bearer {token_for(officer_b)}"},
+    )
     res_sub_b = client.post(
         f"/api/v1/fdrs/{fdr_b_id}/submit",
         headers={"Authorization": f"Bearer {token_for(officer_b)}"},
@@ -410,6 +422,13 @@ def test_submission_ignores_client_actor_id_tampering(client, setup_derived_db):
     create_res = client.post("/api/v1/fdrs", headers={"Authorization": f"Bearer {token_for(officer_a)}"}, json=payload)
     fdr_id = create_res.json()["fdr_id"]
 
+    # Attach supporting document
+    client.post(
+        f"/api/v1/fdrs/{fdr_id}/documents",
+        files={"file": ("receipt.pdf", VALID_PDF_BYTES, "application/pdf")},
+        data={"document_type": "ORIGINAL_FDR"},
+        headers={"Authorization": f"Bearer {token_for(officer_a)}"},
+    )
     # Submit with tampered actor_id and institution_id
     sub_res = client.post(
         f"/api/v1/fdrs/{fdr_id}/submit",

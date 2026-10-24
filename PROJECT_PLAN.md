@@ -309,7 +309,7 @@ Execution notes (Phase 3 Task 1):
 ### Tasks
 - [x] **M** Implement create/list/detail/update for permitted FDR states; institution scope is enforced server-side.
 - [x] **M** Implement `POST /api/v1/fdrs/{fdr_id}/submit`: only `DRAFT` or `CORRECTION_REQUIRED` → `SUBMITTED`, with an audit/history event.
-- [ ] **M** Implement FDR field validation: required FDR number, institution, bank, amount, issue/maturity dates, and required supporting document; amount > 0; maturity ≥ issue date.
+- [x] **M** Implement FDR field validation: required FDR number, institution, bank, amount, issue/maturity dates, and required supporting document; amount > 0; maturity ≥ issue date.
 - [ ] **M** Implement configurable duplicate-candidate detection without assuming FDR number is globally unique; uniqueness scope remains `TBD`.
 - [ ] **M** Implement private upload/storage for PDF, JPG/JPEG, PNG, WEBP; max 10 MB; validate extension, MIME and magic bytes; reject empty/corrupt/mismatched files; generate server-side names; block path traversal; calculate SHA-256.
 - [ ] **M** Implement authenticated metadata list/detail/download endpoints with resource-level authorization. Never serve private files directly from the public web root.

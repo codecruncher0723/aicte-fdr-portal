@@ -30,6 +30,8 @@ from app.seeds import seed_database
 from app.security import create_access_token
 from app.main import app
 
+VALID_PDF_BYTES = b"%PDF-1.4\n1 0 obj<</Title (Submission Doc)>>endobj\n%%EOF"
+
 
 @pytest.fixture(scope="module")
 def setup_submission_db():
@@ -111,6 +113,14 @@ def test_submit_from_draft_status_success(client, setup_submission_db):
     session.commit()
     fdr_id = draft_fdr.id
 
+    # Upload required supporting document
+    client.post(
+        f"/api/v1/fdrs/{fdr_id}/documents",
+        files={"file": ("receipt.pdf", VALID_PDF_BYTES, "application/pdf")},
+        data={"document_type": "ORIGINAL_FDR"},
+        headers=auth_headers(officer),
+    )
+
     remarks_text = "Submitting initial draft FDR for scrutiny."
     res = client.post(
         f"/api/v1/fdrs/{fdr_id}/submit",
@@ -176,6 +186,14 @@ def test_submit_from_correction_required_status_success(client, setup_submission
     session.add(corr_fdr)
     session.commit()
     fdr_id = corr_fdr.id
+
+    # Upload required supporting document
+    client.post(
+        f"/api/v1/fdrs/{fdr_id}/documents",
+        files={"file": ("amended_receipt.pdf", VALID_PDF_BYTES, "application/pdf")},
+        data={"document_type": "ORIGINAL_FDR"},
+        headers=auth_headers(officer),
+    )
 
     remarks_text = "Resubmitting corrected FDR details and amended mandate descriptor."
     res = client.post(
@@ -380,6 +398,14 @@ def test_submit_ignores_client_supplied_actor_and_institution_ids(client, setup_
     session.add(draft_fdr)
     session.commit()
     fdr_id = draft_fdr.id
+
+    # Upload required supporting document
+    client.post(
+        f"/api/v1/fdrs/{fdr_id}/documents",
+        files={"file": ("receipt.pdf", VALID_PDF_BYTES, "application/pdf")},
+        data={"document_type": "ORIGINAL_FDR"},
+        headers=auth_headers(officer),
+    )
 
     # Client supplies forged actor_id and institution_id
     payload = {

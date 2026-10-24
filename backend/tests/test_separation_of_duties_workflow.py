@@ -28,6 +28,8 @@ from app.seeds import seed_database
 from app.security import create_access_token, hash_password
 from app.main import app
 
+VALID_PDF_BYTES = b"%PDF-1.4\n1 0 obj<</Title (SOD Test)>>endobj\n%%EOF"
+
 
 @pytest.fixture(scope="module")
 def setup_sod_db():
@@ -353,6 +355,14 @@ def test_valid_independent_approval_and_complete_actor_attribution(client, setup
     c_res = client.post("/api/v1/fdrs", headers={"Authorization": f"Bearer {token_for(officer_a)}"}, json=create_payload)
     assert c_res.status_code == 201
     fdr_id = c_res.json()["fdr_id"]
+
+    # Upload required supporting document before submitting
+    client.post(
+        f"/api/v1/fdrs/{fdr_id}/documents",
+        files={"file": ("receipt.pdf", VALID_PDF_BYTES, "application/pdf")},
+        data={"document_type": "ORIGINAL_FDR"},
+        headers={"Authorization": f"Bearer {token_for(officer_a)}"},
+    )
 
     sub_res = client.post(f"/api/v1/fdrs/{fdr_id}/submit", headers={"Authorization": f"Bearer {token_for(officer_a)}"}, json={"remarks": "Initial submission"})
     assert sub_res.status_code == 200

@@ -16,6 +16,7 @@ from app.models.enums import UserRole, FDRStatus, ProvenanceSource
 from app.models.institution import Institution
 from app.models.user import User
 from app.models.fdr import FDR, FieldProvenance
+from app.models.document import DocumentVersion
 from app.models.audit import AuditLog
 from app.auth import (
     get_current_user,
@@ -114,6 +115,10 @@ class StatusTransitionRequest(BaseModel):
     remarks: Optional[str] = None
     actor_id: Optional[int] = None
     institution_id: Optional[int] = None
+    supporting_document_id: Optional[int] = None
+    document_id: Optional[int] = None
+    file_name: Optional[str] = None
+    fileName: Optional[str] = None
 
 
 @router.get("", summary="List FDR records scoped by role and institution")
@@ -268,6 +273,13 @@ def create_fdr(
     Institution ID and created_by are derived strictly from the authenticated principal.
     Client-supplied institution ID is never trusted.
     """
+    # 0. Validate FDR number
+    if not req.fdr_number or not req.fdr_number.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="FDR number is required and cannot be blank.",
+        )
+
     # 1. Resolve and validate bank name
     resolved_bank = req.bank_name or req.issuing_bank
     if not resolved_bank or not resolved_bank.strip():
@@ -386,6 +398,18 @@ def update_fdr(
 
     new_bank = req.bank_name or req.issuing_bank
     new_branch = req.branch or req.branch_name
+
+    if new_bank is not None and not new_bank.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Bank name cannot be blank.",
+        )
+
+    if req.fdr_number is not None and not req.fdr_number.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="FDR number cannot be blank.",
+        )
 
     # Check reason requirement if critical fields are modified
     critical_check = {
@@ -520,7 +544,7 @@ def submit_fdr(
     """
     Submits FDR record for scrutiny. Only the owning Institution Officer can submit.
     FDR must be in DRAFT or CORRECTION_REQUIRED. Result is SUBMITTED.
-    Enforces server-side institution isolation and field validation before transition.
+    Enforces server-side institution isolation, field validation, and required uploaded supporting document.
     """
     fdr = session.query(FDR).filter_by(id=fdr_id).first()
     if not fdr:
@@ -534,27 +558,74 @@ def submit_fdr(
             detail=f"Cannot submit FDR in '{fdr.status}' status. Only DRAFT or CORRECTION_REQUIRED can be submitted.",
         )
 
-    # Validate required fields before accepting submission
+    # 1. Validate required FDR number
     if not fdr.fdr_number or not fdr.fdr_number.strip():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot submit FDR without a valid FDR number.",
         )
+
+    # 2. Validate required bank name
     if not fdr.bank_name or not fdr.bank_name.strip():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot submit FDR without a valid issuing bank name.",
         )
+
+    # 3. Validate positive amount
     if fdr.amount is None or fdr.amount <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot submit FDR with invalid deposit amount.",
         )
+
+    # 4. Validate issue and maturity dates
     if not fdr.issue_date or not fdr.maturity_date or fdr.maturity_date < fdr.issue_date:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot submit FDR with invalid issue or maturity dates.",
         )
+
+    # 5. Required Supporting Document Validation
+    # A filename alone in payload or metadata does NOT qualify.
+    # Must have an actual uploaded DocumentVersion record associated with this FDR.
+    supporting_doc_id = None
+    if req:
+        supporting_doc_id = req.supporting_document_id or req.document_id
+
+    if supporting_doc_id is not None:
+        doc = session.query(DocumentVersion).filter_by(id=supporting_doc_id).first()
+        if not doc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Supporting document with ID {supporting_doc_id} not found.",
+            )
+        if doc.fdr_id != fdr.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Supporting document with ID {supporting_doc_id} is not associated with FDR {fdr.id}.",
+            )
+        if doc.file_size <= 0 or not doc.sha256_hash or len(doc.sha256_hash) != 64:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Supporting document is invalid or corrupted.",
+            )
+    else:
+        # Check that at least one valid uploaded document is linked to this FDR
+        valid_doc = (
+            session.query(DocumentVersion)
+            .filter(
+                DocumentVersion.fdr_id == fdr.id,
+                DocumentVersion.file_size > 0,
+                DocumentVersion.sha256_hash.isnot(None),
+            )
+            .first()
+        )
+        if not valid_doc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot submit FDR without a valid uploaded supporting document. A filename alone does not qualify; upload a document first.",
+            )
 
     remarks = req.remarks if (req and req.remarks and req.remarks.strip()) else "Submitted for verification."
     try:
