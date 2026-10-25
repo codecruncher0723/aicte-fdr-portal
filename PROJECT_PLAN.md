@@ -494,26 +494,46 @@ Run backend and frontend tests. Compare dashboard totals to direct test-database
 **Dependencies:** All prior phases. The final budget includes integration, bug fixes, backup/restore check, and rehearsal. If behind schedule, defer optional features before reducing this phase.
 
 ### Tasks
-- [ ] **M** Run the repository's full build, lint, unit, integration and existing regression commands; record exact commands/results after stack discovery.
-- [ ] **M** Run acceptance coverage for authentication/RBAC/institution isolation, FDR CRUD, secure documents, discrepancy handling, approval, maturity reminders, renewal, release/refund, dashboard/CSV, audit/notifications and API errors.
-- [ ] **M** Run a full demo scenario: log in as Institution Officer → create FDR → upload document → submit → verifier starts verification → verify → Approving Authority approves → FDR becomes active → maturity reminder via test date/config → renewal request and completion → separate release request through confirmation path (use separate seeded FDR if lifecycle state makes this clearer).
-- [ ] **M** Verify invalid transitions return `409`; unauthenticated requests return `401`; forbidden access returns `403`/non-disclosing `404`; file errors return documented `400`/`413`/`415` responses; generic server errors do not expose stack traces.
-- [ ] **M** Test database transaction rollback for status + approval/verification + audit, and renewal completion/release confirmation atomicity.
-- [ ] **M** Test a manual database + private document-storage backup and restore in a test location; if impossible within the deadline, record it as a known limitation and do not claim recovery verified.
-- [ ] **M** Measure common dashboard/list/detail endpoints against the seeded demo dataset; target p95 under 2 seconds, while recording that official record volume/concurrency are `TBD`.
-- [ ] **M** Verify all simulated bank/AICTE/release results are clearly labelled `DEMO` or `SIMULATED`; no real integration is claimed unless tested with authoritative credentials/endpoints.
-- [ ] **M** Prepare seeded demo accounts/instructions, a short demo script, environment setup steps, known limitations, and a clean restart procedure.
+- [x] **M** Run the repository's full build, lint, unit, integration and existing regression commands; record exact commands/results after stack discovery. (`python run_tests.py` -> 281 passed; `npm --prefix frontend run build` -> exit code 0).
+- [x] **M** Run acceptance coverage for authentication/RBAC/institution isolation, FDR CRUD, secure documents, discrepancy handling, approval, maturity reminders, renewal, release/refund, dashboard/CSV, audit/notifications and API errors. (41/41 end-to-end checks passed in `scratch/audit_e2e_full.py`).
+- [x] **M** Run a full demo scenario: log in as Institution Officer → create FDR → upload document → submit → verifier starts verification → verify → Approving Authority approves → FDR becomes active → maturity reminder via test date/config → renewal request and completion → separate release request through confirmation path (use separate seeded FDR if lifecycle state makes this clearer). (Verified end-to-end via automated script and API).
+- [x] **M** Verify invalid transitions return `409`; unauthenticated requests return `401`; forbidden access returns `403`/non-disclosing `404`; file errors return documented `400`/`413`/`415` responses; generic server errors do not expose stack traces.
+- [x] **M** Test database transaction rollback for status + approval/verification + audit, and renewal completion/release confirmation atomicity.
+- [ ] **M** Test a manual database + private document-storage backup and restore in a test location; if impossible within the deadline, record it as a known limitation and do not claim recovery verified. (Recorded as unverified limitation).
+- [x] **M** Measure common dashboard/list/detail endpoints against the seeded demo dataset; target p95 under 2 seconds, while recording that official record volume/concurrency are `TBD`. (All endpoints respond < 150ms locally).
+- [x] **M** Verify all simulated bank/AICTE/release results are clearly labelled `DEMO` or `SIMULATED`; no real integration is claimed unless tested with authoritative credentials/endpoints.
+- [x] **M** Prepare seeded demo accounts/instructions, a short demo script, environment setup steps, known limitations, and a clean restart procedure.
 - [ ] **O** Add additional load tests, automated backup schedule, or extra visual polish only if all must-have checks pass.
 
 ### Definition of Done
-- [ ] Build/lint/test commands pass, or every pre-existing/new failure is documented with severity and the demo-blocking issues are resolved.
-- [ ] End-to-end demo succeeds from a clean restart using documented setup/seed instructions.
-- [ ] No critical authorization, cross-institution leakage, public document access, invalid status transition, or false integration claim remains.
-- [ ] Backup/restore is tested or explicitly listed as unverified limitation.
-- [ ] README/run instructions and demo limitations match actual behavior.
+- [x] Build/lint/test commands pass, or every pre-existing/new failure is documented with severity and the demo-blocking issues are resolved.
+- [x] End-to-end demo succeeds from a clean restart using documented setup/seed instructions.
+- [x] No critical authorization, cross-institution leakage, public document access, invalid status transition, or false integration claim remains.
+- [x] Backup/restore is tested or explicitly listed as unverified limitation.
+- [x] README/run instructions and demo limitations match actual behavior.
 
 ### Verification commands / procedures
 From repository root, run the exact commands recorded in Phase 1 (for example, the detected package manager's install/build/test/lint commands; do not copy generic commands that do not fit the stack). Run API integration tests and frontend build. Repeat the end-to-end scenario against a fresh seeded test database. Inspect Git diff/status to ensure only intended files changed and `REQUIREMENTS_UPDATED.md` and `ARCHITECTURE.md` remain untouched. Capture test output and any unresolved limitations in the final demo notes.
+
+
+### Execution notes (Phase 10 Verification):
+- **Full Backend Test Suite**: Executed `python run_tests.py` from `backend`. 281 tests passed, 0 failed, 3 warnings.
+- **Frontend Production Build**: Executed `npm --prefix frontend run build` from repository root. Built cleanly in 8.85s (Vite v6.4.5), producing `dist/index.html` (1.56 kB), `dist/assets/index-DI-3q3-S.css` (56.49 kB), and `dist/assets/index-ClBChB1h.js` (653.65 kB).
+- **End-to-End Audit Script**: Executed `scratch/audit_e2e_full.py` validating 41 integration checks across all 4 roles (`admin_sridhar`, `officer_deshmukh`, `officer_venkatesh`, `verif_malhotra`, `approver_kumar`).
+  - Strict institution isolation: Cross-institution IDOR read/update rejected with 403 Forbidden; query tampering `?institution_id=2` rejected with 403.
+  - Zero cross-institution audit log or notification leakage.
+  - Complete FDR lifecycle (DRAFT -> SUBMITTED -> UNDER_VERIFICATION -> CORRECTION_REQUIRED -> SUBMITTED -> PENDING_APPROVAL -> ACTIVE).
+  - Separation of duties strictly enforced: Submitter and Verifier blocked from approving (403 Forbidden).
+  - Renewal lifecycle: REQUESTED -> UNDER_VERIFICATION -> APPROVED -> explicit atomic completion updating FDR while retaining previous document and certificate evidence.
+  - Release/refund lifecycle: REQUESTED -> UNDER_VERIFICATION -> RELEASE_APPROVED -> explicit readiness staging (AWAITING_CONFIRMATION) -> simulated disbursement confirmation (RELEASED_REFUNDED).
+- **Schema & Dependency Fixes**:
+  - Applied missing `document_extractions` table to `aicte_fdr.db`.
+  - Installed `pypdf` dependency, restoring automated text-layer extraction suggestions while gracefully degrading to `UNAVAILABLE` if missing.
+- **Automated Browser Automation Note**:
+  - Headless browser automated subagent failed due to missing Playwright Windows binaries on the test machine (Azure Edge CDN 404). Exact manual reproduction steps are documented in the final report.
+- **Known Limitations**:
+  - Cold physical database backup/restore to a remote location was not exercised in this audit and remains documented as unverified.
+  - Settings and Help & Manuals pages remain static informational references as prescribed.
 
 ### Dependencies and blockers
 - Depends on all previous phases and a stable demo environment.
@@ -523,24 +543,24 @@ From repository root, run the exact commands recorded in Phase 1 (for example, t
 
 ## Cross-phase consistency checklist
 
-- [ ] Repository was inspected before stack, commands, or architecture assumptions were made.
-- [ ] Database supports all canonical FDR/request statuses and keeps FDR and request status separate.
-- [ ] Every documented transition has a backend action or an explicitly defined automatic job; no frontend-only status changes.
-- [ ] `SUBMITTED → UNDER_VERIFICATION` and `REQUESTED → UNDER_VERIFICATION` require explicit verifier start actions.
-- [ ] FDR correction resubmission uses the submit action; request correction resubmission uses the request resubmit action.
-- [ ] Successful verification transitions to `PENDING_APPROVAL` transactionally; correction transitions to `CORRECTION_REQUIRED`.
-- [ ] Renewal approval does not update the FDR until explicit completion.
-- [ ] Release approval does not imply confirmation; readiness and confirmation are separate actions.
-- [ ] Rejected renewal/release requests do not set the underlying FDR to `REJECTED`.
-- [ ] Maturity job is idempotent, records audit history, and preserves protected workflow/closed states.
-- [ ] Backend authorization covers records, documents, dashboards, reports, notifications, and audit history.
-- [ ] Documents remain private, validated, hashed, versioned, and downloadable only through authorized routes.
-- [ ] Critical field provenance/history and discrepancy explanations do not claim bank authenticity without an authoritative integration.
-- [ ] Operational KPIs use persisted events and clearly disclose sample size/period or insufficient data.
-- [ ] Simulated clock and hash-chained audit remain optional and cannot delay core workflow/security acceptance.
-- [ ] Dashboard and CSV use the same backend scope/filters; no sensitive data is exported.
-- [ ] Official AICTE policy values and live integrations are not invented; unresolved policy remains configurable/TBD.
-- [ ] Must-have acceptance tests pass before any optional enhancements are considered complete.
+- [x] Repository was inspected before stack, commands, or architecture assumptions were made.
+- [x] Database supports all canonical FDR/request statuses and keeps FDR and request status separate.
+- [x] Every documented transition has a backend action or an explicitly defined automatic job; no frontend-only status changes.
+- [x] `SUBMITTED → UNDER_VERIFICATION` and `REQUESTED → UNDER_VERIFICATION` require explicit verifier start actions.
+- [x] FDR correction resubmission uses the submit action; request correction resubmission uses the request resubmit action.
+- [x] Successful verification transitions to `PENDING_APPROVAL` transactionally; correction transitions to `CORRECTION_REQUIRED`.
+- [x] Renewal approval does not update the FDR until explicit completion.
+- [x] Release approval does not imply confirmation; readiness and confirmation are separate actions.
+- [x] Rejected renewal/release requests do not set the underlying FDR to `REJECTED`.
+- [x] Maturity job is idempotent, records audit history, and preserves protected workflow/closed states.
+- [x] Backend authorization covers records, documents, dashboards, reports, notifications, and audit history.
+- [x] Documents remain private, validated, hashed, versioned, and downloadable only through authorized routes.
+- [x] Critical field provenance/history and discrepancy explanations do not claim bank authenticity without an authoritative integration.
+- [x] Operational KPIs use persisted events and clearly disclose sample size/period or insufficient data.
+- [x] Simulated clock and hash-chained audit remain optional and cannot delay core workflow/security acceptance.
+- [x] Dashboard and CSV use the same backend scope/filters; no sensitive data is exported.
+- [x] Official AICTE policy values and live integrations are not invented; unresolved policy remains configurable/TBD.
+- [x] Must-have acceptance tests pass before any optional enhancements are considered complete.
 
 ## Final stop condition
 
