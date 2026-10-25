@@ -409,11 +409,11 @@ export default function InstitutionDashboard({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Task 1: Scrutiny Deficiency / Clarification */}
             {correctionFdr && (
-              <div className="bg-gradient-to-br from-amber-50/70 to-white border border-amber-200/90 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xs transition-shadow hover:shadow-sm">
+              <div className="bg-gradient-to-br from-amber-50/70 to-surface-container-lowest dark:from-amber-950/25 dark:to-surface-container-lowest border border-amber-200/90 dark:border-amber-500/30 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xs transition-shadow hover:shadow-sm">
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase bg-amber-100 text-amber-900 border border-amber-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700/60">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-600 dark:bg-amber-400"></span>
                       High Priority
                     </span>
                     <span className="text-xs font-bold font-data-mono text-on-surface">
@@ -433,11 +433,11 @@ export default function InstitutionDashboard({
                     </p>
                   </div>
 
-                  <div className="bg-white/90 border border-amber-200/80 rounded-xl p-3 my-3 text-xs text-amber-950 leading-relaxed flex items-start gap-2.5 shadow-2xs">
-                    <span className="material-symbols-outlined text-[18px] text-amber-800 shrink-0 leading-none mt-0.5">
+                  <div className="bg-surface-container-lowest/90 dark:bg-surface-container-low/80 border border-amber-200/80 dark:border-amber-500/20 rounded-xl p-3 my-3 text-xs text-amber-950 dark:text-amber-200 leading-relaxed flex items-start gap-2.5 shadow-2xs">
+                    <span className="material-symbols-outlined text-[18px] text-amber-800 dark:text-amber-400 shrink-0 leading-none mt-0.5">
                       warning
                     </span>
-                    <p className="text-[11px] font-medium text-amber-950">
+                    <p className="text-[11px] font-medium text-amber-950 dark:text-amber-200">
                       {correctionFdr.discrepancyNote ||
                         correctionFdr.notes ||
                         'Regional scrutiny desk requested amended Form L-1 with explicit Regional Office descriptor.'}
@@ -445,14 +445,14 @@ export default function InstitutionDashboard({
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-amber-100/80 flex items-center justify-between gap-3 flex-wrap">
+                <div className="pt-2 border-t border-amber-100/80 dark:border-surface-container-low flex items-center justify-between gap-3 flex-wrap">
                   <span className="text-[11px] text-secondary inline-flex items-center gap-1">
                     <span className="material-symbols-outlined text-[14px]">schedule</span>
                     Resubmit before scrutiny cycle cut-off
                   </span>
                   <button
                     onClick={() => onOpenScrutinyModal && onOpenScrutinyModal(correctionFdr)}
-                    className="px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 active:bg-amber-900 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 active:bg-amber-900 dark:bg-amber-600 dark:hover:bg-amber-500 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                     type="button"
                   >
                     <span className="material-symbols-outlined text-[16px] leading-none shrink-0">upload_file</span>
@@ -464,11 +464,11 @@ export default function InstitutionDashboard({
 
             {/* Task 2: Maturity Rollover Renewal */}
             {renewalFdr && (
-              <div className="bg-gradient-to-br from-rose-50/60 to-white border border-rose-200/90 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xs transition-shadow hover:shadow-sm">
+              <div className="bg-gradient-to-br from-rose-50/60 to-surface-container-lowest dark:from-rose-950/25 dark:to-surface-container-lowest border border-rose-200/90 dark:border-rose-500/30 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xs transition-shadow hover:shadow-sm">
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase bg-rose-100 text-rose-900 border border-rose-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase bg-rose-100 text-rose-900 dark:bg-rose-900/60 dark:text-rose-200 border border-rose-300 dark:border-rose-700/60">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-600 dark:bg-rose-400"></span>
                       Due Soon
                     </span>
                     <span className="text-xs font-bold font-data-mono text-on-surface">
@@ -488,24 +488,24 @@ export default function InstitutionDashboard({
                     </p>
                   </div>
 
-                  <div className="bg-white/90 border border-rose-200/80 rounded-xl p-3 my-3 text-xs text-rose-950 leading-relaxed flex items-start gap-2.5 shadow-2xs">
-                    <span className="material-symbols-outlined text-[18px] text-rose-800 shrink-0 leading-none mt-0.5">
+                  <div className="bg-surface-container-lowest/90 dark:bg-surface-container-low/80 border border-rose-200/80 dark:border-rose-500/20 rounded-xl p-3 my-3 text-xs text-rose-950 dark:text-rose-200 leading-relaxed flex items-start gap-2.5 shadow-2xs">
+                    <span className="material-symbols-outlined text-[18px] text-rose-800 dark:text-rose-400 shrink-0 leading-none mt-0.5">
                       event_repeat
                     </span>
-                    <p className="text-[11px] font-medium text-rose-950">
+                    <p className="text-[11px] font-medium text-rose-950 dark:text-rose-200">
                       Matures on <strong>{formatDate(renewalFdr.maturityDate)}</strong>. Under APH Regulation 14(B), initiate renewal with scheduled commercial bank to prevent lien enforcement breach.
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-rose-100/80 flex items-center justify-between gap-3 flex-wrap">
+                <div className="pt-2 border-t border-rose-100/80 dark:border-surface-container-low flex items-center justify-between gap-3 flex-wrap">
                   <span className="text-[11px] text-secondary inline-flex items-center gap-1">
                     <span className="material-symbols-outlined text-[14px]">timelapse</span>
                     Pre-maturity window open
                   </span>
                   <button
                     onClick={() => setActiveRoute('renewals')}
-                    className="px-4 py-2 rounded-xl bg-teal-800 hover:bg-teal-900 active:bg-teal-950 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-teal-800 hover:bg-teal-900 active:bg-teal-950 dark:bg-teal-600 dark:hover:bg-teal-500 text-white text-xs font-semibold shadow-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                     type="button"
                   >
                     <span className="material-symbols-outlined text-[16px] leading-none shrink-0">autorenew</span>
@@ -832,23 +832,23 @@ export default function InstitutionDashboard({
             <div className="flex flex-col gap-3">
               {/* Alert 1: Clarification required */}
               {correctionFdr && (
-                <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 flex flex-col gap-1.5">
+                <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-500/30 flex flex-col gap-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 bg-amber-100/90 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-900/60 px-1.5 py-0.5 rounded border border-transparent dark:border-amber-700/50">
                       Action Required
                     </span>
-                    <span className="font-data-mono font-bold text-[11px] text-amber-950">
+                    <span className="font-data-mono font-bold text-[11px] text-amber-950 dark:text-amber-200">
                       {correctionFdr.fdrNumber}
                     </span>
                   </div>
-                  <p className="text-[11px] text-amber-900 leading-relaxed font-medium">
+                  <p className="text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed font-medium">
                     {correctionFdr.discrepancyNote ||
                       correctionFdr.notes ||
                       'Regional scrutiny desk requested clarification or amended document resubmission.'}
                   </p>
                   <button
                     onClick={() => onOpenScrutinyModal && onOpenScrutinyModal(correctionFdr)}
-                    className="self-start text-[11px] font-bold text-amber-900 hover:text-amber-950 hover:underline inline-flex items-center gap-1 mt-1 cursor-pointer"
+                    className="self-start text-[11px] font-bold text-amber-900 hover:text-amber-950 dark:text-amber-300 dark:hover:text-amber-200 hover:underline inline-flex items-center gap-1 mt-1 cursor-pointer"
                   >
                     <span>Open Resubmission Wizard</span>
                     <span className="material-symbols-outlined text-[12px] leading-none">arrow_forward</span>
@@ -858,21 +858,21 @@ export default function InstitutionDashboard({
 
               {/* Alert 2: Renewal due */}
               {renewalFdr && (
-                <div className="p-3.5 rounded-xl bg-rose-50/70 border border-rose-200/80 flex flex-col gap-1.5">
+                <div className="p-3.5 rounded-xl bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-500/30 flex flex-col gap-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-900 bg-rose-100/90 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-900 dark:text-rose-200 bg-rose-100/90 dark:bg-rose-900/60 px-1.5 py-0.5 rounded border border-transparent dark:border-rose-700/50">
                       Renewal Due
                     </span>
-                    <span className="font-data-mono font-bold text-[11px] text-rose-950">
+                    <span className="font-data-mono font-bold text-[11px] text-rose-950 dark:text-rose-200">
                       {renewalFdr.fdrNumber}
                     </span>
                   </div>
-                  <p className="text-[11px] text-rose-900 leading-relaxed font-medium">
+                  <p className="text-[11px] text-rose-900 dark:text-rose-200 leading-relaxed font-medium">
                     Deposit matures on {formatDate(renewalFdr.maturityDate)}. Rollover application must be submitted to prevent regulatory lapse.
                   </p>
                   <button
                     onClick={() => setActiveRoute('renewals')}
-                    className="self-start text-[11px] font-bold text-rose-900 hover:text-rose-950 hover:underline inline-flex items-center gap-1 mt-1 cursor-pointer"
+                    className="self-start text-[11px] font-bold text-rose-900 hover:text-rose-950 dark:text-rose-300 dark:hover:text-rose-200 hover:underline inline-flex items-center gap-1 mt-1 cursor-pointer"
                   >
                     <span>Initiate Rollover Schedule</span>
                     <span className="material-symbols-outlined text-[12px] leading-none">arrow_forward</span>
@@ -882,16 +882,16 @@ export default function InstitutionDashboard({
 
               {/* Alert 3: Active Standing */}
               {activeCount > 0 && (
-                <div className="p-3.5 rounded-xl bg-teal-50/60 border border-teal-200/80 flex flex-col gap-1.5">
+                <div className="p-3.5 rounded-xl bg-teal-50/60 dark:bg-teal-950/20 border border-teal-200/80 dark:border-teal-500/30 flex flex-col gap-1.5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-teal-900 bg-teal-100/90 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-teal-900 dark:text-teal-200 bg-teal-100/90 dark:bg-teal-900/60 px-1.5 py-0.5 rounded border border-transparent dark:border-teal-700/50">
                       Statutory Custody
                     </span>
-                    <span className="font-data-mono font-bold text-[11px] text-teal-950">
+                    <span className="font-data-mono font-bold text-[11px] text-teal-950 dark:text-teal-200">
                       {activeCount} Active Liens
                     </span>
                   </div>
-                  <p className="text-[11px] text-teal-900 leading-relaxed font-medium">
+                  <p className="text-[11px] text-teal-900 dark:text-teal-200 leading-relaxed font-medium">
                     Statutory tripartite lien registered in favor of AICTE Member Secretary. All instruments verified compliant.
                   </p>
                 </div>

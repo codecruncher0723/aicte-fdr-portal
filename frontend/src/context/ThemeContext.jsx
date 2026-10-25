@@ -7,7 +7,8 @@ export function ThemeProvider({ children }) {
     try {
       const stored = localStorage.getItem('aicte_theme');
       if (stored) return stored === 'dark';
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+      // First-time users default to light mode
+      return false;
     } catch (e) {
       return false;
     }

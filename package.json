@@ -1,0 +1,13 @@
+{
+  "name": "aicte-fdr-management-system",
+  "version": "1.0.0",
+  "description": "AICTE Fixed Deposit Receipt (FDR) Management & Verification Portal",
+  "private": true,
+  "scripts": {
+    "start": "node run.js",
+    "dev": "node run.js",
+    "backend": "cd backend && uvicorn app.main:app --reload --port 8000",
+    "frontend": "cd frontend && npm run dev",
+    "install:all": "npm --prefix frontend install"
+  }
+}
