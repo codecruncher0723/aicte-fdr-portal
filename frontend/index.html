@@ -8,8 +8,8 @@
       (function() {
         try {
           var theme = localStorage.getItem('aicte_theme');
-          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          if (theme === 'dark' || (!theme && prefersDark)) {
+          // Only enable dark mode if explicitly set by the user
+          if (theme === 'dark') {
             document.documentElement.classList.add('dark');
           } else {
             document.documentElement.classList.remove('dark');

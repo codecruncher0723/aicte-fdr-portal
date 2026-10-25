@@ -1,2 +1,9 @@
 seed/out/users_demo_credentials.csv
 seed/certs/*.key
+node_modules/
+**/node_modules/
+.vite/
+**/.vite/
+__pycache__/
+**/__pycache__/
+*.pyc
